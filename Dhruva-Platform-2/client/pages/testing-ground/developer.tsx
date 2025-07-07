@@ -1,13 +1,16 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Box, Button, Flex, Heading, VStack, HStack, Select, Input, Textarea, Text, Spinner, Tab, TabList, TabPanel, TabPanels, Tabs, ButtonGroup } from "@chakra-ui/react";
 import ContentLayout from "../../components/Layouts/ContentLayout";
 import Head from "next/head";
 import dynamic from 'next/dynamic';
+import AuthGuard from "../../components/Auth/AuthGuard";
+import RoleBasedComponent from "../../components/Auth/RoleBasedComponent";
 
 // Dynamically import the main pages
 const ServicesPage = dynamic(() => import('../services'), { ssr: false });
 const ModelsPage = dynamic(() => import('../models'), { ssr: false });
 const PipelinePage = dynamic(() => import('../pipeline'), { ssr: false });
+// Admin-only pages - only loaded for ADMIN users
 const MonitoringPage = dynamic(() => import('../monitoring'), { ssr: false });
 const AdminPage = dynamic(() => import('../admin'), { ssr: false });
 
@@ -41,6 +44,7 @@ const LANGUAGE_SCRIPT_MAP = {
 export default function DevTestingGround() {
   const [selectedTab, setSelectedTab] = useState("api-testing");
   const [feature, setFeature] = useState("translation");
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   // Language settings
   const [inputLang, setInputLang] = useState("en");
@@ -62,6 +66,12 @@ export default function DevTestingGround() {
   const [pipelineAudio, setPipelineAudio] = useState('');
   const pipelineAudioFileRef = useRef(null);
 
+  // Get user role on component mount
+  useEffect(() => {
+    const role = localStorage.getItem("user_role");
+    setUserRole(role);
+  }, []);
+
   const features = [
     { key: "translation", label: "Translation" },
     { key: "asr", label: "ASR" },
@@ -73,7 +83,7 @@ export default function DevTestingGround() {
   async function handleTranslate() {
     setIsLoading(true);
     setTextOutput("");
-    const endpoint = "http://13.203.149.17:8000/services/inference/translation";
+    const endpoint = "https://13.203.149.17/services/inference/translation";
     const payload = {
       controlConfig: { dataTracking: true },
       config: {
@@ -133,7 +143,7 @@ export default function DevTestingGround() {
       };
       reader.onerror = reject;
     });
-    const endpoint = "http://13.203.149.17:8000/services/inference/asr?serviceId=ai4bharat/indictasr";
+    const endpoint = "https://13.203.149.17/services/inference/asr?serviceId=ai4bharat/indictasr";
     const payload = {
       audio: [
         { audioContent: base64Data },
@@ -182,7 +192,7 @@ export default function DevTestingGround() {
     setIsLoading(true);
     setTextOutput("");
     setAudioUrl("");
-    const endpoint = "http://13.203.149.17:8000/services/inference/tts?serviceId=ai4bharat/indictts--gpu-t4";
+    const endpoint = "https://13.203.149.17/services/inference/tts?serviceId=ai4bharat/indictts--gpu-t4";
     const payload = {
       input: [ { source: textInput } ],
       config: {
@@ -250,7 +260,7 @@ export default function DevTestingGround() {
         };
         reader.onerror = reject;
       });
-      const asrEndpoint = "http://13.203.149.17:8000/services/inference/asr?serviceId=ai4bharat/indictasr";
+      const asrEndpoint = "https://13.203.149.17/services/inference/asr?serviceId=ai4bharat/indictasr";
       const asrPayload = {
         audio: [ { audioContent: base64Data } ],
         config: {
@@ -284,7 +294,7 @@ export default function DevTestingGround() {
         return;
       }
       // 2. Translation
-      const translationEndpoint = "http://13.203.149.17:8000/services/inference/translation";
+      const translationEndpoint = "https://13.203.149.17/services/inference/translation";
       const translationPayload = {
         controlConfig: { dataTracking: true },
         config: {
@@ -322,7 +332,7 @@ export default function DevTestingGround() {
       }
       setPipelineTranslation(translation);
       // 3. TTS
-      const ttsEndpoint = "http://13.203.149.17:8000/services/inference/tts?serviceId=ai4bharat/indictts--gpu-t4";
+      const ttsEndpoint = "https://13.203.149.17/services/inference/tts?serviceId=ai4bharat/indictts--gpu-t4";
       const ttsPayload = {
         input: [ { source: translation } ],
         config: {
@@ -572,7 +582,7 @@ export default function DevTestingGround() {
   );
 
   return (
-    <>
+    <AuthGuard requireAuth={true}>
       <Head>
         <title>Dhruva Developer Sandbox</title>
       </Head>
@@ -585,20 +595,24 @@ export default function DevTestingGround() {
               <Tab onClick={() => setSelectedTab("services")}>Services</Tab>
               <Tab onClick={() => setSelectedTab("models")}>Models</Tab>
               <Tab onClick={() => setSelectedTab("pipeline")}>Pipeline</Tab>
-              <Tab onClick={() => setSelectedTab("monitoring")}>Monitoring</Tab>
-              <Tab onClick={() => setSelectedTab("admin")}>Admin</Tab>
+              <RoleBasedComponent allowedRoles={["ADMIN"]}>
+                <Tab onClick={() => setSelectedTab("monitoring")}>Monitoring</Tab>
+                <Tab onClick={() => setSelectedTab("admin")}>Admin</Tab>
+              </RoleBasedComponent>
             </TabList>
             <TabPanels>
               <TabPanel>{renderAPITesting()}</TabPanel>
               <TabPanel><ServicesPage /></TabPanel>
               <TabPanel><ModelsPage /></TabPanel>
               <TabPanel><PipelinePage /></TabPanel>
-              <TabPanel><MonitoringPage /></TabPanel>
-              <TabPanel><AdminPage /></TabPanel>
+              <RoleBasedComponent allowedRoles={["ADMIN"]}>
+                <TabPanel><MonitoringPage /></TabPanel>
+                <TabPanel><AdminPage /></TabPanel>
+              </RoleBasedComponent>
             </TabPanels>
           </Tabs>
       </Box>
     </ContentLayout>
-    </>
+    </AuthGuard>
   );
-} 
+}

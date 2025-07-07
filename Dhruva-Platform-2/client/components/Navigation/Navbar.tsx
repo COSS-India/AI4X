@@ -4,7 +4,8 @@ import { useRouter } from "next/router";
 import { BiUser } from "react-icons/bi";
 import { useQuery } from "@tanstack/react-query";
 import { getUser } from "../../api/authAPI";
-import Image from "next/image";
+import BaseImage from "../Common/BaseImage";
+import { pathStartsWith } from "../../utils/basePath";
 
 const Navbar = () => {
   const [title, setTitle] = useState<String>("Testing Ground");
@@ -19,8 +20,7 @@ const Navbar = () => {
   };
 
   useEffect(() => {
-    let url = router.pathname.split("/");
-    if (url[1] === "testing-ground") {
+    if (pathStartsWith(router.pathname, "/testing-ground")) {
       setTitle("Testing Ground");
     } else {
       setTitle("Testing Ground");
@@ -42,7 +42,7 @@ const Navbar = () => {
       <Flex align="center" maxW="8xl" mx="auto">
         {/* Logo and App Name */}
         <HStack spacing={3}>
-          <Image alt="logo" src="/AI4Bharat.svg" height={40} width={40} />
+          <BaseImage alt="logo" src="/AI4Bharat.svg" height={40} width={40} />
           <Text fontWeight="bold" fontSize="2xl" color="orange.600" letterSpacing="wide">
             Dhruva
         </Text>
@@ -51,7 +51,7 @@ const Navbar = () => {
         {/* Testing Ground Button */}
         <Button
           colorScheme="orange"
-          variant={router.pathname.startsWith("/testing-ground") ? "solid" : "outline"}
+          variant={pathStartsWith(router.pathname, "/testing-ground") ? "solid" : "outline"}
           size="lg"
           fontWeight="bold"
           fontSize="lg"
@@ -59,7 +59,7 @@ const Navbar = () => {
           px={8}
           mx={4}
           onClick={() => router.push("/testing-ground")}
-          boxShadow={router.pathname.startsWith("/testing-ground") ? "md" : undefined}
+          boxShadow={pathStartsWith(router.pathname, "/testing-ground") ? "md" : undefined}
         >
           Testing Ground
         </Button>

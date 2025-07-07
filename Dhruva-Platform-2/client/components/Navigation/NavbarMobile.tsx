@@ -15,6 +15,7 @@ import { useRouter } from "next/router";
 import { GiHamburgerMenu } from "react-icons/gi";
 import SidebarMobile from "./SidebarMobile";
 import { BiUser } from "react-icons/bi";
+import { pathStartsWith } from "../../utils/basePath";
 
 const NavbarMobile = () => {
   const [title, setTitle] = useState<String>("Dashboard");
@@ -29,8 +30,7 @@ const NavbarMobile = () => {
   };
 
   useEffect(() => {
-    let url = router.pathname.split("/");
-    if (url[1] === "testing-ground") {
+    if (pathStartsWith(router.pathname, "/testing-ground")) {
       setTitle("Testing Ground");
     } else {
         setTitle("Dashboard");

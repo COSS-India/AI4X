@@ -3,8 +3,10 @@ import { Box, Flex, Input, Button, Spinner, Heading, Text, VStack, HStack, IconB
 import { ArrowUpIcon } from "@chakra-ui/icons";
 import ContentLayout from "../../components/Layouts/ContentLayout";
 import { FaMicrophone, FaUpload, FaVolumeUp, FaUserCircle, FaRobot } from "react-icons/fa";
+import AuthGuard from "../../components/Auth/AuthGuard";
+import { useAudioRecording, useAudioFileUpload } from "../../hooks/useAudioRecording";
 
-const BACKEND_CHAT_ENDPOINT = "http://localhost:3001/api/chat";
+const BACKEND_CHAT_ENDPOINT = "http://localhost:3002/api/chat";
 
 const INDIAN_LANGUAGES = [
   { code: "en", name: "English" },
@@ -38,7 +40,7 @@ async function translateText({ text, sourceLang, targetLang }) {
   if (sourceLang === targetLang) return text;
   console.log(`[Translation] Starting translation from ${sourceLang} to ${targetLang}`);
   
-  const endpoint = "http://13.203.149.17:8000/services/inference/translation";
+  const endpoint = "https://13.203.149.17/services/inference/translation";
   const payload = {
     controlConfig: { dataTracking: true },
     config: {
@@ -84,54 +86,36 @@ async function translateText({ text, sourceLang, targetLang }) {
   }
 }
 
-// Utility: Convert WebM Blob to WAV Blob using AudioContext
-async function webmBlobToWavBlob(webmBlob) {
-  const arrayBuffer = await webmBlob.arrayBuffer();
-  const audioCtx = new window.AudioContext();
-  const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-  // Encode to WAV (PCM 16-bit)
-  function encodeWAV(audioBuffer) {
-    const numChannels = audioBuffer.numberOfChannels;
-    const sampleRate = audioBuffer.sampleRate;
-    const format = 1; // PCM
-    const bitDepth = 16;
-    const samples = audioBuffer.length * numChannels;
-    const buffer = new ArrayBuffer(44 + samples * 2);
-    const view = new DataView(buffer);
-    // RIFF identifier 'RIFF'
-    writeString(view, 0, 'RIFF');
-    view.setUint32(4, 36 + samples * 2, true);
-    writeString(view, 8, 'WAVE');
-    // fmt chunk
-    writeString(view, 12, 'fmt ');
-    view.setUint32(16, 16, true); // Subchunk1Size
-    view.setUint16(20, format, true); // AudioFormat
-    view.setUint16(22, numChannels, true);
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * numChannels * bitDepth / 8, true);
-    view.setUint16(32, numChannels * bitDepth / 8, true);
-    view.setUint16(34, bitDepth, true);
-    // data chunk
-    writeString(view, 36, 'data');
-    view.setUint32(40, samples * 2, true);
-    // Write PCM samples
-    let offset = 44;
-    for (let i = 0; i < audioBuffer.length; i++) {
-      for (let ch = 0; ch < numChannels; ch++) {
-        let sample = audioBuffer.getChannelData(ch)[i];
-        sample = Math.max(-1, Math.min(1, sample));
-        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
-        offset += 2;
-      }
-    }
-    return new Blob([buffer], { type: 'audio/wav' });
-  }
-  function writeString(view, offset, string) {
-    for (let i = 0; i < string.length; i++) {
-      view.setUint8(offset + i, string.charCodeAt(i));
-    }
-  }
-  return encodeWAV(audioBuffer);
+
+
+// Language script mapping (same as chatbot)
+function getLanguageScriptCode(lang) {
+  const LANGUAGE_SCRIPT_MAP = {
+    'hi': 'Deva',
+    'en': 'Latn',
+    'bn': 'Beng',
+    'gu': 'Gujr',
+    'kn': 'Knda',
+    'ml': 'Mlym',
+    'mr': 'Deva',
+    'or': 'Orya',
+    'pa': 'Guru',
+    'ta': 'Taml',
+    'te': 'Telu',
+    'ur': 'Arab',
+    'as': 'Beng',
+    'brx': 'Deva',
+    'doi': 'Deva',
+    'gom': 'Deva',
+    'ks': 'Arab',
+    'mai': 'Deva',
+    'mni': 'Beng',
+    'ne': 'Deva',
+    'sa': 'Deva',
+    'sat': 'Olck',
+    'sd': 'Arab'
+  };
+  return LANGUAGE_SCRIPT_MAP[lang] || '';
 }
 
 export default function UserTestingGround() {
@@ -146,26 +130,94 @@ export default function UserTestingGround() {
   const messagesEndRef = useRef(null);
   const [textInputLang, setTextInputLang] = useState("en");
   const [outputLang, setOutputLang] = useState("en");
-  const [textIsRecording, setTextIsRecording] = useState(false);
-  const [voiceIsRecording, setVoiceIsRecording] = useState(false);
-  const textMediaRecorderRef = useRef<any>(null);
-  const voiceMediaRecorderRef = useRef<any>(null);
-  const textRecordedChunksRef = useRef<any[]>([]);
-  const voiceRecordedChunksRef = useRef<any[]>([]);
-  const [audioLoading, setAudioLoading] = useState(false);
   const [audioInputLang, setAudioInputLang] = useState("hi");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [ttsLoadingIdx, setTtsLoadingIdx] = useState(null);
-  const [voiceTranscript, setVoiceTranscript] = useState("");
-  const [voiceLLMText, setVoiceLLMText] = useState("");
-  const [voiceAudio, setVoiceAudio] = useState("");
   const [voiceLoading, setVoiceLoading] = useState(false);
   const voiceAudioFileRef = useRef<HTMLInputElement | null>(null);
   const [voiceInputLang, setVoiceInputLang] = useState("en");
 
+  // Use the enhanced audio recording hooks with optimal settings
+  const textAudioRecording = useAudioRecording({
+    sampleRate: 16000,
+    maxDuration: 120,
+    maxFileSize: 10 * 1024 * 1024, // 10MB
+    preferredFormat: 'wav',
+    autoStop: true,
+    enableEchoCancellation: true,
+    enableNoiseSuppression: true,
+    enableAutoGainControl: true,
+    onRecordingComplete: async (result) => {
+      console.log('[Text Recording] Recording completed:', result);
+      await handleTextRecordingComplete(result);
+    },
+    onError: (error) => {
+      console.error('[Text Recording] Recording error:', error);
+      // Error is already displayed in the UI through the error state
+    }
+  });
+
+  const voiceAudioRecording = useAudioRecording({
+    sampleRate: 16000,
+    maxDuration: 120,
+    maxFileSize: 10 * 1024 * 1024, // 10MB
+    preferredFormat: 'wav',
+    autoStop: true,
+    enableEchoCancellation: true,
+    enableNoiseSuppression: true,
+    enableAutoGainControl: true,
+    onRecordingComplete: async (result) => {
+      console.log('[Voice Recording] Recording completed:', result);
+      await handleVoiceChatPipeline(result.audioFile);
+    },
+    onError: (error) => {
+      console.error('[Voice Recording] Recording error:', error);
+      // Error is already displayed in the UI through the error state
+    }
+  });
+
+  // Use audio file upload hook
+  const audioFileUpload = useAudioFileUpload();
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [textMessages, voiceMessages]);
+
+  // Enhanced text recording completion handler with better validation
+  const handleTextRecordingComplete = async (result: any) => {
+    try {
+      console.log('[Text Recording] Processing recorded audio:', result);
+      console.log('[Text Recording] Recording details:', {
+        duration: result.duration,
+        size: result.size,
+        format: result.format
+      });
+
+      // Validate recording result
+      if (!result.audioFile) {
+        throw new Error('No audio file in recording result');
+      }
+
+      if (result.size < 1000) {
+        throw new Error('Recording is too short - please record for at least 1 second');
+      }
+
+      const transcript = await transcribeAudio({
+        file: result.audioFile,
+        sourceLang: audioInputLang,
+      });
+
+      if (transcript && transcript.trim() && transcript !== '[ASR failed]') {
+        setInput(transcript);
+        console.log('[Text Recording] ASR successful:', transcript);
+      } else {
+        throw new Error('Empty or invalid transcript received');
+      }
+    } catch (error) {
+      console.error('[Text Recording] Error processing recording:', error);
+      setInput('[ASR failed - ' + (error.message || 'Unknown error') + ']');
+    }
+  };
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -246,11 +298,20 @@ export default function UserTestingGround() {
   const userTextColor = "white";
   const assistantTextColor = useColorModeValue("gray.800", "white");
 
-  // ASR utility
-  async function transcribeAudio({ file, sourceLang }) {
-    console.log(`[ASR] Starting transcription for language: ${sourceLang}`);
+  // ASR utility - Updated to use correct API format based on official documentation
+  async function transcribeAudio({ file, sourceLang, retryCount = 0, maxRetries = 3 }) {
+    console.log(`[ASR] Starting transcription for language: ${sourceLang} (attempt ${retryCount + 1}/${maxRetries + 1})`);
+    console.log(`[ASR] File details:`, {
+      name: file.name,
+      type: file.type,
+      size: file.size
+    });
+
     try {
-      // Read file as base64
+      // Use the correct API endpoint from documentation
+      const endpoint = 'http://localhost:8000/services/inference/asr?serviceId=ai4bharat/indictasr';
+
+      // Convert file to base64 as required by the API
       const base64Data = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -260,150 +321,204 @@ export default function UserTestingGround() {
         };
         reader.onerror = reject;
       });
+
       console.log(`[ASR] File converted to base64, size: ${base64Data.length} characters`);
-      
-      // Send JSON POST with base64 audio
-      const endpoint = "http://13.203.149.17:8000/services/inference/asr?serviceId=ai4bharat/indictasr";
+
+      // Use the exact API format from the official documentation
       const payload = {
-        audio: [
-          {
-            audioContent: base64Data,
-          },
-        ],
+        controlConfig: {
+          dataTracking: true
+        },
         config: {
+          audioFormat: "wav",
           language: {
             sourceLanguage: sourceLang,
+            sourceScriptCode: getLanguageScriptCode(sourceLang) || ''
           },
-          serviceId: "ai4bharat/indictasr",
-          audioFormat: "wav",
           encoding: "base64",
           samplingRate: 16000,
+          serviceId: "ai4bharat/indictasr",
+          preProcessors: [],
+          postProcessors: [],
+          transcriptionFormat: {
+            value: "transcript"
+          },
+          bestTokenCount: 0
         },
-        controlConfig: { dataTracking: true },
+        audio: [
+          {
+            audioContent: base64Data
+          }
+        ]
       };
-      console.log(`[ASR] Sending request to endpoint: ${endpoint}`);
-      
+
+      console.log(`[ASR] Sending request to: ${endpoint}`);
+      console.log(`[ASR] Payload structure:`, {
+        controlConfig: payload.controlConfig,
+        config: payload.config,
+        audioLength: payload.audio[0].audioContent.length
+      });
+
       const res = await fetch(endpoint, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          accept: "application/json",
-          authorization: "Xhf5jWXfkam42bKqEk5PgIusSDsgamh4y0gRL7zs1xUINKQbyI7LX0L02mpMtv09",
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Xhf5jWXfkam42bKqEk5PgIusSDsgamh4y0gRL7zs1xUINKQbyI7LX0L02mpMtv09'
         },
         body: JSON.stringify(payload),
       });
-      
+
+      console.log(`[ASR] Response status: ${res.status} ${res.statusText}`);
+
+      if (!res.ok) {
+        let errorText;
+        try {
+          errorText = await res.text();
+        } catch (e) {
+          errorText = 'Unable to read error response';
+        }
+        console.error(`[ASR] Server error: ${res.status} ${res.statusText}`, errorText);
+
+        // Provide specific error messages based on status code
+        let errorMessage = `ASR service error: ${res.status}`;
+        if (res.status === 500) {
+          errorMessage = 'ASR service internal error - audio format may be incompatible';
+        } else if (res.status === 400) {
+          errorMessage = 'Invalid audio format or parameters';
+        } else if (res.status === 401) {
+          errorMessage = 'Authentication failed - invalid API key';
+        } else if (res.status === 413) {
+          errorMessage = 'Audio file too large';
+        } else if (res.status === 429) {
+          errorMessage = 'Too many requests - please wait and try again';
+        }
+
+        throw new Error(`${errorMessage} - ${errorText}`);
+      }
+
       const data = await res.json();
-      console.log(`[ASR] Response received:`, data);
-      
+      console.log('[ASR] Response data:', data);
+
       if (data && data.output && data.output[0]) {
-        if (data.output[0].transcript) {
-          console.log(`[ASR] Transcription successful:`, data.output[0].transcript);
-          return data.output[0].transcript;
-        } else if (data.output[0].source) {
-          console.log(`[ASR] Transcription successful (source):`, data.output[0].source);
+        if (data.output[0].source) {
+          console.log('[ASR] Transcription successful:', data.output[0].source);
           return data.output[0].source;
         } else {
-          throw new Error("ASR failed - no transcript in response");
+          console.error('[ASR] No transcript in response:', data.output[0]);
+          throw new Error('No transcript in ASR response');
         }
       } else {
-        throw new Error("ASR failed - invalid response format");
+        console.error('[ASR] Invalid response structure:', data);
+        throw new Error('Invalid ASR response format');
       }
     } catch (err) {
-      console.error(`[ASR] Error during transcription:`, err);
+      console.error(`[ASR] Error on attempt ${retryCount + 1}:`, err);
+
+      // Determine if error is retryable
+      const isRetryable = (
+        err.message.includes('500') ||
+        err.message.includes('502') ||
+        err.message.includes('503') ||
+        err.message.includes('504') ||
+        err.message.includes('network') ||
+        err.message.includes('timeout')
+      );
+
+      // Retry if possible
+      if (isRetryable && retryCount < maxRetries) {
+        const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff: 1s, 2s, 4s
+        console.log(`[ASR] Retrying in ${delay}ms... (attempt ${retryCount + 2}/${maxRetries + 1})`);
+
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return transcribeAudio({ file, sourceLang, retryCount: retryCount + 1, maxRetries });
+      }
+
       throw err;
     }
   }
 
-  // Replace shared recording handlers with separate ones
+  // New text recording handlers using the audio recording hook
   const startTextRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      textMediaRecorderRef.current = new window.MediaRecorder(stream);
-      textRecordedChunksRef.current = [];
-      textMediaRecorderRef.current.ondataavailable = (e) => {
-        if (e.data.size > 0) textRecordedChunksRef.current.push(e.data);
-      };
-      textMediaRecorderRef.current.onstop = async () => {
-        const blob = new Blob(textRecordedChunksRef.current, { type: "audio/webm" });
-        const wavBlob = await webmBlobToWavBlob(blob);
-        const file = new File([wavBlob], "recording.wav", { type: "audio/wav" });
-        setAudioLoading(true);
-        try {
-          const transcript = await transcribeAudio({
-            file,
-            sourceLang: audioInputLang,
-          });
-          setInput(transcript);
-        } catch (err) {
-          setInput("[ASR failed]");
-        }
-        setAudioLoading(false);
-      };
-      textMediaRecorderRef.current.start();
-      setTextIsRecording(true);
-    } catch (err) {
-      console.error("Microphone access denied or error:", err);
+      await textAudioRecording.startRecording();
+    } catch (error) {
+      console.error('[Text Recording] Failed to start recording:', error);
     }
   };
 
-  const stopTextRecording = () => {
-    if (textMediaRecorderRef.current) {
-      textMediaRecorderRef.current.stop();
-      setTextIsRecording(false);
-      if (textMediaRecorderRef.current.stream) {
-        textMediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
-      }
+  const stopTextRecording = async () => {
+    try {
+      await textAudioRecording.stopRecording();
+    } catch (error) {
+      console.error('[Text Recording] Failed to stop recording:', error);
     }
   };
 
   const startVoiceRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      voiceMediaRecorderRef.current = new window.MediaRecorder(stream);
-      voiceRecordedChunksRef.current = [];
-      voiceMediaRecorderRef.current.ondataavailable = (e) => {
-        if (e.data.size > 0) voiceRecordedChunksRef.current.push(e.data);
-      };
-      voiceMediaRecorderRef.current.onstop = async () => {
-        const blob = new Blob(voiceRecordedChunksRef.current, { type: "audio/webm" });
-        const wavBlob = await webmBlobToWavBlob(blob);
-        const file = new File([wavBlob], "recording.wav", { type: "audio/wav" });
-        await handleVoiceChatPipeline(file);
-        voiceRecordedChunksRef.current = [];
-      };
-      voiceMediaRecorderRef.current.start();
-      setVoiceIsRecording(true);
-    } catch (err) {
-      console.error("Microphone access denied or error:", err);
+      await voiceAudioRecording.startRecording();
+    } catch (error) {
+      console.error('[Voice Recording] Failed to start recording:', error);
     }
   };
 
-  const stopVoiceRecording = () => {
-    if (voiceMediaRecorderRef.current) {
-      voiceMediaRecorderRef.current.stop();
-      setVoiceIsRecording(false);
-      if (voiceMediaRecorderRef.current.stream) {
-        voiceMediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
-      }
+  const stopVoiceRecording = async () => {
+    try {
+      await voiceAudioRecording.stopRecording();
+    } catch (error) {
+      console.error('[Voice Recording] Failed to stop recording:', error);
     }
   };
 
-  // Handle file upload for ASR
+  // Enhanced file upload handler with comprehensive validation and error handling
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    setAudioLoading(true);
+
+    console.log('[File Upload] File selected:', file.name, file.type, file.size);
+
+    // Validate file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+      setInput(`[File too large: ${sizeMB}MB. Maximum: 10MB]`);
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('audio/')) {
+      setInput('[Invalid file type. Please upload an audio file]');
+      return;
+    }
+
     try {
+      console.log('[File Upload] Processing uploaded file...');
+
+      // Process the uploaded file with enhanced error handling
+      const processedFile = await audioFileUpload.processFile(file, 'wav');
+      if (!processedFile) {
+        throw new Error('Failed to process uploaded file - conversion returned null');
+      }
+
+      console.log('[File Upload] File processed successfully:', processedFile.name, processedFile.size);
+
       const transcript = await transcribeAudio({
-        file,
+        file: processedFile,
         sourceLang: audioInputLang,
       });
-      setInput(transcript);
-    } catch (err) {
-      setInput("[ASR failed]");
+
+      if (transcript && transcript.trim() && transcript !== '[ASR failed]') {
+        setInput(transcript);
+        console.log('[File Upload] ASR successful:', transcript);
+      } else {
+        throw new Error('Empty or invalid transcript received');
+      }
+    } catch (error) {
+      console.error('[File Upload] Error:', error);
+      setInput('[ASR failed - ' + (error.message || 'Unknown error') + ']');
     }
-    setAudioLoading(false);
+
     // Reset file input so same file can be uploaded again if needed
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -411,7 +526,7 @@ export default function UserTestingGround() {
   const fetchTTS = async ({ text, lang }) => {
     console.log(`[TTS] Starting TTS for language: ${lang}`);
     try {
-      const endpoint = "http://13.203.149.17:8000/services/inference/tts?serviceId=ai4bharat/indictts--gpu-t4";
+      const endpoint = "https://13.203.149.17/services/inference/tts?serviceId=ai4bharat/indictts--gpu-t4";
       const payload = {
         input: [{ source: text }],
         config: {
@@ -459,25 +574,45 @@ export default function UserTestingGround() {
     });
   }
 
-  // Voice Chat pipeline
+  // Enhanced Voice Chat pipeline with better error handling and validation
   async function handleVoiceChatPipeline(audioFile: File) {
     setVoiceLoading(true);
     const pipelineId = Math.random().toString(36).substring(7); // Unique ID for this pipeline run
     console.log(`[Voice Chat Pipeline ${pipelineId}] Starting pipeline...`);
-    
+    console.log(`[Voice Chat Pipeline ${pipelineId}] Audio file:`, {
+      name: audioFile.name,
+      type: audioFile.type,
+      size: audioFile.size
+    });
+
     try {
+      // Validate audio file
+      if (!audioFile || audioFile.size < 1000) {
+        throw new Error('Invalid or empty audio file');
+      }
+
       // 1. ASR
       console.log(`[Voice Chat Pipeline ${pipelineId}] Starting ASR...`);
       const transcript = await transcribeAudio({ file: audioFile, sourceLang: voiceInputLang });
       console.log(`[Voice Chat Pipeline ${pipelineId}] ASR Result:`, transcript);
+
+      if (!transcript || transcript.trim() === '' || transcript.includes('[ASR failed]')) {
+        throw new Error('ASR failed to generate transcript');
+      }
+
       setVoiceMessages((prev) => [...prev, { role: "user", content: transcript }]);
-      
+
       // 2. Translate to EN if needed
       let llmInput = transcript;
       if (voiceInputLang !== "en") {
         console.log(`[Voice Chat Pipeline ${pipelineId}] Translating to English...`);
         llmInput = await translateText({ text: transcript, sourceLang: voiceInputLang, targetLang: "en" });
         console.log(`[Voice Chat Pipeline ${pipelineId}] Translation Result:`, llmInput);
+
+        if (!llmInput || llmInput.includes('[Translation failed]')) {
+          console.warn(`[Voice Chat Pipeline ${pipelineId}] Translation failed, using original transcript`);
+          llmInput = transcript; // Fallback to original transcript
+        }
       }
       
       // 3. LLM
@@ -537,7 +672,8 @@ export default function UserTestingGround() {
   }
 
   return (
-    <ContentLayout>
+    <AuthGuard requireAuth={true}>
+      <ContentLayout>
       <Tabs variant="enclosed" colorScheme="orange" isFitted>
         <TabList>
           <Tab>Text/Audio Chat</Tab>
@@ -653,21 +789,46 @@ export default function UserTestingGround() {
                         </Box>
                       </Flex>
                     )}
+                    {(textAudioRecording.error || audioFileUpload.error) && (
+                      <Box bg="orange.50" border="1px" borderColor="orange.200" borderRadius="md" p={3}>
+                        <HStack>
+                          <Box color="orange.500">⚠️</Box>
+                          <VStack align="start" spacing={1}>
+                            <Text fontSize="sm" fontWeight="medium" color="orange.700">
+                              Audio Issue
+                            </Text>
+                            <Text fontSize="sm" color="orange.600">
+                              {textAudioRecording.error?.userMessage || audioFileUpload.error}
+                            </Text>
+                          </VStack>
+                        </HStack>
+                      </Box>
+                    )}
                     <div ref={messagesEndRef} />
                   </VStack>
                 </Box>
                 <Box as="form" onSubmit={e => { e.preventDefault(); sendMessage(); }}>
                   <HStack spacing={2}>
                     <IconButton
-                      aria-label={textIsRecording ? "Stop Recording" : "Start Recording"}
-                      icon={audioLoading ? <Spinner size="sm" /> : <FaMicrophone />}
-                      colorScheme={textIsRecording ? "red" : "orange"}
-                      onClick={textIsRecording ? stopTextRecording : startTextRecording}
-                      isLoading={audioLoading}
+                      aria-label={textAudioRecording.isRecording ? "Stop Recording" : "Start Recording"}
+                      icon={textAudioRecording.isProcessing ? <Spinner size="sm" /> : <FaMicrophone />}
+                      colorScheme={textAudioRecording.isRecording ? "red" : "orange"}
+                      onClick={textAudioRecording.isRecording ? stopTextRecording : startTextRecording}
+                      isLoading={textAudioRecording.isProcessing || audioFileUpload.isProcessing}
                       borderRadius="xl"
                       size="lg"
-                      title={textIsRecording ? "Stop Recording" : "Start Recording"}
+                      title={!textAudioRecording.isSupported ?
+                        "Audio recording not supported in this browser" :
+                        textAudioRecording.isRecording ? "Stop Recording" :
+                        textAudioRecording.hasPermission ? "Start Recording" : "Microphone permission required"}
+                      isDisabled={!textAudioRecording.isSupported}
                     />
+                    {/* Recording duration display */}
+                    {textAudioRecording.isRecording && textAudioRecording.duration > 0 && (
+                      <Text fontSize="sm" color="orange.500" fontWeight="bold">
+                        {textAudioRecording.duration}s / 120s
+                      </Text>
+                    )}
                     {/* Upload Button */}
                     <input
                       type="file"
@@ -683,7 +844,8 @@ export default function UserTestingGround() {
                       borderRadius="xl"
                       size="lg"
                       onClick={() => fileInputRef.current?.click()}
-                      isLoading={audioLoading}
+                      isLoading={audioFileUpload.isProcessing}
+                      isDisabled={textAudioRecording.isRecording || textAudioRecording.isProcessing || audioFileUpload.isProcessing}
                       title="Upload Audio (WAV/MP3)"
                     />
                     <Input
@@ -763,19 +925,23 @@ export default function UserTestingGround() {
                         </Box>
                       </Flex>
                     ))}
-                    {(voiceLoading || voiceIsRecording) && (
+                    {(voiceLoading || voiceAudioRecording.isRecording || voiceAudioRecording.isProcessing) && (
                       <Flex justify="center" align="center" w="100%" minH="48px">
-                        {voiceIsRecording ? (
+                        {voiceAudioRecording.isRecording ? (
                           <Box textAlign="center">
                             <Box mb={1}>
                               <Box w="10" h="10" bgGradient="linear(to-br, orange.400, orange.300)" borderRadius="full" mx="auto" className="animate-pulse" boxShadow="xl" />
                             </Box>
-                            <Text color="orange.500" fontWeight="bold" fontSize="sm">Listening...</Text>
+                            <Text color="orange.500" fontWeight="bold" fontSize="sm">
+                              Listening... {voiceAudioRecording.duration}s / 120s
+                            </Text>
                           </Box>
                         ) : (
                           <Box textAlign="center">
                             <Spinner size="lg" color="orange.400" thickness="4px" speed="0.8s" mb={1} />
-                            <Text color="gray.500" fontWeight="bold" fontSize="sm">Thinking...</Text>
+                            <Text color="gray.500" fontWeight="bold" fontSize="sm">
+                              {voiceAudioRecording.isProcessing ? "Processing..." : "Thinking..."}
+                            </Text>
                           </Box>
                         )}
                       </Flex>
@@ -785,7 +951,7 @@ export default function UserTestingGround() {
                 <Box w="100%" display="flex" justifyContent="center" mt={2}>
                   <Button
                     leftIcon={<FaMicrophone />}
-                    colorScheme={voiceIsRecording ? "red" : "orange"}
+                    colorScheme={voiceAudioRecording.isRecording ? "red" : "orange"}
                     size="lg"
                     borderRadius="full"
                     px={8}
@@ -793,13 +959,19 @@ export default function UserTestingGround() {
                     fontSize="xl"
                     fontWeight="bold"
                     boxShadow="xl"
-                    onClick={voiceIsRecording ? stopVoiceRecording : startVoiceRecording}
-                    isLoading={voiceLoading}
-                    disabled={voiceLoading}
+                    onClick={voiceAudioRecording.isRecording ? stopVoiceRecording : startVoiceRecording}
+                    isLoading={voiceLoading || voiceAudioRecording.isProcessing}
+                    disabled={voiceLoading || voiceAudioRecording.isProcessing || !voiceAudioRecording.isSupported}
                     _focus={{ boxShadow: "outline" }}
-                    className={voiceIsRecording ? "animate-pulse" : ""}
+                    className={voiceAudioRecording.isRecording ? "animate-pulse" : ""}
+                    title={!voiceAudioRecording.isSupported ?
+                      "Audio recording not supported in this browser" :
+                      voiceAudioRecording.isRecording ? "Stop Recording" :
+                      voiceAudioRecording.hasPermission ? "Tap to Speak" : "Microphone permission required"}
                   >
-                    {voiceIsRecording ? "Stop Recording" : "Tap to Speak"}
+                    {voiceAudioRecording.isRecording ? "Stop Recording" :
+                     !voiceAudioRecording.isSupported ? "Not Supported" :
+                     voiceAudioRecording.hasPermission ? "Tap to Speak" : "Grant Permission"}
                   </Button>
                 </Box>
               </VStack>
@@ -808,5 +980,6 @@ export default function UserTestingGround() {
         </TabPanels>
       </Tabs>
     </ContentLayout>
+    </AuthGuard>
   );
-} 
+}

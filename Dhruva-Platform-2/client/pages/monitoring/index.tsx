@@ -11,6 +11,7 @@ import {
 import { taskOptions } from "../../components/Utils/Options";
 import { lang2label } from "../../config/config";
 import useMediaQuery from "../../hooks/useMediaQuery";
+import AuthGuard from "../../components/Auth/AuthGuard";
 
 const monitoring = () => {
   const [selectedUser, setSelectedUser] = useState<string>(".*");
@@ -88,7 +89,7 @@ const monitoring = () => {
   }, [taskType]);
 
   return (
-    <>
+    <AuthGuard requireAuth={true} requiredRole="ADMIN">
       <Head>
         <title>Monitoring Dashboard</title>
       </Head>
@@ -264,7 +265,7 @@ const monitoring = () => {
         <br></br>
         <br></br>
       </Box>
-    </>
+    </AuthGuard>
   );
 };
 

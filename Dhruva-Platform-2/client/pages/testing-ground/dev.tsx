@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { Box, Heading, Button, ButtonGroup } from "@chakra-ui/react";
+import ContentLayout from "../../components/Layouts/ContentLayout";
+import AuthGuard from "../../components/Auth/AuthGuard";
+import Head from "next/head";
 
 export default function DevTestingGround() {
   const [selectedFeature, setSelectedFeature] = useState("translation"); // default to Translation
@@ -12,7 +15,11 @@ export default function DevTestingGround() {
   ];
 
   return (
-    <ContentLayout>
+    <AuthGuard requireAuth={true}>
+      <Head>
+        <title>Dev Testing Ground</title>
+      </Head>
+      <ContentLayout>
       <Box mb={8}>
         <Heading size="lg" color="orange.500" mb={4}>API Testing Ground</Heading>
         <ButtonGroup isAttached mb={8}>
@@ -53,5 +60,6 @@ export default function DevTestingGround() {
         </Box>
       </Box>
     </ContentLayout>
+    </AuthGuard>
   );
-} 
+}
