@@ -1,6 +1,0 @@
-{
-    "name": "Admin User",
-    "email": "admin@example.com",
-    "password": "Admin@123",
-    "role": "ADMIN"
-}
