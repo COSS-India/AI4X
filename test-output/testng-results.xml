@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testng-results ignored="9" total="10" passed="1" failed="0" skipped="0">
+  <reporter-output>
+  </reporter-output>
+  <suite started-at="2025-08-22T14:50:14 IST" name="Default suite" finished-at="2025-08-22T14:52:03 IST" duration-ms="108761">
+    <groups>
+      <group name="ASR-API">
+        <method signature="A_BaseSuiteFile.TC10_runASRLanguageTestsFromJSON()[pri:0, instance:TestCases.A_BaseSuiteFile@1dac5ef]" name="TC10_runASRLanguageTestsFromJSON" class="TestCases.A_BaseSuiteFile"/>
+      </group> <!-- ASR-API -->
+      <group name="FullSuite">
+        <method signature="A_BaseSuiteFile.TC10_runASRLanguageTestsFromJSON()[pri:0, instance:TestCases.A_BaseSuiteFile@1dac5ef]" name="TC10_runASRLanguageTestsFromJSON" class="TestCases.A_BaseSuiteFile"/>
+      </group> <!-- FullSuite -->
+    </groups>
+    <test started-at="2025-08-22T14:50:14 IST" name="Default test" finished-at="2025-08-22T14:52:03 IST" duration-ms="108761">
+      <class name="TestCases.A_BaseSuiteFile">
+        <test-method is-config="true" signature="beforeSuite()[pri:0, instance:TestCases.A_BaseSuiteFile@1dac5ef]" started-at="2025-08-22T14:50:14 IST" name="beforeSuite" finished-at="2025-08-22T14:50:14 IST" duration-ms="12" status="PASS">
+          <reporter-output>
+          </reporter-output>
+        </test-method> <!-- beforeSuite -->
+        <test-method is-config="true" signature="beforeTest()[pri:0, instance:TestCases.A_BaseSuiteFile@1dac5ef]" started-at="2025-08-22T14:50:14 IST" name="beforeTest" finished-at="2025-08-22T14:50:14 IST" duration-ms="216" status="PASS">
+          <reporter-output>
+          </reporter-output>
+        </test-method> <!-- beforeTest -->
+        <test-method is-config="true" signature="beforeClass()[pri:0, instance:TestCases.A_BaseSuiteFile@1dac5ef]" started-at="2025-08-22T14:50:14 IST" name="beforeClass" finished-at="2025-08-22T14:50:14 IST" duration-ms="4" status="PASS">
+          <reporter-output>
+          </reporter-output>
+        </test-method> <!-- beforeClass -->
+        <test-method is-config="true" signature="beforeMethod(java.lang.reflect.Method)[pri:0, instance:TestCases.A_BaseSuiteFile@1dac5ef]" started-at="2025-08-22T14:50:14 IST" name="beforeMethod" finished-at="2025-08-22T14:50:14 IST" duration-ms="6" status="PASS">
+          <params>
+            <param index="0">
+              <value>
+                <![CDATA[public void TestCases.A_BaseSuiteFile.TC10_runASRLanguageTestsFromJSON() throws java.lang.Exception]]>
+              </value>
+            </param>
+          </params>
+          <reporter-output>
+          </reporter-output>
+        </test-method> <!-- beforeMethod -->
+        <test-method signature="TC10_runASRLanguageTestsFromJSON()[pri:0, instance:TestCases.A_BaseSuiteFile@1dac5ef]" started-at="2025-08-22T14:50:14 IST" name="TC10_runASRLanguageTestsFromJSON" finished-at="2025-08-22T14:52:03 IST" duration-ms="108241" status="PASS">
+          <reporter-output>
+          </reporter-output>
+        </test-method> <!-- TC10_runASRLanguageTestsFromJSON -->
+        <test-method is-config="true" signature="afterMethod(org.testng.ITestResult)[pri:0, instance:TestCases.A_BaseSuiteFile@1dac5ef]" started-at="2025-08-22T14:52:03 IST" name="afterMethod" finished-at="2025-08-22T14:52:03 IST" duration-ms="1" status="PASS">
+          <params>
+            <param index="0">
+              <value>
+                <![CDATA[[TestResult name=TC10_runASRLanguageTestsFromJSON status=SUCCESS method=A_BaseSuiteFile.TC10_runASRLanguageTestsFromJSON()[pri:0, instance:TestCases.A_BaseSuiteFile@1dac5ef] output={null}]]]>
+              </value>
+            </param>
+          </params>
+          <reporter-output>
+          </reporter-output>
+        </test-method> <!-- afterMethod -->
+        <test-method is-config="true" signature="afterTest()[pri:0, instance:TestCases.A_BaseSuiteFile@1dac5ef]" started-at="2025-08-22T14:52:03 IST" name="afterTest" finished-at="2025-08-22T14:52:03 IST" duration-ms="253" status="PASS">
+          <reporter-output>
+          </reporter-output>
+        </test-method> <!-- afterTest -->
+        <test-method is-config="true" signature="afterSuite()[pri:0, instance:TestCases.A_BaseSuiteFile@1dac5ef]" started-at="2025-08-22T14:52:03 IST" name="afterSuite" finished-at="2025-08-22T14:52:03 IST" duration-ms="1" status="PASS">
+          <reporter-output>
+          </reporter-output>
+        </test-method> <!-- afterSuite -->
+      </class> <!-- TestCases.A_BaseSuiteFile -->
+    </test> <!-- Default test -->
+  </suite> <!-- Default suite -->
+</testng-results>
