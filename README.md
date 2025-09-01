@@ -211,6 +211,3 @@ You now have a GitHub‑ready README with:
 - A copy‑paste **Maven dependencies** block for Selenium, RestAssured, and TestNG.
 - Steps to configure drivers, test data, and execute tests.
 - Where to find screenshots and HTML reports.
-
-> PRs welcome! Add more examples (e.g., TestNG XML suites, CI pipelines) as your project evolves.
-
