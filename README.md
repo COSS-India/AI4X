@@ -67,7 +67,7 @@ This README explains how to set up, configure, and run the automated test suites
 
 ---
 
-## Sample `pom.xml` — Dependencies Only (Copy‑Paste)
+## Sample `pom.xml` — Dependencies Only
 > This section includes **versions** as properties so you can manage them in one place.
 
 ```xml
