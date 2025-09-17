@@ -1,5 +1,6 @@
 import requests
 import json
+import time
 # import asyncio
 import logging
 from typing import Dict, Any
@@ -9,6 +10,9 @@ logger = logging.getLogger(__name__)
 
 class NMTService:
     def __init__(self):
+        # Import metrics collector here to avoid circular imports
+        from metrics import metrics_collector
+        self.metrics_collector = metrics_collector
         self.nmt_base_url = f"{Config.DHRUVA_API_BASE}/pipeline"
         self.headers = {
             'Accept': '*/*',
@@ -60,8 +64,23 @@ class NMTService:
             "mr": "Marathi",
             "pa": "Punjabi"
         }
+
+    def _track_external_api_call(self, customer: str, app: str, status_code: int, duration: float, error_type: str = None):
+        """Track external API call to Dhruva NMT service"""
+        try:
+            self.metrics_collector.track_external_api_call(
+                external_service="dhruva",
+                api_endpoint="translate", 
+                customer=customer,
+                app=app,
+                status_code=status_code,
+                duration=duration,
+                error_type=error_type
+            )
+        except Exception as e:
+            logger.warning(f"Failed to track external API call: {e}")
     
-    def translate_text(self, text: str, source_lang: str, target_lang: str) -> Dict[str, Any]:
+    def translate_text(self, text: str, source_lang: str, target_lang: str, customer: str = "default", app: str = "default") -> Dict[str, Any]:
         """
         Translate text from source language to target language
         
@@ -120,11 +139,16 @@ class NMTService:
                 }
             }
             
-            # Make async request
+            # Make async request and track timing
             # loop = asyncio.get_event_loop()
+            start_time = time.time()
             response = requests.post(self.nmt_base_url, headers=self.headers, json=payload, timeout=30)
+            duration = time.time() - start_time
             
             logger.info(f"NMT API response status: {response.status_code}")
+            
+            # Track external API call
+            self._track_external_api_call(customer, app, response.status_code, duration)
             
             if response.status_code == 200:
                 result = response.json()
@@ -173,6 +197,32 @@ class NMTService:
                     "target_language": target_lang
                 }
                 
+        except requests.exceptions.Timeout:
+            logger.error(f"NMT API timeout for {lang_pair}")
+            try:
+                self.metrics_collector.track_external_api_timeout("dhruva", "translate", customer, app, 30.0)
+            except:
+                pass
+            return {
+                "success": False,
+                "error": "NMT API timeout",
+                "translated_text": text,  # Fallback to original text
+                "source_language": source_lang,
+                "target_language": target_lang
+            }
+        except requests.exceptions.ConnectionError:
+            logger.error(f"NMT API connection error for {lang_pair}")
+            try:
+                self.metrics_collector.track_external_api_connection_error("dhruva", "translate", customer, app)
+            except:
+                pass
+            return {
+                "success": False,
+                "error": "NMT API connection error",
+                "translated_text": text,  # Fallback to original text
+                "source_language": source_lang,
+                "target_language": target_lang
+            }
         except Exception as e:
             logger.error(f"NMT service error: {str(e)}")
             return {

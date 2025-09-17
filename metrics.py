@@ -50,12 +50,12 @@ COMPONENT_LATENCY = Histogram(
 ERROR_COUNT = Counter(
     "ai4x_errors_total",
     "Total number of errors",
-    ["customer", "domain", "app", "endpoint", "error_type"],
+    ["customer", "domain", "app", "endpoint", "error_type", "status_series"],
     registry=REGISTRY,
 )
 
 # Initialize error count to 0 for dashboard visibility
-ERROR_COUNT.labels("default", "unknown", "default", "none", "none").inc(0)
+ERROR_COUNT.labels("default", "unknown", "default", "none", "none", "2xx").inc(0)
 
 # ----------------------------
 GPU_USAGE = Gauge("ai4x_gpu_usage_percent", "GPU usage %", registry=REGISTRY)
@@ -116,7 +116,7 @@ SYSTEM_SERVICE_COUNT = Gauge(
 QOS_AVAILABILITY_PERCENT = Gauge(
     "ai4x_qos_availability_percent",
     "Service availability percentage",
-    ["time_window"],
+    ["time_window", "service_endpoint"],
     registry=REGISTRY,
 )
 
@@ -290,6 +290,42 @@ SERVICE_REQUESTS.labels("llm", "default", "default").inc(0)
 SERVICE_REQUESTS.labels("tts", "default", "default").inc(0)
 SERVICE_REQUESTS.labels("asr", "default", "default").inc(0)
 
+# ----------------------------
+# External API metrics (for tracking Dhruva API calls)
+# ----------------------------
+EXTERNAL_API_REQUESTS_TOTAL = Counter(
+    "ai4x_external_api_requests_total",
+    "Total number of external API requests",
+    ["external_service", "api_endpoint", "customer", "app", "status_series"],
+    registry=REGISTRY,
+)
+
+EXTERNAL_API_ERRORS_TOTAL = Counter(
+    "ai4x_external_api_errors_total", 
+    "Total number of external API errors",
+    ["external_service", "api_endpoint", "customer", "app", "error_type", "status_series"],
+    registry=REGISTRY,
+)
+
+EXTERNAL_API_DURATION = Histogram(
+    "ai4x_external_api_duration_seconds",
+    "External API request duration in seconds",
+    ["external_service", "api_endpoint", "customer", "app"],
+    buckets=[0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 25.0],
+    registry=REGISTRY,
+)
+
+# Initialize external API metrics to 0 for dashboard visibility
+EXTERNAL_API_REQUESTS_TOTAL.labels("dhruva", "translate", "default", "default", "2xx").inc(0)
+EXTERNAL_API_REQUESTS_TOTAL.labels("dhruva", "tts", "default", "default", "2xx").inc(0)
+EXTERNAL_API_REQUESTS_TOTAL.labels("dhruva", "asr", "default", "default", "2xx").inc(0)
+EXTERNAL_API_REQUESTS_TOTAL.labels("gemini", "generate", "default", "default", "2xx").inc(0)
+
+EXTERNAL_API_ERRORS_TOTAL.labels("dhruva", "translate", "default", "default", "api_error", "5xx").inc(0)
+EXTERNAL_API_ERRORS_TOTAL.labels("dhruva", "tts", "default", "default", "api_error", "5xx").inc(0)
+EXTERNAL_API_ERRORS_TOTAL.labels("dhruva", "asr", "default", "default", "api_error", "5xx").inc(0)
+EXTERNAL_API_ERRORS_TOTAL.labels("gemini", "generate", "default", "default", "api_error", "5xx").inc(0)
+
 class MetricsCollector:
     """Encapsulates state & helpers. Avoids per‑request labels like requestId."""
 
@@ -302,6 +338,20 @@ class MetricsCollector:
         self._request_success_count: Dict[str, int] = {}
         self._request_error_count: Dict[str, int] = {}
         self._start_system_metrics_collector()
+
+    @staticmethod
+    def _get_status_series(status_code: int) -> str:
+        """Convert HTTP status code to series (e.g., 404 -> '4xx')"""
+        if 200 <= status_code < 300:
+            return "2xx"
+        elif 300 <= status_code < 400:
+            return "3xx"
+        elif 400 <= status_code < 500:
+            return "4xx"
+        elif 500 <= status_code < 600:
+            return "5xx"
+        else:
+            return "other"
 
     # ---------- background: system metrics ----------
     def _start_system_metrics_collector(self) -> None:
@@ -355,9 +405,16 @@ class MetricsCollector:
         self.set_service_count("asr", 1)
         
         # Set QoS availability (default to 100% until requests are made)
-        self.set_qos_availability("1h", 100.0)
-        self.set_qos_availability("24h", 100.0)
-        self.set_qos_availability("7d", 100.0)
+        self.set_qos_availability("1h", 100.0, "all")
+        self.set_qos_availability("24h", 100.0, "all")
+        self.set_qos_availability("7d", 100.0, "all")
+        
+        # Initialize availability for each service endpoint
+        service_endpoints = ["/nmt/translate", "/tts/speak", "/llm/generate", "/pipeline"]
+        for endpoint in service_endpoints:
+            self.set_qos_availability("1h", 100.0, endpoint)
+            self.set_qos_availability("24h", 100.0, endpoint)
+            self.set_qos_availability("7d", 100.0, endpoint)
         
         # SLA compliance will be computed dynamically based on real requests
         
@@ -432,7 +489,8 @@ class MetricsCollector:
             self._request_success_count[key] = self._request_success_count.get(key, 0) + 1
         else:
             self._request_error_count[key] = self._request_error_count.get(key, 0) + 1
-            ERROR_COUNT.labels(customer, domain, app, ep, status).inc()
+            status_series = self._get_status_series(status_code)
+            ERROR_COUNT.labels(customer, domain, app, ep, status, status_series).inc()
             
             # Record system availability failure
             if status == "server_error":
@@ -463,16 +521,22 @@ class MetricsCollector:
         d["components"][component] = time.time()
 
     def end_component(self, rid: str, component: str, success: bool = True) -> None:
+        print(f"Ending component: {rid}, {component}, {success}")
         d = self._req.get(rid)
         if d is None:
+            print("d is none")
             return
         t0 = d["components"].pop(component, None)
         if t0 is None:
+            print("t0 is none")
             return
         dur = time.time() - t0
         COMPONENT_LATENCY.labels(component, d["customer"], d["app"]).observe(dur)
         if not success:
-            ERROR_COUNT.labels(d["customer"], d["app"], d["endpoint"], "processing_error").inc()
+            print(f"Processing error: {d}")
+            domain = d.get("domain", "unknown")
+            # For processing errors, we'll use status series "5xx" as it's a server-side error
+            ERROR_COUNT.labels(d["customer"], domain, d["app"], d["endpoint"], "processing_error", "5xx").inc()
             # Record service availability failure
             self.record_availability_failure("service_error", component.lower())
 
@@ -506,8 +570,8 @@ class MetricsCollector:
     def set_service_count(self, service_type: str, count: int) -> None:
         SYSTEM_SERVICE_COUNT.labels(service_type=service_type).set(max(count, 0))
 
-    def set_qos_availability(self, time_window: str, percent: float) -> None:
-        QOS_AVAILABILITY_PERCENT.labels(time_window=time_window).set(max(0, min(100, percent)))
+    def set_qos_availability(self, time_window: str, percent: float, service_endpoint: str = "all") -> None:
+        QOS_AVAILABILITY_PERCENT.labels(time_window=time_window, service_endpoint=service_endpoint).set(max(0, min(100, percent)))
 
     def set_sla_compliance(self, sla_type: str, customer: str, app: str, service: str, endpoint: str, percent: float) -> None:
         SYSTEM_SLA_COMPLIANCE_PERCENT.labels(sla_type=sla_type, customer=customer, app=app, service=service, endpoint=endpoint).set(max(0, min(100, percent)))
@@ -555,6 +619,34 @@ class MetricsCollector:
         # Set the actual resource usage for this specific request
         CPU_USAGE_PERCENT.labels(service, customer, app, endpoint).set(cpu_usage)
         MEMORY_USAGE_PERCENT.labels(service, customer, app, endpoint).set(memory_usage)
+
+    # ---------- external API tracking ----------
+    def track_external_api_call(self, external_service: str, api_endpoint: str, customer: str, app: str, 
+                               status_code: int, duration: float, error_type: str = None) -> None:
+        """Track external API calls (e.g., Dhruva APIs, Gemini APIs)"""
+        status_series = self._get_status_series(status_code)
+        
+        # Track the request
+        EXTERNAL_API_REQUESTS_TOTAL.labels(external_service, api_endpoint, customer, app, status_series).inc()
+        
+        # Track duration
+        EXTERNAL_API_DURATION.labels(external_service, api_endpoint, customer, app).observe(duration)
+        
+        # Track errors if status indicates failure
+        if status_code >= 400:
+            error_type = error_type or ("client_error" if 400 <= status_code < 500 else "server_error")
+            EXTERNAL_API_ERRORS_TOTAL.labels(external_service, api_endpoint, customer, app, error_type, status_series).inc()
+
+    def track_external_api_timeout(self, external_service: str, api_endpoint: str, customer: str, app: str, duration: float) -> None:
+        """Track external API timeouts"""
+        EXTERNAL_API_REQUESTS_TOTAL.labels(external_service, api_endpoint, customer, app, "timeout").inc()
+        EXTERNAL_API_DURATION.labels(external_service, api_endpoint, customer, app).observe(duration)
+        EXTERNAL_API_ERRORS_TOTAL.labels(external_service, api_endpoint, customer, app, "timeout", "timeout").inc()
+
+    def track_external_api_connection_error(self, external_service: str, api_endpoint: str, customer: str, app: str) -> None:
+        """Track external API connection errors"""
+        EXTERNAL_API_REQUESTS_TOTAL.labels(external_service, api_endpoint, customer, app, "connection_error").inc()
+        EXTERNAL_API_ERRORS_TOTAL.labels(external_service, api_endpoint, customer, app, "connection_error", "connection_error").inc()
     
 
     def set_qos_performance_score(self, customer: str, app: str, service: str, endpoint: str, score: float) -> None:
@@ -683,9 +775,30 @@ class MetricsCollector:
         if total_requests > 0:
             total_success = sum(self._request_success_count.values())
             availability = (total_success / total_requests) * 100
-            self.set_qos_availability("1h", availability)
-            self.set_qos_availability("5m", availability)
-            self.set_qos_availability("24h", availability)
+            
+            # Set overall availability
+            self.set_qos_availability("1h", availability, "all")
+            self.set_qos_availability("5m", availability, "all")
+            self.set_qos_availability("24h", availability, "all")
+            
+            # Calculate availability per endpoint
+            endpoint_stats = {}
+            for rid, req_data in self._completed_requests.items():
+                endpoint = req_data.get("endpoint", "unknown")
+                if endpoint not in endpoint_stats:
+                    endpoint_stats[endpoint] = {"success": 0, "total": 0}
+                
+                endpoint_stats[endpoint]["total"] += 1
+                if req_data.get("success", True):
+                    endpoint_stats[endpoint]["success"] += 1
+            
+            # Set availability for each endpoint
+            for endpoint, stats in endpoint_stats.items():
+                if stats["total"] > 0:
+                    endpoint_availability = (stats["success"] / stats["total"]) * 100
+                    self.set_qos_availability("1h", endpoint_availability, endpoint)
+                    self.set_qos_availability("5m", endpoint_availability, endpoint)
+                    self.set_qos_availability("24h", endpoint_availability, endpoint)
             
             # Calculate system uptime based on availability failures
             # System uptime = 100% - (availability_failures / total_requests) * 100
@@ -696,9 +809,17 @@ class MetricsCollector:
             self.set_system_uptime("7d", system_uptime)
         else:
             # No requests yet, availability and uptime are 100%
-            self.set_qos_availability("1h", 100.0)
-            self.set_qos_availability("5m", 100.0)
-            self.set_qos_availability("24h", 100.0)
+            self.set_qos_availability("1h", 100.0, "all")
+            self.set_qos_availability("5m", 100.0, "all")
+            self.set_qos_availability("24h", 100.0, "all")
+            
+            # Initialize availability for each service endpoint
+            service_endpoints = ["/nmt/translate", "/tts/speak", "/llm/generate", "/pipeline"]
+            for endpoint in service_endpoints:
+                self.set_qos_availability("1h", 100.0, endpoint)
+                self.set_qos_availability("5m", 100.0, endpoint)
+                self.set_qos_availability("24h", 100.0, endpoint)
+            
             self.set_system_uptime("1h", 100.0)
             self.set_system_uptime("24h", 100.0)
             self.set_system_uptime("7d", 100.0)

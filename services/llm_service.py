@@ -1,5 +1,6 @@
 import google.generativeai as genai
 import json
+import time
 # import asyncio
 import logging
 import re
@@ -9,6 +10,9 @@ logger = logging.getLogger(__name__)
 
 class LLMService:
     def __init__(self):
+        # Import metrics collector here to avoid circular imports
+        from metrics import metrics_collector
+        self.metrics_collector = metrics_collector
         # Configure Gemini API
         # Note: Replace with your actual API key
         genai.configure(api_key="AIzaSyC-8JdQGzato50LGjY438C4qEaBY20xj8o")
@@ -67,10 +71,25 @@ class LLMService:
         Response: {"intent": "weather", "response": "The current weather in Delhi is 28°C with clear skies and 65% humidity. It's a pleasant day with light winds.", "confidence": 0.95, "parameters": {"location": "Delhi", "topic": "weather", "entities": ["Delhi"], "needs_web_search": true}}
         
         User: "What is the capital of France?"
-        Response: {"intent": "information", "response": "The capital of France is Paris. It is the largest city in France and serves as the country's political, economic, and cultural center.", "confidence": 0.9, "parameters": {"entities": ["France", "capital"], "topic": "geography", "needs_web_search": false}}
+        Response: {"intent": "information", "response": "The capital of France is Paris. It is the largest city in France and serves as the country's political, economic, and cultural center.", "confidence": 0.9, "parameters": {"entities": ["France", "capital"], "topic": "geography", "needs_web_search": false}        }
         """
+
+    def _track_external_api_call(self, customer: str, app: str, status_code: int, duration: float, error_type: str = None):
+        """Track external API call to Gemini service"""
+        try:
+            self.metrics_collector.track_external_api_call(
+                external_service="gemini",
+                api_endpoint="generate", 
+                customer=customer,
+                app=app,
+                status_code=status_code,
+                duration=duration,
+                error_type=error_type
+            )
+        except Exception as e:
+            logger.warning(f"Failed to track external API call: {e}")
     
-    def process_query(self, text: str) -> Dict[str, Any]:
+    def process_query(self, text: str, customer: str = "default", app: str = "default") -> Dict[str, Any]:
         """
         Process user query with Gemini LLM
         
@@ -96,11 +115,16 @@ class LLMService:
             Search for current information when needed and provide your analysis as a JSON response:
             """
             
-            # Make async request to Gemini
+            # Make async request to Gemini and track timing
             # loop = asyncio.get_event_loop()
             logger.info(f"Sending prompt to Gemini: {prompt[:200]}...")
+            start_time = time.time()
             response =  self.model.generate_content(prompt)
+            duration = time.time() - start_time
             response_tokens = response.usage_metadata.total_token_count
+            
+            # Track external API call (assuming success with status 200)
+            self._track_external_api_call(customer, app, 200, duration)
             
             # Extract JSON from response
             response_text = response.text.strip()
@@ -138,6 +162,19 @@ class LLMService:
                 
         except Exception as e:
             logger.error(f"LLM service error: {str(e)}")
+            # Track API error (assuming it's a server error)
+            try:
+                self.metrics_collector.track_external_api_call(
+                    external_service="gemini",
+                    api_endpoint="generate",
+                    customer=customer,
+                    app=app,
+                    status_code=500,
+                    duration=0.0,
+                    error_type="api_error"
+                )
+            except:
+                pass
             return {
                 "success": False,
                 "error": f"LLM service error: {str(e)}",

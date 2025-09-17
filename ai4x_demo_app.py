@@ -230,9 +230,11 @@ def run_pipeline(payload: PipelineInput):
 
             # ---- NMT ----
             if "NMT" in pipeline:
-                with metrics_collector.component_timer(rid, "NMT"):
+                # Start component timing manually to control success tracking
+                metrics_collector.start_component(rid, "NMT")
+                try:
                     usage["NMT"] = str(len(current_output))
-                    nmt_result = nmt_service.translate_text(current_output, source_language, target_language)
+                    nmt_result = nmt_service.translate_text(current_output, source_language, target_language, customer, appname)
                     
                     # Capture and track actual resource usage for this NMT request
                     import psutil
@@ -246,13 +248,23 @@ def run_pipeline(payload: PipelineInput):
                     current_output = nmt_result.get("translated_text", current_output)
                     # Track success and only log metrics if NMT was successful
                     service_success["NMT"] = nmt_result.get("success", False)
+                    
+                    # End component with correct success status
+                    metrics_collector.end_component(rid, "NMT", success=service_success["NMT"])
+                    
                     if service_success["NMT"]:
                         metrics_collector.nmt_chars(customer, appname, source_language, target_language, len(nmt_result["translated_text"]))
+                except Exception as e:
+                    # Handle unexpected exceptions
+                    metrics_collector.end_component(rid, "NMT", success=False)
+                    raise
 
             # ---- LLM ----
             if "LLM" in pipeline:
-                with metrics_collector.component_timer(rid, "LLM"):
-                    llm_result = llm_service.process_query(current_output)
+                # Start component timing manually to control success tracking
+                metrics_collector.start_component(rid, "LLM")
+                try:
+                    llm_result = llm_service.process_query(current_output, customer, appname)
                     
                     # Capture and track actual resource usage for this LLM request
                     cpu_usage = psutil.cpu_percent(interval=None)
@@ -266,39 +278,60 @@ def run_pipeline(payload: PipelineInput):
                     usage["LLM"] = str(llm_result.get("total_tokens", 0))
                     # Track success and only log metrics if LLM was successful
                     service_success["LLM"] = llm_result.get("success", False)
+                    
+                    # End component with correct success status
+                    metrics_collector.end_component(rid, "LLM", success=service_success["LLM"])
+                    
                     if service_success["LLM"]:
                         total_tokens = llm_result.get("total_tokens", 0)
                         metrics_collector.llm_tokens(customer, appname, "gemini-2.5-flash", total_tokens)
+                except Exception as e:
+                    # Handle unexpected exceptions
+                    metrics_collector.end_component(rid, "LLM", success=False)
+                    raise
 
-                    # Backward NMT
-                    with metrics_collector.component_timer(rid, "BackNMT"):
-                        llm_response = llm_result.get("response", "")
-                        usage["backNMT"] = str(len(llm_response))
-                        back_translation = nmt_service.translate_text(
-                            text=llm_response,
-                            source_lang="en",
-                            target_lang=source_language
-                        )
-                        
-                        # Capture and track actual resource usage for this BackNMT request
-                        cpu_usage = psutil.cpu_percent(interval=None)
-                        memory_usage = psutil.virtual_memory().percent
-                        metrics_collector.track_request_resource_usage("nmt", customer, appname, "/pipeline", 
-                                                                     cpu_usage, memory_usage)
-                        
-                        latencies["BackNMT"] = f"{int((time.time() - start) * 1000)}ms"
-                        pipeline_output["BackNMT"] = back_translation.get("translated_text", llm_response)
-                        # Track success and only log metrics if BackNMT was successful
-                        service_success["BackNMT"] = back_translation.get("success", False)
-                        if service_success["BackNMT"]:
-                            metrics_collector.nmt_chars(customer, appname, "en", source_language, len(back_translation.get("translated_text", "")))
-                        response_data = back_translation.get("translated_text", llm_response)
+                # Backward NMT
+                metrics_collector.start_component(rid, "BackNMT")
+                try:
+                    llm_response = llm_result.get("response", "")
+                    usage["backNMT"] = str(len(llm_response))
+                    back_translation = nmt_service.translate_text(
+                        text=llm_response,
+                        source_lang="en",
+                        target_lang=source_language,
+                        customer=customer,
+                        app=appname
+                    )
+                    
+                    # Capture and track actual resource usage for this BackNMT request
+                    cpu_usage = psutil.cpu_percent(interval=None)
+                    memory_usage = psutil.virtual_memory().percent
+                    metrics_collector.track_request_resource_usage("nmt", customer, appname, "/pipeline", 
+                                                                 cpu_usage, memory_usage)
+                    
+                    latencies["BackNMT"] = f"{int((time.time() - start) * 1000)}ms"
+                    pipeline_output["BackNMT"] = back_translation.get("translated_text", llm_response)
+                    # Track success and only log metrics if BackNMT was successful
+                    service_success["BackNMT"] = back_translation.get("success", False)
+                    
+                    # End component with correct success status
+                    metrics_collector.end_component(rid, "BackNMT", success=service_success["BackNMT"])
+                    
+                    if service_success["BackNMT"]:
+                        metrics_collector.nmt_chars(customer, appname, "en", source_language, len(back_translation.get("translated_text", "")))
+                    response_data = back_translation.get("translated_text", llm_response)
+                except Exception as e:
+                    # Handle unexpected exceptions
+                    metrics_collector.end_component(rid, "BackNMT", success=False)
+                    raise
 
             # ---- TTS ----
             if "TTS" in pipeline:
-                with metrics_collector.component_timer(rid, "TTS"):
+                # Start component timing manually to control success tracking
+                metrics_collector.start_component(rid, "TTS")
+                try:
                     usage["TTS"] = str(len(response_data))
-                    tts_result = tts_service.text_to_speech(response_data, source_language, gender="female")
+                    tts_result = tts_service.text_to_speech(response_data, source_language, gender="female", customer=customer, app=appname)
                     
                     # Capture and track actual resource usage for this TTS request
                     cpu_usage = psutil.cpu_percent(interval=None)
@@ -310,9 +343,17 @@ def run_pipeline(payload: PipelineInput):
                     pipeline_output["TTS"] = tts_result.get("audio_content", "")
                     # Track success and only log metrics if TTS was successful
                     service_success["TTS"] = tts_result.get("success", False)
+                    
+                    # End component with correct success status
+                    metrics_collector.end_component(rid, "TTS", success=service_success["TTS"])
+                    
                     if service_success["TTS"]:
                         metrics_collector.tts_chars(customer, appname, source_language, len(response_data))
                     response_data = tts_result.get("audio_content", "")
+                except Exception as e:
+                    # Handle unexpected exceptions
+                    metrics_collector.end_component(rid, "TTS", success=False)
+                    raise
 
             # ---- DB Logging ----
             # Only log metrics for successful services
@@ -660,9 +701,10 @@ def nmt_translate(payload: NMTInput):
             # Auto-detect source language
             source_lang = detect_language_from_text(text)
             
-            # Start component timing
-            with metrics_collector.component_timer(rid, "NMT"):
-                result = nmt_service.translate_text(text, source_lang, target_lang)
+            # Start component timing manually to control success tracking
+            metrics_collector.start_component(rid, "NMT")
+            try:
+                result = nmt_service.translate_text(text, source_lang, target_lang, customer, appname)
                 
                 # Capture and track actual resource usage for this NMT request
                 import psutil
@@ -670,6 +712,14 @@ def nmt_translate(payload: NMTInput):
                 memory_usage = psutil.virtual_memory().percent
                 metrics_collector.track_request_resource_usage("nmt", customer, appname, "/nmt/translate", 
                                                              cpu_usage, memory_usage)
+                
+                # End component with correct success status
+                service_success = result.get("success", False)
+                metrics_collector.end_component(rid, "NMT", success=service_success)
+            except Exception as e:
+                # Handle unexpected exceptions
+                metrics_collector.end_component(rid, "NMT", success=False)
+                raise
             
             # Track metrics if successful
             if result.get("success", False):
@@ -684,8 +734,6 @@ def nmt_translate(payload: NMTInput):
                     "character_count": len(translated_text)
                 }
             else:
-                # Track error
-                metrics_collector.end_component(rid, "NMT", success=False)
                 return {
                     "success": False,
                     "error": result.get("error", "Translation failed"),
@@ -695,7 +743,6 @@ def nmt_translate(payload: NMTInput):
                 }
                 
         except Exception as e:
-            metrics_collector.end_component(rid, "NMT", success=False)
             raise HTTPException(status_code=500, detail=f"NMT service error: {str(e)}")
 
 @app.post("/tts/speak")
@@ -713,9 +760,10 @@ def tts_speak(payload: TTSInput):
             # Track service request
             metrics_collector.service_request("tts", customer, appname)
             
-            # Start component timing
-            with metrics_collector.component_timer(rid, "TTS"):
-                result = tts_service.text_to_speech(text, language, gender)
+            # Start component timing manually to control success tracking
+            metrics_collector.start_component(rid, "TTS")
+            try:
+                result = tts_service.text_to_speech(text, language, gender, customer, appname)
                 
                 # Capture and track actual resource usage for this TTS request
                 import psutil
@@ -723,6 +771,14 @@ def tts_speak(payload: TTSInput):
                 memory_usage = psutil.virtual_memory().percent
                 metrics_collector.track_request_resource_usage("tts", customer, appname, "/tts/speak", 
                                                              cpu_usage, memory_usage)
+                
+                # End component with correct success status
+                service_success = result.get("success", False)
+                metrics_collector.end_component(rid, "TTS", success=service_success)
+            except Exception as e:
+                # Handle unexpected exceptions
+                metrics_collector.end_component(rid, "TTS", success=False)
+                raise
             
             # Track metrics if successful
             if result.get("success", False):
@@ -737,8 +793,6 @@ def tts_speak(payload: TTSInput):
                     "character_count": len(text)
                 }
             else:
-                # Track error
-                metrics_collector.end_component(rid, "TTS", success=False)
                 return {
                     "success": False,
                     "error": result.get("error", "TTS synthesis failed"),
@@ -748,7 +802,6 @@ def tts_speak(payload: TTSInput):
                 }
                 
         except Exception as e:
-            metrics_collector.end_component(rid, "TTS", success=False)
             raise HTTPException(status_code=500, detail=f"TTS service error: {str(e)}")
 
 @app.post("/llm/generate")
@@ -764,9 +817,10 @@ def llm_generate(payload: LLMInput):
             # Track service request
             metrics_collector.service_request("llm", customer, appname)
             
-            # Start component timing
-            with metrics_collector.component_timer(rid, "LLM"):
-                result = llm_service.process_query(text)
+            # Start component timing manually to control success tracking
+            metrics_collector.start_component(rid, "LLM")
+            try:
+                result = llm_service.process_query(text, customer, appname)
                 
                 # Capture and track actual resource usage for this LLM request
                 import psutil
@@ -774,6 +828,14 @@ def llm_generate(payload: LLMInput):
                 memory_usage = psutil.virtual_memory().percent
                 metrics_collector.track_request_resource_usage("llm", customer, appname, "/llm/generate", 
                                                              cpu_usage, memory_usage)
+                
+                # End component with correct success status
+                service_success = result.get("success", False)
+                metrics_collector.end_component(rid, "LLM", success=service_success)
+            except Exception as e:
+                # Handle unexpected exceptions
+                metrics_collector.end_component(rid, "LLM", success=False)
+                raise
             
             # Track metrics if successful
             if result.get("success", False):
@@ -790,8 +852,6 @@ def llm_generate(payload: LLMInput):
                     "token_count": total_tokens
                 }
             else:
-                # Track error
-                metrics_collector.end_component(rid, "LLM", success=False)
                 return {
                     "success": False,
                     "error": result.get("error", "LLM generation failed"),
@@ -801,7 +861,6 @@ def llm_generate(payload: LLMInput):
                 }
                 
         except Exception as e:
-            metrics_collector.end_component(rid, "LLM", success=False)
             raise HTTPException(status_code=500, detail=f"LLM service error: {str(e)}")
 
 
