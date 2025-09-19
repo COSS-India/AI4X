@@ -277,6 +277,95 @@ LLM_TOKENS_PROCESSED = Counter(
 # Initialize LLM tokens processed to 0 for dashboard visibility
 LLM_TOKENS_PROCESSED.labels("default", "default", "gpt-3.5-turbo").inc(0)
 
+# ----------------------------
+# Customer Tier and Quota Metrics
+# ----------------------------
+CUSTOMER_TIER_INFO = Gauge(
+    "ai4x_customer_tier_info",
+    "Customer tier information with rate limits and quotas",
+    ["customer", "tier", "domain"],
+    registry=REGISTRY,
+)
+
+# Static quota limits per tier for comparison in Grafana
+CUSTOMER_RATE_LIMIT_QUOTA = Gauge(
+    "ai4x_customer_rate_limit_quota_per_minute",
+    "API rate limit quota per minute for customer",
+    ["customer", "tier"],
+    registry=REGISTRY,
+)
+
+CUSTOMER_LLM_TOKENS_QUOTA = Gauge(
+    "ai4x_customer_llm_tokens_quota_per_month",
+    "LLM tokens quota per month for customer",
+    ["customer", "tier"],
+    registry=REGISTRY,
+)
+
+CUSTOMER_NMT_CHARS_QUOTA = Gauge(
+    "ai4x_customer_nmt_chars_quota_per_month",
+    "NMT characters quota per month for customer",
+    ["customer", "tier"],
+    registry=REGISTRY,
+)
+
+CUSTOMER_TTS_CHARS_QUOTA = Gauge(
+    "ai4x_customer_tts_chars_quota_per_month",
+    "TTS characters quota per month for customer",
+    ["customer", "tier"],
+    registry=REGISTRY,
+)
+
+# Current usage tracking
+CUSTOMER_RATE_LIMIT_USAGE = Gauge(
+    "ai4x_customer_rate_limit_usage_current",
+    "Current API rate limit usage (requests in last minute)",
+    ["customer", "tier"],
+    registry=REGISTRY,
+)
+
+CUSTOMER_LLM_TOKENS_USAGE = Gauge(
+    "ai4x_customer_llm_tokens_usage_current_month",
+    "Current LLM tokens usage this month",
+    ["customer", "tier"],
+    registry=REGISTRY,
+)
+
+CUSTOMER_NMT_CHARS_USAGE = Gauge(
+    "ai4x_customer_nmt_chars_usage_current_month",
+    "Current NMT characters usage this month",
+    ["customer", "tier"],
+    registry=REGISTRY,
+)
+
+CUSTOMER_TTS_CHARS_USAGE = Gauge(
+    "ai4x_customer_tts_chars_usage_current_month",
+    "Current TTS characters usage this month",
+    ["customer", "tier"],
+    registry=REGISTRY,
+)
+
+# Rate limit violations and quota exceeded counters
+RATE_LIMIT_VIOLATIONS = Counter(
+    "ai4x_rate_limit_violations_total",
+    "Total number of rate limit violations",
+    ["customer", "tier", "endpoint"],
+    registry=REGISTRY,
+)
+
+QUOTA_EXCEEDED = Counter(
+    "ai4x_quota_exceeded_total",
+    "Total number of quota exceeded events",
+    ["customer", "tier", "service"],
+    registry=REGISTRY,
+)
+
+# Initialize rate limit violations and quota exceeded to 0 for dashboard visibility
+RATE_LIMIT_VIOLATIONS.labels("default", "Basic", "/pipeline").inc(0)
+QUOTA_EXCEEDED.labels("default", "Basic", "llm").inc(0)
+QUOTA_EXCEEDED.labels("default", "Basic", "nmt").inc(0)
+QUOTA_EXCEEDED.labels("default", "Basic", "tts").inc(0)
+
 
 SERVICE_REQUESTS = Counter(
     "ai4x_service_requests_total",
@@ -600,10 +689,34 @@ class MetricsCollector:
     def set_memory_usage_percent(self, percent: float, service: str = "system", customer: str = "system", app: str = "system", endpoint: str = "system") -> None:
         MEMORY_USAGE_PERCENT.labels(service, customer, app, endpoint).set(max(0, min(100, percent)))
     
-    def register_customer(self, customer: str, domain: str, onboarding_date: str, onboard_unix_ts: float) -> None:
+    def register_customer(self, customer: str, domain: str, onboarding_date: str, onboard_unix_ts: float, tier: str = "Basic") -> None:
         """Register static customer metadata for use in PromQL joins."""
         CUSTOMER_METADATA.labels(customer, domain, onboarding_date).set(1)
         CUSTOMER_ONBOARD_TIMESTAMP.labels(customer).set(onboard_unix_ts)
+        # Register customer tier info
+        CUSTOMER_TIER_INFO.labels(customer, tier, domain).set(1)
+    
+    def set_customer_quotas(self, customer: str, tier: str, rate_limit: int, llm_quota: int, nmt_quota: int, tts_quota: int) -> None:
+        """Set static quota limits for a customer based on their tier."""
+        CUSTOMER_RATE_LIMIT_QUOTA.labels(customer, tier).set(rate_limit)
+        CUSTOMER_LLM_TOKENS_QUOTA.labels(customer, tier).set(llm_quota)
+        CUSTOMER_NMT_CHARS_QUOTA.labels(customer, tier).set(nmt_quota)
+        CUSTOMER_TTS_CHARS_QUOTA.labels(customer, tier).set(tts_quota)
+    
+    def update_customer_usage(self, customer: str, tier: str, rate_limit_usage: int, llm_usage: int, nmt_usage: int, tts_usage: int) -> None:
+        """Update current usage metrics for a customer."""
+        CUSTOMER_RATE_LIMIT_USAGE.labels(customer, tier).set(rate_limit_usage)
+        CUSTOMER_LLM_TOKENS_USAGE.labels(customer, tier).set(llm_usage)
+        CUSTOMER_NMT_CHARS_USAGE.labels(customer, tier).set(nmt_usage)
+        CUSTOMER_TTS_CHARS_USAGE.labels(customer, tier).set(tts_usage)
+    
+    def record_rate_limit_violation(self, customer: str, tier: str, endpoint: str) -> None:
+        """Record a rate limit violation."""
+        RATE_LIMIT_VIOLATIONS.labels(customer, tier, endpoint).inc()
+    
+    def record_quota_exceeded(self, customer: str, tier: str, service: str) -> None:
+        """Record a quota exceeded event."""
+        QUOTA_EXCEEDED.labels(customer, tier, service).inc()
     
     def track_service_resource_usage(self, service: str, customer: str, app: str, endpoint: str) -> None:
         """Track actual CPU and memory usage for a specific service during request processing"""

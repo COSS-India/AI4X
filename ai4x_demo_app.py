@@ -43,20 +43,48 @@ weather_service = WeatherService()
 TABLE_NAME = "ai4x_demo_requests_log_v6"
 
 # ----------------------------
+# Customer Tiers and Rate Limits
+# ----------------------------
+# Customer tier definitions with rate limits and usage quotas
+CUSTOMER_TIERS = {
+    "Basic": {
+        "api_rate_limit_per_minute": 50,
+        "llm_tokens_quota_per_month": 50000,      # 50K tokens per month
+        "nmt_chars_quota_per_month": 100000,      # 100K characters per month
+        "tts_chars_quota_per_month": 25000,       # 25K characters per month
+        "description": "Basic tier for small organizations"
+    },
+    "Standard": {
+        "api_rate_limit_per_minute": 100,
+        "llm_tokens_quota_per_month": 150000,     # 150K tokens per month
+        "nmt_chars_quota_per_month": 300000,      # 300K characters per month
+        "tts_chars_quota_per_month": 75000,       # 75K characters per month
+        "description": "Standard tier for medium organizations"
+    },
+    "Premium": {
+        "api_rate_limit_per_minute": 150,
+        "llm_tokens_quota_per_month": 500000,     # 500K tokens per month
+        "nmt_chars_quota_per_month": 1000000,     # 1M characters per month
+        "tts_chars_quota_per_month": 250000,      # 250K characters per month
+        "description": "Premium tier for large organizations"
+    }
+}
+
+# ----------------------------
 # Customers and Apps Catalog
 # ----------------------------
-# Ten representative Indian public/govt-style customers with domain and onboarding dates
+# Ten representative Indian public/govt-style customers with domain, onboarding dates, and tiers
 CUSTOMERS = [
-    {"name": "AgriSmart",        "domain": "agriculture",        "onboarding_date": "2023-01-15"},
-    {"name": "EduServe",         "domain": "education",          "onboarding_date": "2023-07-01"},
-    {"name": "SwasthyaCare",     "domain": "healthcare",         "onboarding_date": "2024-02-10"},
-    {"name": "BankSeva",         "domain": "banking",            "onboarding_date": "2024-09-05"},
-    {"name": "JanaSeva",         "domain": "citizen_services",   "onboarding_date": "2022-11-20"},
-    {"name": "UIDAI Connect",     "domain": "identity",           "onboarding_date": "2025-08-01"},
-    {"name": "RailConnect",      "domain": "transport",          "onboarding_date": "2024-12-01"},
-    {"name": "KrishiMitra",      "domain": "agriculture",        "onboarding_date": "2025-06-12"},
-    {"name": "ShikshaSetu",      "domain": "education",          "onboarding_date": "2022-05-18"},
-    {"name": "NagarPalika",      "domain": "municipal",          "onboarding_date": "2025-09-01"}
+    {"name": "AgriSmart",        "domain": "agriculture",        "onboarding_date": "2023-01-15", "tier": "Basic"},
+    {"name": "EduServe",         "domain": "education",          "onboarding_date": "2023-07-01", "tier": "Standard"},
+    {"name": "SwasthyaCare",     "domain": "healthcare",         "onboarding_date": "2024-02-10", "tier": "Premium"},
+    {"name": "BankSeva",         "domain": "banking",            "onboarding_date": "2024-09-05", "tier": "Premium"},
+    {"name": "JanaSeva",         "domain": "citizen_services",   "onboarding_date": "2022-11-20", "tier": "Standard"},
+    {"name": "UIDAI Connect",    "domain": "identity",           "onboarding_date": "2025-08-01", "tier": "Premium"},
+    {"name": "RailConnect",      "domain": "transport",          "onboarding_date": "2024-12-01", "tier": "Standard"},
+    {"name": "KrishiMitra",      "domain": "agriculture",        "onboarding_date": "2025-06-12", "tier": "Basic"},
+    {"name": "ShikshaSetu",      "domain": "education",          "onboarding_date": "2022-05-18", "tier": "Basic"},
+    {"name": "NagarPalika",      "domain": "municipal",          "onboarding_date": "2025-09-01", "tier": "Standard"}
 ]
 
 # Three common reference applications used by all customers
@@ -69,12 +97,53 @@ APP_NAMES = [
 # ----------------------------
 # Utility Functions
 # ----------------------------
+# ----------------------------
+# Rate Limiting and Quota Management
+# ----------------------------
+import time
+from collections import defaultdict
+from datetime import datetime, timedelta
+
+# In-memory storage for usage tracking
+# In production, this should be moved to a database
+usage_tracking = defaultdict(lambda: {
+    "llm_tokens": 0,
+    "nmt_chars": 0,
+    "tts_chars": 0,
+    "month": datetime.now().month,
+    "year": datetime.now().year
+})
+
 def get_customer_domain(customer_name: str) -> str:
     """Get domain for a customer from the CUSTOMERS list."""
     for customer in CUSTOMERS:
         if customer["name"] == customer_name:
             return customer["domain"]
     return "unknown"
+
+def get_customer_tier(customer_name: str) -> str:
+    """Get tier for a customer from the CUSTOMERS list."""
+    for customer in CUSTOMERS:
+        if customer["name"] == customer_name:
+            return customer["tier"]
+    return "Basic"  # Default to Basic tier
+
+
+
+def update_usage_metrics_for_customer(customer_name: str):
+    """Update Prometheus usage metrics for a customer."""
+    tier = get_customer_tier(customer_name)
+    customer_usage = usage_tracking[customer_name]
+    
+    # Update Prometheus metrics (no rate limit tracking)
+    metrics_collector.update_customer_usage(
+        customer=customer_name,
+        tier=tier,
+        rate_limit_usage=0,  # Not tracking rate limits anymore
+        llm_usage=customer_usage["llm_tokens"],
+        nmt_usage=customer_usage["nmt_chars"],
+        tts_usage=customer_usage["tts_chars"]
+    )
 
 def detect_language_from_text(text: str) -> str:
     text_lower = text.lower().strip()
@@ -160,6 +229,11 @@ async def update_metrics_periodically():
             # All metrics are now calculated from real request data
             metrics_collector.update_dynamic_metrics()
             
+            # Update usage metrics for all customers
+            for customer_info in CUSTOMERS:
+                customer_name = customer_info["name"]
+                update_usage_metrics_for_customer(customer_name)
+            
         except Exception as e:
             print(f"Error updating metrics: {e}")
         
@@ -172,12 +246,37 @@ async def startup_event():
     from datetime import datetime
     for c in CUSTOMERS:
         dt = datetime.fromisoformat(c["onboarding_date"]).replace(tzinfo=timezone.utc)
+        tier = c["tier"]
+        tier_config = CUSTOMER_TIERS[tier]
+        
         metrics_collector.register_customer(
             customer=c["name"],
             domain=c["domain"],
             onboarding_date=c["onboarding_date"],
             onboard_unix_ts=dt.timestamp(),
+            tier=tier
         )
+        
+        # Set static quota limits for each customer
+        metrics_collector.set_customer_quotas(
+            customer=c["name"],
+            tier=tier,
+            rate_limit=tier_config["api_rate_limit_per_minute"],
+            llm_quota=tier_config["llm_tokens_quota_per_month"],
+            nmt_quota=tier_config["nmt_chars_quota_per_month"],
+            tts_quota=tier_config["tts_chars_quota_per_month"]
+        )
+        
+        # Initialize usage metrics to 0
+        metrics_collector.update_customer_usage(
+            customer=c["name"],
+            tier=tier,
+            rate_limit_usage=0,
+            llm_usage=0,
+            nmt_usage=0,
+            tts_usage=0
+        )
+    
     asyncio.create_task(update_metrics_periodically())
 
 # Add metrics endpoint
@@ -206,11 +305,12 @@ def run_pipeline(payload: PipelineInput):
     if not pipeline:
         raise HTTPException(status_code=400, detail=f"No pipeline defined for customer {customer}")
 
+    input_text = payload.input.get("text", "")
+    target_language = payload.input.get("language", "en")
+
     request_id = str(uuid.uuid4())
     latencies = {}
     pipeline_output = {}
-    input_text = payload.input.get("text", "")
-    target_language = payload.input.get("language", "en")
 
     success = True
     response_data = None
@@ -383,6 +483,9 @@ def run_pipeline(payload: PipelineInput):
             conn.commit()
             cur.close()
             conn.close()
+            
+            # Update usage metrics in Prometheus after successful request
+            update_usage_metrics_for_customer(customer)
 
         except Exception as e:
             success = False
@@ -924,6 +1027,81 @@ def llm_generate(payload: LLMInput):
             "confidence": 0.0,
             "failedComponents": failed_components
         }
+
+# ----------------------------
+# Customer Tier and Usage Management Endpoints
+# ----------------------------
+@app.get("/customers/{customerName}/tier-info")
+def get_customer_tier_info(customerName: str):
+    """Get customer tier information and current usage"""
+    tier = get_customer_tier(customerName)
+    tier_config = CUSTOMER_TIERS[tier]
+    customer_usage = usage_tracking[customerName]
+    
+    return {
+        "customer": customerName,
+        "tier": tier,
+        "tier_config": tier_config,
+        "current_usage": {
+            "llm_tokens": {
+                "current": customer_usage["llm_tokens"],
+                "limit": tier_config["llm_tokens_quota_per_month"],
+                "remaining": max(0, tier_config["llm_tokens_quota_per_month"] - customer_usage["llm_tokens"])
+            },
+            "nmt_chars": {
+                "current": customer_usage["nmt_chars"],
+                "limit": tier_config["nmt_chars_quota_per_month"],
+                "remaining": max(0, tier_config["nmt_chars_quota_per_month"] - customer_usage["nmt_chars"])
+            },
+            "tts_chars": {
+                "current": customer_usage["tts_chars"],
+                "limit": tier_config["tts_chars_quota_per_month"],
+                "remaining": max(0, tier_config["tts_chars_quota_per_month"] - customer_usage["tts_chars"])
+            }
+        },
+        "usage_period": {
+            "month": customer_usage["month"],
+            "year": customer_usage["year"]
+        }
+    }
+
+@app.get("/tiers")
+def get_all_tiers():
+    """Get information about all available tiers"""
+    return {
+        "tiers": CUSTOMER_TIERS,
+        "customers_by_tier": {
+            tier: [c["name"] for c in CUSTOMERS if c["tier"] == tier]
+            for tier in CUSTOMER_TIERS.keys()
+        }
+    }
+
+@app.get("/customers/usage-summary")
+def get_all_customers_usage():
+    """Get usage summary for all customers"""
+    summary = {}
+    for customer_info in CUSTOMERS:
+        customer_name = customer_info["name"]
+        tier = customer_info["tier"]
+        tier_config = CUSTOMER_TIERS[tier]
+        customer_usage = usage_tracking[customer_name]
+        
+        summary[customer_name] = {
+            "domain": customer_info["domain"],
+            "tier": tier,
+            "usage_percentages": {
+                "llm_tokens": (customer_usage["llm_tokens"] / tier_config["llm_tokens_quota_per_month"]) * 100,
+                "nmt_chars": (customer_usage["nmt_chars"] / tier_config["nmt_chars_quota_per_month"]) * 100,
+                "tts_chars": (customer_usage["tts_chars"] / tier_config["tts_chars_quota_per_month"]) * 100
+            },
+            "current_usage": {
+                "llm_tokens_this_month": customer_usage["llm_tokens"],
+                "nmt_chars_this_month": customer_usage["nmt_chars"],
+                "tts_chars_this_month": customer_usage["tts_chars"]
+            }
+        }
+    
+    return {"customers": summary}
 
 
 @app.get('/test_system_metrics')
