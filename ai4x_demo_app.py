@@ -386,7 +386,17 @@ def run_pipeline(payload: PipelineInput):
 
         except Exception as e:
             success = False
-            raise HTTPException(status_code=500, detail=str(e))
+            # Get information about which components failed
+            failed_components = metrics_collector.get_request_component_failures(rid)
+            error_detail = str(e)
+            if failed_components:
+                error_detail = f"{str(e)} (Failed components: {', '.join(failed_components)})"
+            raise HTTPException(status_code=500, detail=error_detail)
+
+    # Check if any components failed even if no exception was raised
+    failed_components = metrics_collector.get_request_component_failures(rid)
+    if failed_components:
+        success = False
 
     return {
         "requestId": request_id,
@@ -395,6 +405,7 @@ def run_pipeline(payload: PipelineInput):
         "responseData": response_data if success else None,
         "latency": latencies,
         "usage": usage,
+        "failedComponents": failed_components if failed_components else None,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
@@ -743,7 +754,24 @@ def nmt_translate(payload: NMTInput):
                 }
                 
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"NMT service error: {str(e)}")
+            # Get information about which components failed
+            failed_components = metrics_collector.get_request_component_failures(rid)
+            error_detail = f"NMT service error: {str(e)}"
+            if failed_components:
+                error_detail = f"{error_detail} (Failed components: {', '.join(failed_components)})"
+            raise HTTPException(status_code=500, detail=error_detail)
+    
+    # Check if any components failed even if no exception was raised
+    failed_components = metrics_collector.get_request_component_failures(rid)
+    if failed_components:
+        return {
+            "success": False,
+            "error": f"Component failures: {', '.join(failed_components)}",
+            "translated_text": text,  # Return original text as fallback
+            "detected_source_language": source_lang,
+            "target_language": target_lang,
+            "failedComponents": failed_components
+        }
 
 @app.post("/tts/speak")
 def tts_speak(payload: TTSInput):
@@ -802,7 +830,24 @@ def tts_speak(payload: TTSInput):
                 }
                 
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"TTS service error: {str(e)}")
+            # Get information about which components failed
+            failed_components = metrics_collector.get_request_component_failures(rid)
+            error_detail = f"TTS service error: {str(e)}"
+            if failed_components:
+                error_detail = f"{error_detail} (Failed components: {', '.join(failed_components)})"
+            raise HTTPException(status_code=500, detail=error_detail)
+    
+    # Check if any components failed even if no exception was raised
+    failed_components = metrics_collector.get_request_component_failures(rid)
+    if failed_components:
+        return {
+            "success": False,
+            "error": f"Component failures: {', '.join(failed_components)}",
+            "audio_content": None,
+            "language": language,
+            "gender": gender,
+            "failedComponents": failed_components
+        }
 
 @app.post("/llm/generate")
 def llm_generate(payload: LLMInput):
@@ -861,7 +906,24 @@ def llm_generate(payload: LLMInput):
                 }
                 
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"LLM service error: {str(e)}")
+            # Get information about which components failed
+            failed_components = metrics_collector.get_request_component_failures(rid)
+            error_detail = f"LLM service error: {str(e)}"
+            if failed_components:
+                error_detail = f"{error_detail} (Failed components: {', '.join(failed_components)})"
+            raise HTTPException(status_code=500, detail=error_detail)
+    
+    # Check if any components failed even if no exception was raised
+    failed_components = metrics_collector.get_request_component_failures(rid)
+    if failed_components:
+        return {
+            "success": False,
+            "error": f"Component failures: {', '.join(failed_components)}",
+            "response": "I'm sorry, I couldn't process your request.",
+            "intent": "general",
+            "confidence": 0.0,
+            "failedComponents": failed_components
+        }
 
 
 @app.get('/test_system_metrics')

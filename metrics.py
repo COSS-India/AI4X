@@ -55,7 +55,9 @@ ERROR_COUNT = Counter(
 )
 
 # Initialize error count to 0 for dashboard visibility
-ERROR_COUNT.labels("default", "unknown", "default", "none", "none", "2xx").inc(0)
+ERROR_COUNT.labels("default", "unknown", "default", "none", "none", "3xx").inc(0)
+ERROR_COUNT.labels("default", "unknown", "default", "none", "none", "4xx").inc(0)
+ERROR_COUNT.labels("default", "unknown", "default", "none", "none", "5xx").inc(0)
 
 # ----------------------------
 GPU_USAGE = Gauge("ai4x_gpu_usage_percent", "GPU usage %", registry=REGISTRY)
@@ -439,7 +441,8 @@ class MetricsCollector:
             "service": service,
             "components": {},
             "completed": False,
-            "success": True
+            "success": True,
+            "component_failures": []  # Track which components failed
         }
         return rid
 
@@ -533,12 +536,14 @@ class MetricsCollector:
         dur = time.time() - t0
         COMPONENT_LATENCY.labels(component, d["customer"], d["app"]).observe(dur)
         if not success:
-            print(f"Processing error: {d}")
-            domain = d.get("domain", "unknown")
-            # For processing errors, we'll use status series "5xx" as it's a server-side error
-            ERROR_COUNT.labels(d["customer"], domain, d["app"], d["endpoint"], "processing_error", "5xx").inc()
-            # Record service availability failure
+            print(f"Server error: {d}")
+            # Record service availability failure for the specific component
             self.record_availability_failure("service_error", component.lower())
+            # Track component failure for request-level error handling
+            d["component_failures"].append(component)
+            d["success"] = False  # Mark overall request as failed
+            # NOTE: We don't increment ERROR_COUNT here to avoid double-counting
+            # The error will be counted once at the request level in end_request()
 
     # ---------- counters for services & data ----------
     def service_request(self, service: str, customer: str, app: str) -> None:
@@ -659,6 +664,17 @@ class MetricsCollector:
     def record_availability_failure(self, failure_type: str, component: str) -> None:
         """Record a system availability failure"""
         SYSTEM_AVAILABILITY_FAILURES.labels(failure_type, component).inc()
+    
+    def get_request_component_failures(self, rid: str) -> list:
+        """Get list of failed components for a request"""
+        d = self._req.get(rid)
+        if d:
+            return d.get("component_failures", [])
+        return []
+    
+    def has_request_component_failures(self, rid: str) -> bool:
+        """Check if request has any component failures"""
+        return len(self.get_request_component_failures(rid)) > 0
     
     def _calculate_sla_compliance(self) -> None:
         """Calculate SLA compliance per service and endpoint based on actual performance vs targets"""
@@ -876,7 +892,14 @@ class MetricsCollector:
         rid = self.start_request(customer, app, endpoint, domain, service)
         try:
             yield rid
-            self.end_request(rid, 200)
+            # Check if any components failed during the request
+            d = self._req.get(rid)
+            if d and d.get("component_failures"):
+                # If any component failed, mark request as error (500)
+                self.end_request(rid, 500)
+            else:
+                # No component failures, request was successful
+                self.end_request(rid, 200)
         except Exception:
             self.end_request(rid, 500)
             raise
