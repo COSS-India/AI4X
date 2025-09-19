@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 5,
+  "id": 2,
   "links": [],
   "panels": [
     {
@@ -955,5 +955,5 @@
   "timezone": "browser",
   "title": "Adopter - Admin Dashboard - AgriSmart",
   "uid": "tenant-dashboard",
-  "version": 24
+  "version": 1
 }
