@@ -66,11 +66,6 @@ ERROR_COUNT.labels("default", "unknown", "default", "none", "none", "3xx").inc(0
 ERROR_COUNT.labels("default", "unknown", "default", "none", "none", "4xx").inc(0)
 ERROR_COUNT.labels("default", "unknown", "default", "none", "none", "5xx").inc(0)
 
-# Initialize GPU metrics to 0 for dashboard visibility
-GPU_USAGE_PERCENT.labels("system", "system", "system", "system", "0").set(0)
-GPU_MEMORY_USAGE_PERCENT.labels("system", "system", "system", "system", "0").set(0)
-GPU_MEMORY_USAGE_BYTES.labels("system", "system", "system", "system", "0").set(0)
-
 # ----------------------------
 # GPU metrics
 # ----------------------------
@@ -94,6 +89,13 @@ GPU_MEMORY_USAGE_BYTES = Gauge(
     ["service", "customer", "app", "endpoint", "gpu_id"],
     registry=REGISTRY,
 )
+
+# Initialize GPU metrics to 0 for dashboard visibility
+GPU_USAGE_PERCENT.labels("system", "system", "system", "system", "0").set(0)
+GPU_MEMORY_USAGE_PERCENT.labels("system", "system", "system", "system", "0").set(0)
+GPU_MEMORY_USAGE_BYTES.labels("system", "system", "system", "system", "0").set(0)
+
+
 
 # System-wide GPU metrics (backward compatibility)
 GPU_USAGE = Gauge("ai4x_system_gpu_usage_percent", "System GPU usage %", registry=REGISTRY)
