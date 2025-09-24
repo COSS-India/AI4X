@@ -20,8 +20,8 @@
     { "customerName": "AgriSmart",    "customerAppName": "UIDAI Support",             "input": { "text": "किसान पंजीकरण की स्थिति बताएं", "language": "hi" } },
     { "customerName": "EduServe",     "customerAppName": "Citizen Services Helpdesk", "input": { "text": "विद्यार्थीवृत्तीची माहिती द्या", "language": "mr" } },
     { "customerName": "SwasthyaCare", "customerAppName": "Citizen Services Helpdesk", "input": { "text": "जनऔषधी केंद्र कुठे आहे?", "language": "mr" } },
-    { "customerName": "BankSeva",     "customerAppName": "Banking Chat Support",      "input": { "text": "How do I reset my netbanking password?", "language": "en" } },
-    { "customerName": "JanaSeva",     "customerAppName": "Citizen Services Helpdesk", "input": { "text": "How to apply for domicile certificate?", "language": "en" } },
+    { "customerName": "BankSeva",     "customerAppName": "Banking Chat Support",      "input": { "text": "என் நெட்பேங்கிங் கடவுச்சொல்லை எப்படி மீட்டமைப்பது?", "language": "ta" } },
+    { "customerName": "JanaSeva",     "customerAppName": "Citizen Services Helpdesk", "input": { "text": "வசிப்பிட சான்றிதழுக்கு எப்படி விண்ணப்பிப்பது?", "language": "ta" } },
     { "customerName": "UIDAI Connect", "customerAppName": "UIDAI Support",             "input": { "text": "आधार अपडेट स्टेटस", "language": "hi" } },
     { "customerName": "RailConnect",  "customerAppName": "Citizen Services Helpdesk", "input": { "text": "चेन्नई ते दिल्ली ट्रेन वेळा", "language": "ta" } },
     { "customerName": "KrishiMitra",  "customerAppName": "UIDAI Support",             "input": { "text": "धान की MSP क्या है?", "language": "hi" } },
@@ -33,10 +33,10 @@
       { "customerName": "AgriSmart",    "customerAppName": "UIDAI Support",             "text": "நான் விவசாயி பதிவு நிலையை அறிய விரும்புகிறேன்", "target_language": "en" },
       { "customerName": "BankSeva",     "customerAppName": "Banking Chat Support",      "text": "Balance enquiry kaise kare?", "target_language": "en" },
       { "customerName": "ShikshaSetu",  "customerAppName": "Citizen Services Helpdesk", "text": "विद्यालय प्रवेश कब से शुरू है?", "target_language": "en" },
-      { "customerName": "UIDAI Connect", "customerAppName": "UIDAI Support",             "text": "How to update address in Aadhaar?", "target_language": "hi" }
+      { "customerName": "UIDAI Connect", "customerAppName": "UIDAI Support",             "text": "ஆதாரில் முகவரியை எப்படி புதுப்பிப்பது?", "target_language": "hi" }
     ],
     "tts_requests": [
-      { "customerName": "JanaSeva",    "customerAppName": "Citizen Services Helpdesk", "text": "Please keep your documents ready.", "language": "en", "gender": "female" },
+      { "customerName": "JanaSeva",    "customerAppName": "Citizen Services Helpdesk", "text": "தயவுசெய்து உங்கள் ஆவணங்களை தயாராக வைத்துக் கொள்ளுங்கள்.", "language": "ta", "gender": "female" },
       { "customerName": "RailConnect", "customerAppName": "Citizen Services Helpdesk", "text": "अगली ट्रेन पाँच मिनट में आएगी।", "language": "hi", "gender": "male" },
       { "customerName": "SwasthyaCare","customerAppName": "Citizen Services Helpdesk", "text": "कृपया अपनी बारी का इंतजार करें।", "language": "hi", "gender": "female" }
     ],

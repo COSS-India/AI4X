@@ -10,6 +10,13 @@ from config import Config
 import psutil
 from prometheus_client import Counter, Histogram, Gauge, CollectorRegistry, generate_latest
 
+# GPU monitoring imports
+try:
+    import GPUtil
+    GPU_AVAILABLE = True
+except ImportError:
+    GPU_AVAILABLE = False
+
 # ----------------------------
 # Registry
 # ----------------------------
@@ -59,9 +66,38 @@ ERROR_COUNT.labels("default", "unknown", "default", "none", "none", "3xx").inc(0
 ERROR_COUNT.labels("default", "unknown", "default", "none", "none", "4xx").inc(0)
 ERROR_COUNT.labels("default", "unknown", "default", "none", "none", "5xx").inc(0)
 
+# Initialize GPU metrics to 0 for dashboard visibility
+GPU_USAGE_PERCENT.labels("system", "system", "system", "system", "0").set(0)
+GPU_MEMORY_USAGE_PERCENT.labels("system", "system", "system", "system", "0").set(0)
+GPU_MEMORY_USAGE_BYTES.labels("system", "system", "system", "system", "0").set(0)
+
 # ----------------------------
-GPU_USAGE = Gauge("ai4x_gpu_usage_percent", "GPU usage %", registry=REGISTRY)
-GPU_MEMORY = Gauge("ai4x_gpu_memory_usage_bytes", "GPU mem (bytes)", registry=REGISTRY)
+# GPU metrics
+# ----------------------------
+GPU_USAGE_PERCENT = Gauge(
+    "ai4x_gpu_usage_percent",
+    "GPU usage percentage",
+    ["service", "customer", "app", "endpoint", "gpu_id"],
+    registry=REGISTRY,
+)
+
+GPU_MEMORY_USAGE_PERCENT = Gauge(
+    "ai4x_gpu_memory_usage_percent",
+    "GPU memory usage percentage",
+    ["service", "customer", "app", "endpoint", "gpu_id"],
+    registry=REGISTRY,
+)
+
+GPU_MEMORY_USAGE_BYTES = Gauge(
+    "ai4x_gpu_memory_usage_bytes",
+    "GPU memory usage in bytes",
+    ["service", "customer", "app", "endpoint", "gpu_id"],
+    registry=REGISTRY,
+)
+
+# System-wide GPU metrics (backward compatibility)
+GPU_USAGE = Gauge("ai4x_system_gpu_usage_percent", "System GPU usage %", registry=REGISTRY)
+GPU_MEMORY = Gauge("ai4x_system_gpu_memory_usage_bytes", "System GPU mem (bytes)", registry=REGISTRY)
 DB_CONNECTIONS_ACTIVE = Gauge(
     "ai4x_db_connections_active",
     "Active DB connections (set from app)",
@@ -463,16 +499,19 @@ class MetricsCollector:
                     MEMORY_USAGE_PERCENT.labels("system", "system", "system", "system").set(memory_percent)
                     
                     # GPU metrics (if available)
-                    try:
-                        import GPUtil
-                        gpus = GPUtil.getGPUs()
-                        if gpus:
-                            gpu = gpus[0]  # Use first GPU
-                            GPU_USAGE.set(gpu.load * 100)
-                            GPU_MEMORY.set(gpu.memoryUsed * 1024 * 1024)  # Convert MB to bytes
-                    except ImportError:
-                        # GPU monitoring not available
-                        pass
+                    gpu_usage, gpu_memory_percent, gpu_memory_bytes = get_gpu_usage()
+                    if gpu_usage is not None:
+                        GPU_USAGE.set(gpu_usage)
+                    if gpu_memory_bytes is not None:
+                        GPU_MEMORY.set(gpu_memory_bytes)
+                    
+                    # Set system-wide GPU metrics
+                    if gpu_usage is not None:
+                        GPU_USAGE_PERCENT.labels("system", "system", "system", "system", "0").set(gpu_usage)
+                    if gpu_memory_percent is not None:
+                        GPU_MEMORY_USAGE_PERCENT.labels("system", "system", "system", "system", "0").set(gpu_memory_percent)
+                    if gpu_memory_bytes is not None:
+                        GPU_MEMORY_USAGE_BYTES.labels("system", "system", "system", "system", "0").set(gpu_memory_bytes)
                     
                     time.sleep(5)  # Update every 5 seconds
                 except Exception as e:
@@ -689,6 +728,18 @@ class MetricsCollector:
     def set_memory_usage_percent(self, percent: float, service: str = "system", customer: str = "system", app: str = "system", endpoint: str = "system") -> None:
         MEMORY_USAGE_PERCENT.labels(service, customer, app, endpoint).set(max(0, min(100, percent)))
     
+    def set_gpu_usage_percent(self, percent: float, service: str = "system", customer: str = "system", app: str = "system", endpoint: str = "system", gpu_id: str = "0") -> None:
+        """Set GPU usage percentage for a specific service/request"""
+        GPU_USAGE_PERCENT.labels(service, customer, app, endpoint, gpu_id).set(max(0, min(100, percent)))
+    
+    def set_gpu_memory_usage_percent(self, percent: float, service: str = "system", customer: str = "system", app: str = "system", endpoint: str = "system", gpu_id: str = "0") -> None:
+        """Set GPU memory usage percentage for a specific service/request"""
+        GPU_MEMORY_USAGE_PERCENT.labels(service, customer, app, endpoint, gpu_id).set(max(0, min(100, percent)))
+    
+    def set_gpu_memory_usage_bytes(self, bytes_used: float, service: str = "system", customer: str = "system", app: str = "system", endpoint: str = "system", gpu_id: str = "0") -> None:
+        """Set GPU memory usage in bytes for a specific service/request"""
+        GPU_MEMORY_USAGE_BYTES.labels(service, customer, app, endpoint, gpu_id).set(max(0, bytes_used))
+    
     def register_customer(self, customer: str, domain: str, onboarding_date: str, onboard_unix_ts: float, tier: str = "Basic") -> None:
         """Register static customer metadata for use in PromQL joins."""
         CUSTOMER_METADATA.labels(customer, domain, onboarding_date).set(1)
@@ -719,7 +770,7 @@ class MetricsCollector:
         QUOTA_EXCEEDED.labels(customer, tier, service).inc()
     
     def track_service_resource_usage(self, service: str, customer: str, app: str, endpoint: str) -> None:
-        """Track actual CPU and memory usage for a specific service during request processing"""
+        """Track actual CPU, memory, and GPU usage for a specific service during request processing"""
         import psutil
         
         # Get current actual system resource usage
@@ -730,13 +781,31 @@ class MetricsCollector:
         # Set actual service-specific metrics (no simulation)
         CPU_USAGE_PERCENT.labels(service, customer, app, endpoint).set(cpu_percent)
         MEMORY_USAGE_PERCENT.labels(service, customer, app, endpoint).set(memory_percent)
+        
+        # Track GPU usage if available
+        gpu_usage, gpu_memory_percent, gpu_memory_bytes = get_gpu_usage()
+        if gpu_usage is not None:
+            self.set_gpu_usage_percent(gpu_usage, service, customer, app, endpoint)
+        if gpu_memory_percent is not None:
+            self.set_gpu_memory_usage_percent(gpu_memory_percent, service, customer, app, endpoint)
+        if gpu_memory_bytes is not None:
+            self.set_gpu_memory_usage_bytes(gpu_memory_bytes, service, customer, app, endpoint)
     
     def track_request_resource_usage(self, service: str, customer: str, app: str, endpoint: str, 
-                                   cpu_usage: float, memory_usage: float) -> None:
+                                   cpu_usage: float, memory_usage: float, gpu_usage: float = None, 
+                                   gpu_memory_usage: float = None, gpu_memory_bytes: float = None) -> None:
         """Track actual resource usage for a specific request"""
         # Set the actual resource usage for this specific request
         CPU_USAGE_PERCENT.labels(service, customer, app, endpoint).set(cpu_usage)
         MEMORY_USAGE_PERCENT.labels(service, customer, app, endpoint).set(memory_usage)
+        
+        # Set GPU usage if provided
+        if gpu_usage is not None:
+            self.set_gpu_usage_percent(gpu_usage, service, customer, app, endpoint)
+        if gpu_memory_usage is not None:
+            self.set_gpu_memory_usage_percent(gpu_memory_usage, service, customer, app, endpoint)
+        if gpu_memory_bytes is not None:
+            self.set_gpu_memory_usage_bytes(gpu_memory_bytes, service, customer, app, endpoint)
 
     # ---------- external API tracking ----------
     def track_external_api_call(self, external_service: str, api_endpoint: str, customer: str, app: str, 
@@ -1020,6 +1089,43 @@ class MetricsCollector:
 
 # ------------- module‑level helpers -------------
 metrics_collector = MetricsCollector()
+
+
+def get_gpu_usage():
+    """Get current GPU usage and memory statistics.
+    
+    Returns:
+        tuple: (gpu_usage_percent, gpu_memory_percent, gpu_memory_bytes)
+               Returns (None, None, None) if GPU monitoring is not available
+    """
+    if not GPU_AVAILABLE:
+        return None, None, None
+    
+    try:
+        gpus = GPUtil.getGPUs()
+        if not gpus:
+            return None, None, None
+        
+        # Use first GPU by default
+        gpu = gpus[0]
+        gpu_usage_percent = gpu.load * 100
+        gpu_memory_percent = (gpu.memoryUsed / gpu.memoryTotal) * 100 if gpu.memoryTotal > 0 else 0
+        gpu_memory_bytes = gpu.memoryUsed * 1024 * 1024  # Convert MB to bytes
+        
+        return gpu_usage_percent, gpu_memory_percent, gpu_memory_bytes
+    except Exception as e:
+        print(f"Error getting GPU usage: {e}")
+        return None, None, None
+
+
+def get_gpu_memory():
+    """Get current GPU memory usage in bytes.
+    
+    Returns:
+        float: GPU memory usage in bytes, or None if not available
+    """
+    _, _, gpu_memory_bytes = get_gpu_usage()
+    return gpu_memory_bytes
 
 
 def prometheus_latest_text() -> str:
