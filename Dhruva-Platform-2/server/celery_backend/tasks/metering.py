@@ -107,66 +107,73 @@ def calculate_ner_usage(data: List) -> int:
 def write_to_db(
     api_key_id: str, inference_units: int, service_id: str, usage_type: str
 ):
-    api_key_collection = db["api_key"]
-    user_collection = db["user"]
+    """Write usage data to PostgreSQL and TimescaleDB"""
+    from db.postgresql_models import ApiKey as PostgreSQLApiKey, User as PostgreSQLUser
+    from uuid import UUID
 
-    # Handle both ObjectId string and actual ObjectId
+    # Get PostgreSQL session
+    pg_session = db
+
     try:
-        if isinstance(api_key_id, str) and len(api_key_id) == 24:
-            # It's a string representation of ObjectId
-            api_key = api_key_collection.find_one({"_id": ObjectId(api_key_id)})
-        else:
-            # Try to find by the actual API key string
-            api_key = api_key_collection.find_one({"api_key": api_key_id})
+        # Try to find API key by UUID first (new format)
+        try:
+            api_key_uuid = UUID(api_key_id)
+            api_key = pg_session.query(PostgreSQLApiKey).filter(
+                PostgreSQLApiKey.id == api_key_uuid
+            ).first()
+        except ValueError:
+            # If not UUID, try to find by api_key string
+            api_key = pg_session.query(PostgreSQLApiKey).filter(
+                PostgreSQLApiKey.api_key == api_key_id
+            ).first()
+
+        if not api_key:
+            print(f"No API key found for: {api_key_id}")
+            return
+
+        # Get user information
+        user = pg_session.query(PostgreSQLUser).filter(
+            PostgreSQLUser.id == api_key.user_id
+        ).first()
+
+        if not user:
+            print("Invalid user id for API key")
+            return
+
+        # Write to TimescaleDB for time-series analytics
+        with Session(engine) as timescale_session:
+            api_key_record = ApiKey(
+                api_key_id=str(api_key.id),
+                api_key_name=api_key.name,
+                user_id=str(user.id),
+                user_email=user.email,
+                inference_service_id=service_id,
+                task_type=usage_type,
+                usage=inference_units,
+            )
+
+            timescale_session.add(api_key_record)
+            timescale_session.commit()
+
+        # Update PostgreSQL API key usage counters
+        try:
+            api_key.usage += inference_units
+            api_key.hits += 1
+            pg_session.commit()
+            print(f"Updated PostgreSQL usage: +{inference_units} units, +1 hit for API key {api_key_id}")
+        except Exception as e:
+            print(f"Error updating PostgreSQL usage counters: {e}")
+            pg_session.rollback()
+
     except Exception as e:
-        print(f"Error looking up API key: {e}")
-        # Try alternative lookup by api_key field
-        api_key = api_key_collection.find_one({"api_key": api_key_id})
-
-    if not api_key:
-        print(f"No document found for the API key: {api_key_id}")
-        return
-
-    user = user_collection.find_one({"_id": api_key["user_id"]})
-    if not user:
-        print("Invalid user id for API key")
-        return
-
-    # Write to TimescaleDB for time-series analytics
-    with Session(engine) as session:
-        api_key_record = ApiKey(
-            api_key_id=api_key_id,
-            api_key_name=api_key["name"],
-            user_id=str(user["_id"]),
-            user_email=user["email"],
-            inference_service_id=service_id,
-            task_type=usage_type,
-            usage=inference_units,
-        )
-
-        session.add(api_key_record)
-        session.commit()
-
-    # Update MongoDB API key usage counters
-    try:
-        api_key_collection.update_one(
-            {"_id": ObjectId(api_key_id)},
-            {
-                "$inc": {
-                    "usage": inference_units,  # Increment total usage
-                    "hits": 1                  # Increment hit counter
-                }
-            }
-        )
-        print(f"Updated MongoDB usage: +{inference_units} units, +1 hit for API key {api_key_id}")
-    except Exception as e:
-        print(f"Error updating MongoDB usage counters: {e}")
+        print(f"Error in write_to_db: {e}")
+        pg_session.rollback()
 
 
 def meter_usage(
     api_key_id: Optional[str], input_data: List, usage_type: str, service_id: str
 ):
-    """Meters usage and writes to Mongo"""
+    """Meters usage and writes to PostgreSQL and TimescaleDB"""
     if not api_key_id:
         return
 

@@ -2,12 +2,11 @@ import os
 from collections import OrderedDict
 from logging.config import dictConfig
 
-import pymongo
 from cache.app_cache import get_cache_connection
 from custom_metrics import *
-from db.database import db_client
+from db.postgresql_database import init_postgresql_connections, create_tables, AppDBSessionLocal
 from db.metering_database import Base, engine
-from db.populate_db import seed_collection
+from db.populate_postgresql import seed_postgresql_database
 from dotenv import load_dotenv
 from exception.base_error import BaseError
 from exception.client_error import ClientError
@@ -76,14 +75,18 @@ app.add_middleware(
 
 app.add_middleware(DBSessionMiddleware, custom_engine=engine)
 
-db_clients = {
-    "app": pymongo.MongoClient("mongodb://dhruva-platform-app-db:27017"),
-    "log": pymongo.MongoClient("mongodb://dhruva-platform-log-db:27017"),
-}
-
 @app.on_event("startup")
-async def init_mongo_client():
-    db_client["app"] = pymongo.MongoClient(os.environ["APP_DB_CONNECTION_STRING"])
+async def init_postgresql_client():
+    """Initialize PostgreSQL connections"""
+    init_postgresql_connections()
+    create_tables()
+
+    # Seed database with initial data
+    db = AppDBSessionLocal()
+    try:
+        seed_postgresql_database(db)
+    finally:
+        db.close()
 
 
 @app.on_event("startup")

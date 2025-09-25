@@ -1,31 +1,36 @@
 from typing import Optional
 
-from db.BaseRepository import BaseRepository
-from db.database import AppDatabase
+from db.PostgreSQLBaseRepository import PostgreSQLBaseRepository
+from db.postgresql_database import get_app_db_session
 from fastapi import Depends
-from pymongo.database import Database
+from sqlalchemy.orm import Session
 
 from ..model import Service
+from db.postgresql_models import Service as SQLService
 
 
-class ServiceRepository(BaseRepository[Service]):
-    __collection_name__ = "service"
+class ServiceRepository(PostgreSQLBaseRepository[SQLService]):
+    def __init__(self, db: Session = Depends(get_app_db_session)) -> None:
+        super().__init__(db, SQLService)
 
-    def __init__(self, db: Database = Depends(AppDatabase)) -> None:
-        super().__init__(db, self.__collection_name__)
+    def find_by_service_id(self, service_id: str) -> Optional[SQLService]:
+        """Find service by service_id (business key)"""
+        return self.find_one(service_id=service_id)
 
-    def find_by_id(self, id: str) -> Optional[Service]:
-        return super().find_one({"serviceId": id})
+    def get_by_service_id(self, service_id: str) -> SQLService:
+        """Get service by service_id, raise exception if not found"""
+        return self.get_one(service_id=service_id)
 
-    def get_by_service_id(self, id: str) -> Service:
-        return super().get_one({"serviceId": id})
+    def delete_by_service_id(self, service_id: str) -> int:
+        """Delete service by service_id"""
+        service = self.find_by_service_id(service_id)
+        if service:
+            return self.delete_one(service.id)
+        return 0
 
-    def delete_one(self, id: str):
-        result = self.collection.delete_one({"serviceId": id})
-        return result.deleted_count
-
-    def update_one(self, data: dict) -> int:
-        result = self.collection.update_one(
-            {"serviceId": data["serviceId"]}, {"$set": data}
-        )
-        return result.modified_count
+    def update_by_service_id(self, service_id: str, data: dict) -> int:
+        """Update service by service_id"""
+        service = self.find_by_service_id(service_id)
+        if service:
+            return self.update_one(service.id, data)
+        return 0

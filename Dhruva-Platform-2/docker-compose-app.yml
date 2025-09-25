@@ -7,12 +7,15 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
+    environment:
+      - APP_DB_CONNECTION_STRING=postgresql://dhruvaadmin:dhruva123@dhruva-platform-app-db-pg:5432/dhruva_app
+      - LOG_DB_CONNECTION_STRING=postgresql://dhruvalogadmin:dhruvalog123@dhruva-platform-log-db-pg:5432/dhruva_log
     env_file: .env
     command: python3 -m uvicorn main:app --host 0.0.0.0 --port 8000
     depends_on:
       redis:
         condition: service_healthy
-      app_db:
+      app_db_pg:
         condition: service_healthy
       rabbitmq_server:
         condition: service_started
@@ -29,13 +32,16 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
+    environment:
+      - APP_DB_CONNECTION_STRING=postgresql://dhruvaadmin:dhruva123@dhruva-platform-app-db-pg:5432/dhruva_app
+      - LOG_DB_CONNECTION_STRING=postgresql://dhruvalogadmin:dhruvalog123@dhruva-platform-log-db-pg:5432/dhruva_log
     env_file: .env
     command: >
       celery -A celery_backend.celery_app worker --loglevel=info
     depends_on:
       redis:
         condition: service_healthy
-      app_db:
+      app_db_pg:
         condition: service_healthy
       rabbitmq_server:
         condition: service_started
@@ -75,8 +81,8 @@ services:
 
 volumes:
   timescaledb_data:
-  app_db_data:
-  log_db_data:
+  app_db_pg_data:
+  log_db_pg_data:
   redis_data:
 
 networks:

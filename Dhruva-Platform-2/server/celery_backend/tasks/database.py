@@ -1,18 +1,18 @@
 import os
 
-import pymongo
 from dotenv import load_dotenv
-from pymongo.database import Database
+from sqlalchemy.orm import Session
+
+from db.postgresql_database import AppDBSessionLocal, init_postgresql_connections
 
 load_dotenv(override=True)
 
-db_clients = {
-    "app": pymongo.MongoClient(os.environ.get("APP_DB_CONNECTION_STRING", "mongodb://dhruvaadmin:dhruva123@dhruva-platform-app-db:27017/admin?authSource=admin")),
-}
+# Initialize PostgreSQL connections
+init_postgresql_connections()
 
-def AppDatabase() -> Database:
-    mongo_db = db_clients["app"]["admin"]
-    return mongo_db
+def AppDatabase() -> Session:
+    """Get PostgreSQL app database session"""
+    return AppDBSessionLocal()
 
 
 def LogDatastore():
