@@ -1,0 +1,7 @@
+include README.md
+include requirements.txt
+include LICENSE
+recursive-include dhruva_observability *.py
+recursive-include dhruva_observability *.md
+recursive-include dhruva_observability *.yaml
+recursive-include dhruva_observability *.json
