@@ -30,6 +30,14 @@ from module import *
 from seq_streamer import StreamingServerTaskSequence
 from prometheus_client import make_asgi_app
 
+# Dhruva Observability Plugin Integration
+try:
+    from dhruva_observability import ObservabilityPlugin
+    OBSERVABILITY_AVAILABLE = True
+except ImportError:
+    OBSERVABILITY_AVAILABLE = False
+    logger.warning("Dhruva Observability Plugin not available. Install with: pip install -i https://test.pypi.org/simple/ dhruva-observability==1.0.1")
+
 dictConfig(LogConfig().dict())
 
 load_dotenv()
@@ -39,9 +47,22 @@ app = FastAPI(
     description="Backend API for communicating with the Dhruva platform",
 )
 
+# Initialize Dhruva Observability Plugin
+if OBSERVABILITY_AVAILABLE and os.environ.get("DHRUVA_OBSERVABILITY_ENABLED", "false").lower() == "true":
+    try:
+        enterprise = ObservabilityPlugin()
+        enterprise.register_plugin(app)
+        logger.info("✅ Dhruva Observability Plugin initialized successfully")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize Dhruva Observability Plugin: {e}")
+        OBSERVABILITY_AVAILABLE = False
+else:
+    logger.info("ℹ️  Dhruva Observability Plugin disabled or not available")
+
 # Mount the metrics app using the registry from custom_metrics
 metrics_app = make_asgi_app(registry=registry)
 app.mount("/metrics", metrics_app)
+
 
 streamer = StreamingServerTaskSequence(
     max_connections=int(os.environ.get("MAX_SOCKET_CONNECTIONS_PER_WORKER", -1))
@@ -186,6 +207,55 @@ async def base_error_handler(request: Request, exc: BaseError):
 @app.get("/")
 def read_root():
     return "Welcome to Dhruva API!"
+
+
+@app.get("/metrics-info")
+def metrics_info():
+    """
+    Information about available metrics endpoints
+    """
+    return {
+        "metrics_endpoints": {
+            "/metrics": {
+                "description": "Dhruva Platform custom metrics (Prometheus client)",
+                "source": "custom_metrics.py",
+                "metrics": [
+                    "dhruva_inference_request_total",
+                    "dhruva_inference_request_duration_seconds"
+                ]
+            },
+            "/enterprise/metrics": {
+                "description": "Dhruva Enterprise Observability Plugin metrics (auto-registered)",
+                "source": "dhruva-observability plugin",
+                "available": OBSERVABILITY_AVAILABLE and os.environ.get("DHRUVA_OBSERVABILITY_ENABLED", "false").lower() == "true",
+                "registered_by_plugin": True,
+                "metrics": [
+                    "dhruva_enterprise_requests_total",
+                    "dhruva_enterprise_request_duration_seconds", 
+                    "dhruva_enterprise_errors_total",
+                    "dhruva_enterprise_gpu_usage_percent",
+                    "dhruva_enterprise_db_connections_active"
+                ]
+            },
+            "/enterprise/health": {
+                "description": "Enterprise plugin health check (auto-registered)",
+                "available": OBSERVABILITY_AVAILABLE and os.environ.get("DHRUVA_OBSERVABILITY_ENABLED", "false").lower() == "true",
+                "registered_by_plugin": True
+            },
+            "/enterprise/config": {
+                "description": "Enterprise plugin configuration (auto-registered)",
+                "available": OBSERVABILITY_AVAILABLE and os.environ.get("DHRUVA_OBSERVABILITY_ENABLED", "false").lower() == "true",
+                "registered_by_plugin": True
+            }
+        },
+        "prometheus_jobs": {
+            "dhruva-platform-metrics": "Scrapes /metrics endpoint",
+            "dhruva-enterprise-observability": "Scrapes /enterprise/metrics endpoint"
+        }
+    }
+
+
+
 
 
 if __name__ == "__main__":

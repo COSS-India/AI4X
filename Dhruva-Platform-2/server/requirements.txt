@@ -57,3 +57,5 @@ psycopg2==2.9.6
 FastAPI-SQLAlchemy==0.2.1
 azure-storage-queue==12.7.3
 ffmpeg==1.4
+# dhruva-observability==1.0.9
+packaging
