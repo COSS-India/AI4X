@@ -48,7 +48,7 @@ app = FastAPI(
 )
 
 # Initialize Dhruva Observability Plugin
-if OBSERVABILITY_AVAILABLE and os.environ.get("DHRUVA_OBSERVABILITY_ENABLED", "false").lower() == "true":
+if OBSERVABILITY_AVAILABLE and os.environ.get("DHRUVA_ENTERPRISE_ENABLED", "false").lower() == "true":
     try:
         enterprise = ObservabilityPlugin()
         enterprise.register_plugin(app)
