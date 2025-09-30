@@ -1,0 +1,94 @@
+graph TB
+    %% External Layer
+    subgraph "Internet/External Users"
+        A[Dhruva App Frontend]
+        B[External Clients]
+    end
+    
+    %% Nginx Layer
+    subgraph "Nginx Reverse Proxy"
+        C[SSL/TLS Termination<br/>Security Headers<br/>Rate Limiting<br/>Port: 80/443]
+    end
+    
+    %% Kong Gateway Layer
+    subgraph "Kong API Gateway"
+        D[API Key Authentication<br/>Rate Limiting<br/>CORS Handling<br/>Load Balancing<br/>Port: 8000]
+    end
+    
+    %% Service Routing Layer
+    subgraph "Service Routing"
+        E1["/asr<br/>100 req/min"]
+        E2["/tts<br/>50 req/min"]
+        E3["/translation<br/>200 req/min"]
+        E4["/api<br/>1000 req/min"]
+    end
+    
+    %% AI Models Layer
+    subgraph "AI Models (EC2: 172.31.31.208)"
+        F1[ASR Service<br/>Port: 5000]
+        F2[TTS Service<br/>Port: 9000]
+        F3[Translation Service<br/>Port: 8000]
+        F4[Backend API<br/>Port: 8000]
+    end
+    
+    %% Database Layer
+    subgraph "Database Layer"
+        G1[MongoDB<br/>API Keys & Services]
+        G2[PostgreSQL<br/>Kong Database]
+        G3[TimescaleDB<br/>Metrics & Logs]
+        G4[Redis<br/>Cache & Sessions]
+        G5[RabbitMQ<br/>Message Queue]
+    end
+    
+    %% Management Layer
+    subgraph "Management & Monitoring"
+        H1[Kong Admin API<br/>Port: 8001]
+        H2[Kong Manager<br/>Port: 8002]
+        H3[API Manager<br/>Port: 8080]
+        H4[Prometheus<br/>Port: 9090]
+        H5[Grafana<br/>Port: 3000]
+    end
+    
+    %% Connections
+    A --> C
+    B --> C
+    C --> D
+    D --> E1
+    D --> E2
+    D --> E3
+    D --> E4
+    E1 --> F1
+    E2 --> F2
+    E3 --> F3
+    E4 --> F4
+    
+    %% Database connections
+    D --> G2
+    H3 --> G1
+    H4 --> G3
+    D --> G4
+    F4 --> G5
+    
+    %% Management connections
+    H1 --> D
+    H2 --> D
+    H3 --> D
+    H4 --> D
+    H4 --> H5
+    
+    %% Styling
+    classDef external fill:#e1f5fe
+    classDef nginx fill:#f3e5f5
+    classDef kong fill:#e8f5e8
+    classDef routing fill:#fff3e0
+    classDef ai fill:#ffebee
+    classDef database fill:#f1f8e9
+    classDef management fill:#fce4ec
+    
+    class A,B external
+    class C nginx
+    class D kong
+    class E1,E2,E3,E4 routing
+    class F1,F2,F3,F4 ai
+    class G1,G2,G3,G4,G5 database
+    class H1,H2,H3,H4,H5 management
