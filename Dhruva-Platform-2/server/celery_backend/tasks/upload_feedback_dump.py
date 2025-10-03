@@ -4,15 +4,13 @@ import os
 from datetime import datetime
 
 from celery_backend.tasks.database import AppDatabase, LogDatastore
-from module.services.model.feedback import Feedback
+from module.services.repository.feedback_repository import FeedbackRepository
+from db.postgresql_models import Feedback as SQLFeedback
 
 from ..celery_app import app
 from . import constants
 
 feedback_store = LogDatastore()
-
-app_db = AppDatabase()
-feedback_collection = app_db.get_collection("feedback")
 
 csv_headers = [
     "ObjectId",
@@ -49,19 +47,46 @@ def upload_feedback_dump() -> None:
         minute=0,
         second=0,
         microsecond=0,
-    ).timestamp()
+    )
 
-    end_date = d.replace(day=1, hour=0, minute=0, second=0, microsecond=0).timestamp()
+    end_date = d.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-    query = {
-        "feedbackTimeStamp": {"$gte": int(start_date), "$lt": int(end_date)},
-    }
+    # Use PostgreSQL repository to query feedback
+    try:
+        db_session = AppDatabase()
+        feedback_repo = FeedbackRepository(db_session)
 
-    record_count = 0
-    for doc in feedback_collection.find(query):
-        feedback = Feedback(**doc)
-        csv_writer.writerow(feedback.to_export_row())
-        record_count += 1
+        # Query feedback records within date range
+        # Note: PostgreSQL uses created_at timestamp, not feedbackTimeStamp
+        from sqlalchemy import and_
+        feedback_records = db_session.query(SQLFeedback).filter(
+            and_(
+                SQLFeedback.created_at >= start_date,
+                SQLFeedback.created_at < end_date
+            )
+        ).all()
+
+        record_count = 0
+        for feedback_record in feedback_records:
+            # Convert PostgreSQL record to export format
+            csv_writer.writerow([
+                str(feedback_record.id),  # Use UUID instead of ObjectId
+                feedback_record.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                "en",  # Default language
+                str(feedback_record.pipeline_input) if feedback_record.pipeline_input else "",
+                str(feedback_record.pipeline_input) if feedback_record.pipeline_input else "",
+                str(feedback_record.pipeline_output) if feedback_record.pipeline_output else "",
+                str(feedback_record.suggested_pipeline_output) if feedback_record.suggested_pipeline_output else "",
+                str(feedback_record.pipeline_feedback) if feedback_record.pipeline_feedback else "",
+                "",  # Task feedback placeholder
+            ])
+            record_count += 1
+
+        db_session.close()
+
+    except Exception as e:
+        print(f"[ERROR] Failed to query feedback from PostgreSQL: {e}")
+        record_count = 0
 
     # Save to local file instead of cloud storage
     local_file_name = f"feedback_dump_{start_year}{start_month:02d}_{d.strftime('%Y%m%d_%H%M%S')}.csv"

@@ -1,15 +1,15 @@
 from typing import Optional
+from uuid import UUID
 
-from bson import ObjectId
 from fastapi import Depends, Header
 from fastapi.security import APIKeyHeader, HTTPBearer
 from fastapi.security.http import HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr, Field
-from pymongo.database import Database
+from sqlalchemy.orm import Session
 
 from auth import api_key_provider, auth_token_provider
 from auth.token_type import TokenType
-from db.database import AppDatabase
+from db.postgresql_database import get_app_db_session
 
 
 def InjectRequestSession(
@@ -18,7 +18,7 @@ def InjectRequestSession(
     ),
     credentials_key: Optional[str] = Depends(APIKeyHeader(name="Authorization")),
     x_auth_source: TokenType = Header(default=TokenType.API_KEY),
-    db: Database = Depends(AppDatabase),
+    db: Session = Depends(get_app_db_session),
 ):
     """
     Injects session details from request data into a view function.
@@ -44,7 +44,7 @@ def InjectRequestSession(
 
 
 class RequestSession(BaseModel):
-    id: ObjectId = Field(alias="_id")
+    id: UUID = Field(alias="_id")
     name: str
     email: EmailStr
     role: str
@@ -52,4 +52,4 @@ class RequestSession(BaseModel):
     class Config:
         allow_population_by_field_name = True
         arbitrary_types_allowed = True
-        json_encoders = {ObjectId: str}
+        json_encoders = {UUID: str}

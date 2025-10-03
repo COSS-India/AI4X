@@ -2,12 +2,12 @@ from typing import Optional
 
 from auth import api_key_provider, auth_token_provider
 from auth.token_type import TokenType
-from db.database import AppDatabase
+from db.postgresql_database import get_app_db_session
 from exception.client_error import ClientError
 from fastapi import Depends, Header, Request, status
 from fastapi.security import APIKeyHeader, HTTPBearer
 from fastapi.security.http import HTTPAuthorizationCredentials
-from pymongo.database import Database
+from sqlalchemy.orm import Session
 
 
 def AuthProvider(
@@ -19,7 +19,7 @@ def AuthProvider(
     # This header specifies the origin of the request which
     # can either be API_KEY or AUTH_TOKEN
     x_auth_source: TokenType = Header(default=TokenType.API_KEY),
-    db: Database = Depends(AppDatabase),
+    db: Session = Depends(get_app_db_session),
 ):
     match x_auth_source:
         case TokenType.AUTH_TOKEN:

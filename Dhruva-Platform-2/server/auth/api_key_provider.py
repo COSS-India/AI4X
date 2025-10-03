@@ -2,21 +2,28 @@ import time
 from typing import Any, Dict
 
 from fastapi import Depends, Request
-from pymongo.database import Database
+from sqlalchemy.orm import Session
 from redis_om.model.model import NotFoundError
 
 from module.auth.model.api_key import ApiKeyCache
+from module.auth.repository.api_key_repository import ApiKeyRepository
 
 
 def populate_api_key_cache(credentials, db):
-    api_key_collection = db["api_key"]
-    api_key = api_key_collection.find_one({"api_key": credentials})
-    api_key_cache = ApiKeyCache(**api_key)
-    api_key_cache.save()
+    api_key_repo = ApiKeyRepository(db)
+    api_key = api_key_repo.find_one(api_key=credentials)
+    if api_key:
+        api_key_cache = ApiKeyCache(
+            id=str(api_key.id),
+            api_key=api_key.api_key,
+            user_id=str(api_key.user_id),
+            active=api_key.active
+        )
+        api_key_cache.save()
     return api_key_cache
 
 
-def validate_credentials(credentials: str, request: Request, db: Database) -> bool:
+def validate_credentials(credentials: str, request: Request, db: Session) -> bool:
     try:
         api_key = ApiKeyCache.get(credentials)
     except NotFoundError:
@@ -37,16 +44,32 @@ def validate_credentials(credentials: str, request: Request, db: Database) -> bo
     return True
 
 
-def fetch_session(credentials: str, db: Database):
-    api_key_collection = db["api_key"]
-    user_collection = db["user"]
+def fetch_session(credentials: str, db: Session):
+    from module.auth.repository.user_repository import UserRepository
+
+    api_key_repo = ApiKeyRepository(db)
+    user_repo = UserRepository(db)
 
     # Api key has to exist since it was already checked during auth verification
-    api_key: Dict[str, Any] = api_key_collection.find_one({"api_key": credentials})  # type: ignore
+    api_key = api_key_repo.find_one(api_key=credentials)
 
-    user_id = api_key["user_id"]
+    if not api_key:
+        return None
 
-    user: Dict[str, Any] = user_collection.find_one({"_id": user_id})  # type: ignore
-    del user["password"]
+    user_id = api_key.user_id
+    user = user_repo.find_by_id(user_id)
 
-    return user
+    if not user:
+        return None
+
+    # Convert to dict and remove password
+    user_dict = {
+        "id": str(user.id),
+        "email": user.email,
+        "name": user.name,
+        "role": user.role,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+        "updated_at": user.updated_at.isoformat() if user.updated_at else None
+    }
+
+    return user_dict
