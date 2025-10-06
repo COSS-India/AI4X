@@ -37,15 +37,15 @@ class UserService:
 
         hashed_password = ph.hash(request.password)
 
-        new_user = User(
-            name=request.name,
-            email=request.email,
-            password=hashed_password,
-            role=request.role,
-        )
+        user_data = {
+            "name": request.name,
+            "email": request.email,
+            "password": hashed_password,
+            "role": request.role.value if hasattr(request.role, 'value') else request.role,
+        }
 
         try:
-            id = self.user_repository.insert_one(new_user)
+            id = self.user_repository.insert_one(user_data)
         except Exception:
             raise BaseError(Errors.DHRUVA207.value, traceback.format_exc())
 

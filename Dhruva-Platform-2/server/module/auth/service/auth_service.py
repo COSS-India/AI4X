@@ -270,19 +270,22 @@ class AuthService:
 
     def __generate_new_api_key(self, request: CreateApiKeyRequest, id: str):
         key = secrets.token_urlsafe(48)
-        api_key = ApiKey(
-            name=request.name,
-            api_key=key,
-            masked_key=self.__mask_key(key),
-            active=True,
-            user_id=id,
-            type=request.type.value,
-            created_timestamp=datetime.now(),
-            data_tracking=request.data_tracking,
-        )
+        api_key_data = {
+            "name": request.name,
+            "api_key": key,
+            "masked_key": self.__mask_key(key),
+            "active": True,
+            "user_id": uuid.UUID(id) if isinstance(id, str) else id,
+            "type": request.type.value if hasattr(request.type, 'value') else request.type,
+            "created_timestamp": datetime.now(),
+            "data_tracking": request.data_tracking,
+        }
 
         try:
-            inserted_id = self.api_key_repository.insert_one(api_key)
+            inserted_id = self.api_key_repository.insert_one(api_key_data)
+            
+            # Create ApiKey object for caching
+            api_key = ApiKey(**api_key_data)
             api_key.id = inserted_id
 
             # Cache write
