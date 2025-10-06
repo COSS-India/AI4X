@@ -1,16 +1,8 @@
-from bson import ObjectId
-from pydantic import BaseModel, EmailStr, Field
-from ...common import ObjectIdField
+from pydantic import BaseModel, EmailStr
+from uuid import UUID
 
 
 class GetUsersResponse(BaseModel):
-    id: ObjectIdField = Field(..., alias="_id")
+    id: UUID
     name: str
     email: EmailStr
-
-    class Config:
-        allow_population_by_field_name = True
-        arbitrary_types_allowed = True
-        json_encoders = {
-            ObjectId: str,
-        }

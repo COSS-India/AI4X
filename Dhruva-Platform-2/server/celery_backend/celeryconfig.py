@@ -17,3 +17,7 @@ imports = (
     "celery_backend.tasks.send_usage_email",
     "celery_backend.tasks.push_metrics",
 )
+
+# Task execution settings
+task_always_eager = False
+task_eager_propagates = True

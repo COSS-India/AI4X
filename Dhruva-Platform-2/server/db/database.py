@@ -1,15 +1,15 @@
 import os
-from typing import Dict, Optional
+from sqlalchemy.orm import Session
 
 from dotenv import load_dotenv
-from pymongo.database import Database
-from pymongo.mongo_client import MongoClient
+from db.postgresql_database import AppDBSessionLocal, init_postgresql_connections
 
 load_dotenv()
 
-db_client: Dict[str, Optional[MongoClient]] = {}
+# Initialize PostgreSQL connections
+init_postgresql_connections()
 
 
-def AppDatabase() -> Database:
-    mongo_db = db_client["app"][os.environ["APP_DB_NAME"]] # type: ignore
-    return mongo_db
+def AppDatabase() -> Session:
+    """Get PostgreSQL app database session"""
+    return AppDBSessionLocal()

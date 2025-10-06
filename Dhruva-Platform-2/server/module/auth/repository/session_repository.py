@@ -7,7 +7,6 @@ from db.PostgreSQLBaseRepository import PostgreSQLBaseRepository
 from db.postgresql_database import get_app_db_session
 from db.postgresql_models import Session as SQLSession
 
-from ..model import Session
 from ..model.user import User
 
 

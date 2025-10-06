@@ -40,7 +40,7 @@ async def _get_user(
     user_repository: UserRepository = Depends(UserRepository),
 ):
     try:
-        user = user_repository.find_one({"email": params.email})
+        user = user_repository.find_one(email=params.email)
     except Exception:
         raise BaseError(Errors.DHRUVA206.value, traceback.format_exc())
 
@@ -49,7 +49,11 @@ async def _get_user(
             status_code=status.HTTP_404_NOT_FOUND, message="User not found"
         )
 
-    return user
+    return GetUserResponse(
+        name=user.name,
+        email=user.email,
+        role=user.role
+    )
 
 
 @router.post("", response_model=GetUserResponse, status_code=201)
@@ -57,7 +61,11 @@ async def _create_user(
     request: CreateUserRequest, user_service: UserService = Depends(UserService)
 ):
     user = user_service.create_user(request)
-    return user
+    return GetUserResponse(
+        name=user.name,
+        email=user.email,
+        role=user.role
+    )
 
 
 @router.get("/list", response_model=List[GetUsersResponse])
@@ -65,7 +73,13 @@ async def _list_users(
     user_service: UserService = Depends(UserService),
 ):
     users = user_service.list_users()
-    return users
+    return [
+        GetUsersResponse(
+            id=user.id,
+            name=user.name,
+            email=user.email
+        ) for user in users
+    ]
 
 
 @router.patch("/modify", response_model=GetUsersResponse)
@@ -75,4 +89,8 @@ async def _modify_user(
     request_session: RequestSession = Depends(InjectRequestSession),
 ):
     user = user_service.modify_user(params, request_session.id)
-    return user
+    return GetUsersResponse(
+        id=user.id,
+        name=user.name,
+        email=user.email
+    )

@@ -19,4 +19,7 @@ class UserRepository(PostgreSQLBaseRepository[SQLUser]):
     def create_user_from_pydantic(self, user_data: User) -> str:
         """Create user from Pydantic model"""
         user_dict = user_data.dict(exclude={'id'})
+        # Convert enum to string value for PostgreSQL
+        if 'role' in user_dict and hasattr(user_dict['role'], 'value'):
+            user_dict['role'] = user_dict['role'].value
         return self.insert_one(user_dict)

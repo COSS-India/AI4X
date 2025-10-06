@@ -1,8 +1,8 @@
 import traceback
+import uuid
 from typing import List
 
 from argon2 import PasswordHasher
-from bson import ObjectId
 from exception import BaseError, ClientError
 from fastapi import Depends, status
 from schema.auth.common import ApiKeyType
@@ -25,7 +25,7 @@ class UserService:
         self.auth_service = auth_service
 
     def create_user(self, request: CreateUserRequest):
-        existing_user = self.user_repository.find_one({"email": request.email})
+        existing_user = self.user_repository.find_one(email=request.email)
 
         if existing_user:
             raise ClientError(
@@ -50,7 +50,7 @@ class UserService:
             raise BaseError(Errors.DHRUVA207.value, traceback.format_exc())
 
         try:
-            created_user = self.user_repository.get_by_id(ObjectId(str(id)))
+            created_user = self.user_repository.get_by_id(id)
         except Exception:
             raise BaseError(Errors.DHRUVA206.value, traceback.format_exc())
         try:
@@ -64,7 +64,7 @@ class UserService:
 
             self.auth_service.create_api_key(
                 request=api_request,
-                id=ObjectId(str(created_user.id)),
+                id=str(created_user.id),
             )
         except Exception:
             raise BaseError(Errors.DHRUVA207.value, traceback.format_exc())
@@ -77,9 +77,9 @@ class UserService:
             raise BaseError(Errors.DHRUVA206.value, traceback.format_exc())
         return users
 
-    def modify_user(self, params: ModifyUserQuery, user_id: ObjectId):
+    def modify_user(self, params: ModifyUserQuery, user_id: str):
         try:
-            user = self.user_repository.get_by_id(ObjectId(user_id))
+            user = self.user_repository.get_by_id(uuid.UUID(user_id))
         except Exception:
             raise BaseError(Errors.DHRUVA206.value, traceback.format_exc())
 

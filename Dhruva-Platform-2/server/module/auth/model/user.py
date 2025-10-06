@@ -1,9 +1,9 @@
-from db.MongoBaseModel import MongoBaseModel
+from db.PostgreSQLBaseModel import PostgreSQLBaseModel
 from pydantic import EmailStr
 from schema.auth.common import RoleType
 
 
-class User(MongoBaseModel):
+class User(PostgreSQLBaseModel):
     name: str
     email: EmailStr
     password: str
