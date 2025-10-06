@@ -3,6 +3,7 @@ from typing import List, Optional
 
 import pydantic
 from bson import ObjectId
+from uuid import UUID
 
 from cache.CacheBaseModel import CacheBaseModel, generate_cache_model
 from db.MongoBaseModel import MongoBaseModel
@@ -19,7 +20,7 @@ class ApiKey(MongoBaseModel):
     api_key: str
     masked_key: str
     active: bool
-    user_id: ObjectId
+    user_id: UUID
     type: str
     created_timestamp: datetime
     usage: int = 0

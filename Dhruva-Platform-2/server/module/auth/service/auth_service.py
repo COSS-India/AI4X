@@ -5,11 +5,11 @@ import time
 import traceback
 from datetime import datetime
 from typing import List
+from uuid import UUID
 
 import jwt
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
-from bson import ObjectId
 from dotenv import load_dotenv
 from exception import ClientError
 from exception.base_error import BaseError
@@ -70,7 +70,8 @@ class AuthService:
 
     def validate_user(self, request: SignInRequest):
         try:
-            user = self.user_repository.find_one({"email": request.email})
+            #user = self.user_repository.find_one({"email": request.email})
+            user = self.user_repository.find_by_email(request.email)
         except:
             raise BaseError(Errors.DHRUVA201.value, traceback.format_exc())
 
@@ -94,13 +95,13 @@ class AuthService:
             raise BaseError(Errors.DHRUVA202.value, traceback.format_exc())
 
         session = Session(
-            user_id=ObjectId(str(user.id)),
+            user_id=user.id,
             type="refresh",
             timestamp=datetime.now(),
         )
 
         try:
-            id = self.session_repository.insert_one(session)
+            id = self.session_repository.insert_one(session.dict())
         except Exception:
             raise BaseError(Errors.DHRUVA203.value, traceback.format_exc())
 
@@ -125,7 +126,8 @@ class AuthService:
     def register_user(self, request: SignUpRequest):
         # Check if user already exists
         try:
-            existing_user = self.user_repository.find_one({"email": request.email})
+            #existing_user = self.user_repository.find_one({"email": request.email})
+            existing_user = self.user_repository.find_by_email(request.email)
         except Exception:
             raise BaseError(Errors.DHRUVA201.value, traceback.format_exc())
 
@@ -148,13 +150,15 @@ class AuthService:
         )
 
         try:
-            user_id = self.user_repository.insert_one(new_user)
+            #user_id = self.user_repository.insert_one(new_user)
+            user_id = self.user_repository.create_user_from_pydantic(new_user)
         except Exception:
             raise BaseError(Errors.DHRUVA207.value, traceback.format_exc())
 
         # Get the created user
         try:
-            created_user = self.user_repository.get_by_id(ObjectId(str(user_id)))
+            #created_user = self.user_repository.get_by_id(ObjectId(str(user_id)))
+            created_user = self.user_repository.get_by_id(user_id)
         except Exception:
             raise BaseError(Errors.DHRUVA206.value, traceback.format_exc())
 
@@ -170,7 +174,7 @@ class AuthService:
 
             api_key = self.create_api_key(
                 request=api_request,
-                id=ObjectId(str(created_user.id)),
+                id=created_user.id,
             )
         except Exception:
             raise BaseError(Errors.DHRUVA207.value, traceback.format_exc())
@@ -209,7 +213,7 @@ class AuthService:
             )
 
         session = Session(
-            user_id=ObjectId(claims["sub"]),
+            user_id=UUID(claims["sub"]),
             type="access",
             timestamp=datetime.now(),
         )
@@ -234,10 +238,10 @@ class AuthService:
 
         return token
 
-    def create_api_key(self, request: CreateApiKeyRequest, id: ObjectId):
+    def create_api_key(self, request: CreateApiKeyRequest, id: UUID):
         try:
             user_id = (
-                id if not request.target_user_id else ObjectId(request.target_user_id)
+                id if not request.target_user_id else UUID(request.target_user_id)
             )
         except Exception:
             raise ClientError(
@@ -247,7 +251,7 @@ class AuthService:
 
         try:
             existing_api_key = self.api_key_repository.find_one(
-                {"name": request.name, "user_id": user_id}
+               name=request.name, user_id=user_id
             )
         except Exception:
             raise BaseError(Errors.DHRUVA208.value, traceback.format_exc())
@@ -268,7 +272,7 @@ class AuthService:
         masked_key = key[:4] + (len(key) - 8) * "*" + key[-4:]
         return masked_key
 
-    def __generate_new_api_key(self, request: CreateApiKeyRequest, id: ObjectId):
+    def __generate_new_api_key(self, request: CreateApiKeyRequest, id: UUID):
         key = secrets.token_urlsafe(48)
         api_key = ApiKey(
             name=request.name,
@@ -282,7 +286,7 @@ class AuthService:
         )
 
         try:
-            inserted_id = self.api_key_repository.insert_one(api_key)
+            inserted_id = self.api_key_repository.insert_one(api_key.dict())
             api_key.id = inserted_id
 
             # Cache write
@@ -310,10 +314,10 @@ class AuthService:
 
         return key
 
-    def get_api_key(self, params: GetApiKeyQuery, id: ObjectId):
+    def get_api_key(self, params: GetApiKeyQuery, id: UUID):
         try:
             user_id = (
-                id if not params.target_user_id else ObjectId(params.target_user_id)
+                id if not params.target_user_id else UUID(params.target_user_id)
             )
         except Exception:
             raise ClientError(
@@ -351,10 +355,10 @@ class AuthService:
 
         return keys, total_usage
 
-    def get_all_api_keys(self, params: GetAllApiKeysRequest, id: ObjectId):
+    def get_all_api_keys(self, params: GetAllApiKeysRequest, id: UUID):
         try:
             user_id = (
-                id if not params.target_user_id else ObjectId(params.target_user_id)
+                id if not params.target_user_id else UUID(params.target_user_id)
             )
         except Exception:
             raise ClientError(
@@ -388,7 +392,7 @@ class AuthService:
             - total_usage
             - total_pages
         """
-        keys = self.api_key_repository.find({"user_id": ObjectId(target_user_id)})
+        keys = self.api_key_repository.find({"user_id": UUID(target_user_id)})
         total_usage = sum(k.usage for k in keys)
 
         return (
@@ -397,10 +401,10 @@ class AuthService:
             math.ceil(len(keys) / limit),
         )
 
-    def modify_api_key(self, params: ModifyApiKeyParamsQuery, id: ObjectId):
+    def modify_api_key(self, params: ModifyApiKeyParamsQuery, id: UUID):
         try:
             user_id = (
-                id if not params.target_user_id else ObjectId(params.target_user_id)
+                id if not params.target_user_id else UUID(params.target_user_id)
             )
         except Exception:
             raise ClientError(
@@ -442,7 +446,7 @@ class AuthService:
 
         return api_key
 
-    def set_api_key_status_ulca(self, request: ULCADeleteApiKeyRequest, id: ObjectId):
+    def set_api_key_status_ulca(self, request: ULCADeleteApiKeyRequest, id: UUID):
         api_key_name = request.emailId + "/" + request.appName
 
         try:
@@ -477,7 +481,7 @@ class AuthService:
         )
 
     def set_api_key_tracking_ulca(
-        self, request: ULCASetApiKeyTrackingRequest, id: ObjectId
+        self, request: ULCASetApiKeyTrackingRequest, id: UUID
     ):
         api_key_name = request.emailId + "/" + request.appName
 
