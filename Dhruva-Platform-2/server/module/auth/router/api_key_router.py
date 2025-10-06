@@ -54,6 +54,7 @@ async def _create_api_key(
     auth_service: AuthService = Depends(AuthService),
     request_session: RequestSession = Depends(InjectRequestSession),
 ):
+    print("Inside fn")
     api_key = auth_service.create_api_key(request, request_session.id)
     return CreateApiKeyResponse(api_key=api_key)
 

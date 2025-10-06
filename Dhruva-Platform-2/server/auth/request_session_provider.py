@@ -1,9 +1,7 @@
 from typing import Optional
 from uuid import UUID
 
-from fastapi import Depends, Header
-from fastapi.security import APIKeyHeader, HTTPBearer
-from fastapi.security.http import HTTPAuthorizationCredentials
+from fastapi import Depends, Header, Request
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 
@@ -13,10 +11,7 @@ from db.postgresql_database import get_app_db_session
 
 
 def InjectRequestSession(
-    credentials_bearer: Optional[HTTPAuthorizationCredentials] = Depends(
-        HTTPBearer(auto_error=False)
-    ),
-    credentials_key: Optional[str] = Depends(APIKeyHeader(name="Authorization")),
+    request: Request,
     x_auth_source: TokenType = Header(default=TokenType.API_KEY),
     db: Session = Depends(get_app_db_session),
 ):
@@ -26,19 +21,23 @@ def InjectRequestSession(
     WARNING: Only use in protected routes, otherwise it will throw an error.
     """
 
+    # Get Authorization header manually to avoid conflicts between HTTPBearer and APIKeyHeader
+    auth_header = request.headers.get("Authorization")
+    
+    if not auth_header:
+        raise Exception("Route not protected by authentication")
+
     match x_auth_source:
         case TokenType.AUTH_TOKEN:
-            if not credentials_bearer:
+            # For AUTH_TOKEN, expect "Bearer <token>" format
+            if not auth_header.startswith("Bearer "):
                 raise Exception("Route not protected by authentication")
-
-            session = auth_token_provider.fetch_session(
-                credentials_bearer.credentials, db
-            )
+            
+            token = auth_header[7:]  # Remove "Bearer " prefix
+            session = auth_token_provider.fetch_session(token, db)
         case TokenType.API_KEY:
-            if not credentials_key:
-                raise Exception("Route not protected by authentication")
-
-            session = api_key_provider.fetch_session(credentials_key, db)
+            # For API_KEY, expect the raw API key (no Bearer prefix)
+            session = api_key_provider.fetch_session(auth_header, db)
 
     return RequestSession(**session)
 

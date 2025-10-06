@@ -359,6 +359,9 @@ class AuthService:
             user_id = (
                 id if not params.target_user_id else params.target_user_id
             )
+            # Convert string to UUID if needed
+            if isinstance(user_id, str):
+                user_id = uuid.UUID(user_id)
         except Exception:
             raise ClientError(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -366,7 +369,7 @@ class AuthService:
             )
 
         try:
-            keys = self.api_key_repository.find({"user_id": user_id})
+            keys = self.api_key_repository.find_by_user_id(user_id)
             if hasattr(params, "target_service_id") and params.target_service_id:
                 keys, total_usage = self.__filter_service_id(
                     keys, params.target_service_id
