@@ -296,7 +296,7 @@ class AuthService:
 
         return key
 
-    def __regenerate_api_key(self, existing_api_key: ApiKey):
+    def __regenerate_api_key(self, existing_api_key):
         key = secrets.token_urlsafe(48)
         existing_api_key.api_key = key
         existing_api_key.masked_key = self.__mask_key(key)
@@ -305,8 +305,22 @@ class AuthService:
         try:
             self.api_key_repository.save(existing_api_key)
 
+            # Convert to Pydantic model for caching
+            api_key_data = {
+                "id": str(existing_api_key.id),
+                "name": existing_api_key.name,
+                "api_key": existing_api_key.api_key,
+                "masked_key": existing_api_key.masked_key,
+                "active": existing_api_key.active,
+                "user_id": str(existing_api_key.user_id),
+                "type": existing_api_key.type,
+                "created_timestamp": existing_api_key.created_timestamp,
+                "data_tracking": existing_api_key.data_tracking,
+                "services": existing_api_key.services or []
+            }
+            
             # Cache write
-            api_key_cache = ApiKeyCache(**existing_api_key.dict())
+            api_key_cache = ApiKeyCache(**api_key_data)
             api_key_cache.save()
         except Exception:
             raise BaseError(Errors.DHRUVA204.value, traceback.format_exc())
@@ -350,7 +364,7 @@ class AuthService:
             services=[]  # Start with empty list for now
         )
 
-    def __filter_service_id(self, keys: List[ApiKey], service_id: str):
+    def __filter_service_id(self, keys: List[dict], service_id: str):
         from schema.auth.common import ServiceLevelApiKeyDisplay
         
         total_usage = 0
@@ -358,17 +372,17 @@ class AuthService:
         
         for key in keys:
             service = list(
-                filter(lambda service: service.service_id == service_id, key.services)
+                filter(lambda service: service.get('service_id') == service_id, key.get('services', []))
             )
             if service:
-                usage = service[0].usage
+                usage = service[0].get('usage', 0)
                 total_usage += usage
             else:
                 usage = 0
 
             # Convert ApiKey to ServiceLevelApiKeyDisplay
             service_level_key = ServiceLevelApiKeyDisplay(
-                name=key.name,
+                name=key.get('name', ''),
                 usage=usage
             )
             filtered_keys.append(service_level_key)
@@ -390,7 +404,32 @@ class AuthService:
             )
 
         try:
-            keys = self.api_key_repository.find_by_user_id(user_id)
+            sql_keys = self.api_key_repository.find_by_user_id(user_id)
+            
+            # Convert SQLAlchemy objects to Pydantic models
+            keys = []
+            for sql_key in sql_keys:
+                # Convert services to the expected format
+                services = []
+                if hasattr(sql_key, 'services') and sql_key.services:
+                    for service in sql_key.services:
+                        services.append({
+                            "service_id": service.get('service_id', ''),
+                            "usage": service.get('usage', 0)
+                        })
+                
+                key_data = {
+                    "id": str(sql_key.id),
+                    "name": sql_key.name,
+                    "masked_key": sql_key.masked_key,
+                    "active": sql_key.active,
+                    "type": sql_key.type,
+                    "created_timestamp": sql_key.created_timestamp,
+                    "services": services,
+                    "data_tracking": sql_key.data_tracking
+                }
+                keys.append(key_data)
+            
             if hasattr(params, "target_service_id") and params.target_service_id:
                 keys, total_usage = self.__filter_service_id(
                     keys, params.target_service_id
@@ -415,8 +454,36 @@ class AuthService:
             - total_usage
             - total_pages
         """
-        keys = self.api_key_repository.find(user_id=target_user_id)
-        total_usage = sum(k.usage for k in keys)
+        # Convert string to UUID if needed
+        if isinstance(target_user_id, str):
+            target_user_id = uuid.UUID(target_user_id)
+            
+        sql_keys = self.api_key_repository.find(user_id=target_user_id)
+        total_usage = sum(k.usage for k in sql_keys)
+        
+        # Convert SQLAlchemy objects to Pydantic models
+        keys = []
+        for sql_key in sql_keys:
+            # Convert services to the expected format
+            services = []
+            if hasattr(sql_key, 'services') and sql_key.services:
+                for service in sql_key.services:
+                    services.append({
+                        "service_id": service.get('service_id', ''),
+                        "usage": service.get('usage', 0)
+                    })
+            
+            key_data = {
+                "id": str(sql_key.id),
+                "name": sql_key.name,
+                "masked_key": sql_key.masked_key,
+                "active": sql_key.active,
+                "type": sql_key.type,
+                "created_timestamp": sql_key.created_timestamp,
+                "services": services,
+                "data_tracking": sql_key.data_tracking
+            }
+            keys.append(key_data)
 
         return (
             keys[(page - 1) * limit : page * limit],
@@ -448,15 +515,11 @@ class AuthService:
                 message="Api key not found",
             )
 
-        if params.data_tracking:
-            api_key.enable_tracking()
-        elif params.data_tracking == False:
-            api_key.disable_tracking()
+        if params.data_tracking is not None:
+            api_key.data_tracking = params.data_tracking
 
-        if params.active:
-            api_key.activate()
-        elif params.active == False:
-            api_key.revoke()
+        if params.active is not None:
+            api_key.active = params.active
 
         try:
             self.api_key_repository.save(api_key)
@@ -486,13 +549,27 @@ class AuthService:
                 status.HTTP_404_NOT_FOUND, "API Key not found"
             )
 
-        api_key.revoke()
+        api_key.active = False
 
         try:
             self.api_key_repository.save(api_key)
 
+            # Convert to Pydantic model for caching
+            api_key_data = {
+                "id": str(api_key.id),
+                "name": api_key.name,
+                "api_key": api_key.api_key,
+                "masked_key": api_key.masked_key,
+                "active": api_key.active,
+                "user_id": str(api_key.user_id),
+                "type": api_key.type,
+                "created_timestamp": api_key.created_timestamp,
+                "data_tracking": api_key.data_tracking,
+                "services": api_key.services or []
+            }
+            
             # Cache write
-            api_key_cache = ApiKeyCache(**api_key.dict())
+            api_key_cache = ApiKeyCache(**api_key_data)
             api_key_cache.save()
         except Exception:
             raise ULCADeleteApiKeyServerError(
@@ -522,16 +599,27 @@ class AuthService:
                 status.HTTP_404_NOT_FOUND, "API Key not found"
             )
 
-        if request.dataTracking:
-            api_key.enable_tracking()
-        else:
-            api_key.disable_tracking()
+        api_key.data_tracking = request.dataTracking
 
         try:
             self.api_key_repository.save(api_key)
 
+            # Convert to Pydantic model for caching
+            api_key_data = {
+                "id": str(api_key.id),
+                "name": api_key.name,
+                "api_key": api_key.api_key,
+                "masked_key": api_key.masked_key,
+                "active": api_key.active,
+                "user_id": str(api_key.user_id),
+                "type": api_key.type,
+                "created_timestamp": api_key.created_timestamp,
+                "data_tracking": api_key.data_tracking,
+                "services": api_key.services or []
+            }
+            
             # Cache write
-            api_key_cache = ApiKeyCache(**api_key.dict())
+            api_key_cache = ApiKeyCache(**api_key_data)
             api_key_cache.save()
         except Exception:
             raise ULCASetApiKeyTrackingServerError(

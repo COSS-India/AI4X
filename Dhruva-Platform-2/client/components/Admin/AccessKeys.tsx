@@ -351,7 +351,7 @@ const AccessKeys = () => {
               Select a User
             </option>
             {userslist?.map((user: any) => {
-              return <option value={user._id}>{user.name}</option>;
+              return <option key={user.id} value={user.id}>{user.name}</option>;
             })}
           </Select>
           <Spacer />

@@ -2,6 +2,7 @@ from typing import Any, Dict, List
 from uuid import UUID
 
 from db.postgresql_database import get_app_db_session
+from db.postgresql_models import User as SQLUser
 from exception import ClientError
 from fastapi import Depends, Request, status
 from sqlalchemy.orm import Session
@@ -13,12 +14,16 @@ class RoleAuthorizationProvider:
         self.roles = roles
 
     def __call__(self, request: Request, db: Session = Depends(get_app_db_session)):
-        user_collection = db["user"]
-        user: Dict[str, Any] = user_collection.find_one(
-            {"_id": ObjectId(request.state.user_id)}
-        )  # type: ignore
+        # Get user from PostgreSQL using SQLAlchemy
+        user = db.query(SQLUser).filter(SQLUser.id == request.state.user_id).first()
+        
+        if not user:
+            raise ClientError(
+                status_code=status.HTTP_404_NOT_FOUND,
+                message="User not found",
+            )
 
-        user_role = RoleType[user["role"]]
+        user_role = RoleType[user.role]
 
         if user_role == RoleType.ADMIN:
             return

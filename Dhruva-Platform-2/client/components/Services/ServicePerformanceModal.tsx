@@ -79,7 +79,7 @@ const ServicePerformanceModal = ({ ...props }) => {
                   <option value=".*">Overall</option>
                   {userslist?.map((user: any) => {
                     return (
-                      <option key={user._id} value={user._id}>
+                      <option key={user.id} value={user.id}>
                         {user.name}
                       </option>
                     );
