@@ -4,7 +4,9 @@ Middleware for Dhruva Observability Plugin
 Handles request tracking, service detection, and metrics collection.
 """
 import time
-from typing import Optional
+import jwt
+import json
+from typing import Optional, Dict, Any
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from .config import PluginConfig
@@ -33,22 +35,15 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         method = request.method
         headers = request.headers
         
-        # Extract customer and app
-        customer = headers.get("x-customer-id", self.config.default_customer)
-        app = headers.get("x-app-id", self.config.default_app)
-        
-        # Validate against allowed lists
-        if not self.config.is_customer_allowed(customer):
-            customer = self.config.default_customer
-        if not self.config.is_app_allowed(app):
-            app = self.config.default_app
+        # Extract customer and app (including from JWT token)
+        customer, app = self._extract_customer_app(request)
         
         # Detect service type
         service_type = self._detect_service_type(path)
         
         # Debug logging
         if self.config.debug:
-            print(f"🔍 Request: {method} {path} -> Service: {service_type}")
+            print(f"🔍 Request: {method} {path} -> Service: {service_type}, Customer: {customer}, App: {app}")
         
         # Process request
         response = await call_next(request)
@@ -78,10 +73,58 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
 
         return response
     
+    def _decode_jwt_token(self, authorization_header: str) -> Optional[Dict[str, Any]]:
+        """Decode JWT token from authorization header."""
+        try:
+            # Extract token from "Bearer <token>" format
+            if not authorization_header.startswith("Bearer "):
+                return None
+            
+            token = authorization_header[7:]  # Remove "Bearer " prefix
+            
+            # Decode without verification to get claims (for customer name extraction)
+            # In production, you might want to verify the token with proper secret
+            decoded_token = jwt.decode(token, options={"verify_signature": False})
+            
+            return decoded_token
+        except Exception as e:
+            if self.config.debug:
+                print(f"⚠️ JWT decoding failed: {e}")
+            return None
+    
+    def _extract_customer_from_token(self, request: Request) -> str:
+        """Extract customer name from JWT token in authorization header."""
+        auth_header = request.headers.get("authorization", "")
+        
+        if auth_header:
+            decoded_token = self._decode_jwt_token(auth_header)
+            if decoded_token:
+                # Extract customer name from 'name' field in token
+                customer_name = decoded_token.get("name")
+                if customer_name:
+                    if self.config.debug:
+                        print(f"🔑 Extracted customer from JWT: {customer_name}")
+                    return customer_name
+                
+                # Fallback: try to extract from 'sub' field if 'name' is not available
+                sub = decoded_token.get("sub")
+                if sub:
+                    if self.config.debug:
+                        print(f"🔑 Using 'sub' field as customer: {sub}")
+                    return sub
+        
+        return self.config.default_customer
+    
     def _extract_customer_app(self, request: Request) -> tuple:
-        """Extract customer and app from request headers."""
-        customer = request.headers.get("X-Customer-ID", "default")
-        app = request.headers.get("X-App-ID", "default")
+        """Extract customer and app from request headers and JWT token."""
+        # First try to get customer from JWT token
+        customer = self._extract_customer_from_token(request)
+        
+        # If not found in token, fallback to header
+        if customer == self.config.default_customer:
+            customer = request.headers.get("X-Customer-ID", customer)
+        
+        app = request.headers.get("X-App-ID", self.config.default_app)
         
         # Validate against allowed lists
         if not self.config.is_customer_allowed(customer):

@@ -28,7 +28,10 @@ def list_available_dashboards() -> list:
 # Available dashboards
 AVAILABLE_DASHBOARDS = [
     "dhruva_enterprise_observability",
-    "dhruva_enterprise_simple"
+    "dhruva_enterprise_simple", 
+    "dhruva_business_dashboard",
+    "dhruva_DevOps_View",
+    "dhruva_ceo_executive_dashboard"
 ]
 
 __all__ = [

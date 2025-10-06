@@ -1,6 +1,9 @@
 {
   "id": null,
-  "uid": "dhruva-enterprise-observability-v2",
+  "uid": "dhruva-enterprise-ob        {
+          "expr": "rate(dhruva_enterprise_requests_total{status_code!~\"2..\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[5m]) / rate(dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[5m]) * 100",
+          "legendFormat": "{{customer}}/{{app}}"
+        }ability-v2",
   "title": "Dhruva Enterprise Observability",
   "schemaVersion": 38,
   "version": 1,
@@ -17,7 +20,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "rate(dhruva_enterprise_requests_total[5m])",
+          "expr": "rate(dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[5m])",
           "legendFormat": "{{customer}}/{{app}}"
         }
       ],
@@ -45,8 +48,8 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "rate(dhruva_enterprise_requests_total{status_code!~\"2..\"}[5m]) / rate(dhruva_enterprise_requests_total[5m]) * 100",
-          "legendFormat": "Error Rate"
+          "expr": "rate(dhruva_enterprise_requests_total{status_code!~\"2..\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[5m]) / rate(dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[5m]) * 100",
+          "legendFormat": "{{customer}}/{{app}}"
         }
       ],
       "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 } },
@@ -104,7 +107,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "rate(dhruva_enterprise_requests_total[1h])",
+          "expr": "rate(dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[1h])",
           "legendFormat": "{{endpoint}} - {{method}}"
         }
       ],
@@ -187,7 +190,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (customer) (dhruva_enterprise_requests_total)",
+          "expr": "sum by (customer) (dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"})",
           "legendFormat": "{{customer}}"
         }
       ],

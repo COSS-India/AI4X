@@ -30,13 +30,14 @@ from module import *
 from seq_streamer import StreamingServerTaskSequence
 from prometheus_client import make_asgi_app
 
-# Dhruva Observability Plugin Integration
+# Dhruva Observability Plugin Integration (Local Module)
 try:
-    from dhruva_observability import ObservabilityPlugin
+    from observability import ObservabilityPlugin
     OBSERVABILITY_AVAILABLE = True
-except ImportError:
+    logger.info("✅ Using local observability module")
+except ImportError as e:
     OBSERVABILITY_AVAILABLE = False
-    logger.warning("Dhruva Observability Plugin not available. Install with: pip install -i https://test.pypi.org/simple/ dhruva-observability==1.0.1")
+    logger.warning(f"⚠️  Local observability module not available: {e}")
 
 dictConfig(LogConfig().dict())
 
@@ -47,8 +48,8 @@ app = FastAPI(
     description="Backend API for communicating with the Dhruva platform",
 )
 
-# Initialize Dhruva Observability Plugin
-if OBSERVABILITY_AVAILABLE and os.environ.get("DHRUVA_ENTERPRISE_ENABLED", "false").lower() == "true":
+# Initialize Dhruva Observability Plugin (available by default when installed)
+if OBSERVABILITY_AVAILABLE:
     try:
         enterprise = ObservabilityPlugin()
         enterprise.register_plugin(app)
@@ -57,7 +58,7 @@ if OBSERVABILITY_AVAILABLE and os.environ.get("DHRUVA_ENTERPRISE_ENABLED", "fals
         logger.error(f"❌ Failed to initialize Dhruva Observability Plugin: {e}")
         OBSERVABILITY_AVAILABLE = False
 else:
-    logger.info("ℹ️  Dhruva Observability Plugin disabled or not available")
+    logger.info("ℹ️  Dhruva Observability Plugin not available")
 
 # Mount the metrics app using the registry from custom_metrics
 metrics_app = make_asgi_app(registry=registry)
@@ -227,7 +228,7 @@ def metrics_info():
             "/enterprise/metrics": {
                 "description": "Dhruva Enterprise Observability Plugin metrics (auto-registered)",
                 "source": "dhruva-observability plugin",
-                "available": OBSERVABILITY_AVAILABLE and os.environ.get("DHRUVA_OBSERVABILITY_ENABLED", "false").lower() == "true",
+                "available": OBSERVABILITY_AVAILABLE,
                 "registered_by_plugin": True,
                 "metrics": [
                     "dhruva_enterprise_requests_total",
@@ -239,12 +240,12 @@ def metrics_info():
             },
             "/enterprise/health": {
                 "description": "Enterprise plugin health check (auto-registered)",
-                "available": OBSERVABILITY_AVAILABLE and os.environ.get("DHRUVA_OBSERVABILITY_ENABLED", "false").lower() == "true",
+                "available": OBSERVABILITY_AVAILABLE,
                 "registered_by_plugin": True
             },
             "/enterprise/config": {
                 "description": "Enterprise plugin configuration (auto-registered)",
-                "available": OBSERVABILITY_AVAILABLE and os.environ.get("DHRUVA_OBSERVABILITY_ENABLED", "false").lower() == "true",
+                "available": OBSERVABILITY_AVAILABLE,
                 "registered_by_plugin": True
             }
         },

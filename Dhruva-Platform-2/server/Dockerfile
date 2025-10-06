@@ -13,7 +13,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install "torchaudio==2.4.1"
 
 # Install Dhruva Observability Plugin from Test PyPI
-RUN pip install -i https://test.pypi.org/simple/ dhruva-observability==1.0.9
+# RUN pip install -i https://test.pypi.org/simple/ dhruva-observability==1.0.9
+# NOTE: Using local dhruva_observability package instead (copied via COPY . /src)
 
 COPY . /src
 RUN chmod -R 777 /src
