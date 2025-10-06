@@ -66,7 +66,7 @@ async def _get_api_key(
     request_session: RequestSession = Depends(InjectRequestSession),
 ):
     api_key = auth_service.get_api_key(params, request_session.id)
-    return api_key.dict()
+    return api_key
 
 
 @router.patch("/modify", response_model=GetApiKeyResponse)

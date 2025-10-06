@@ -1,8 +1,6 @@
 import json
 from typing import AbstractSet, Any, Dict, Mapping, Optional, Union
-
 from pydantic import BaseModel, Field, validator
-
 from schema.auth.common import ApiKey
 
 
@@ -10,7 +8,7 @@ class GetApiKeyResponse(ApiKey):
     id: str = Field(alias="_id")
 
     def dict(self, **kwargs) -> Dict[str, Any]:
-        kwargs.update({"by_alias": False})
+        kwargs.update({"by_alias": True})  # Use by_alias=True to output _id instead of id
         return super().dict(**kwargs)
 
     @validator("id", pre=True)

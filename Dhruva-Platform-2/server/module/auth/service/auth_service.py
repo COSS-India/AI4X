@@ -326,7 +326,7 @@ class AuthService:
 
         try:
             key = self.api_key_repository.find_one(
-                {"name": params.api_key_name, "user_id": user_id}
+                name=params.api_key_name, user_id=user_id
             )
         except Exception:
             raise BaseError(Errors.DHRUVA208.value, traceback.format_exc())
@@ -336,8 +336,19 @@ class AuthService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 message="API Key does not exist",
             )
-
-        return key
+        # Create the GetApiKeyResponse model with proper field mapping
+        from schema.auth.response.get_api_key_response import GetApiKeyResponse
+        
+        return GetApiKeyResponse(
+            _id=str(key.id),  # Use _id as the key (due to alias)
+            name=key.name,
+            masked_key=key.masked_key,
+            active=key.active,
+            type=key.type,
+            created_timestamp=key.created_timestamp,
+            data_tracking=key.data_tracking,
+            services=[]  # Start with empty list for now
+        )
 
     def __filter_service_id(self, keys: List[ApiKey], service_id: str):
         total_usage = 0
@@ -416,7 +427,7 @@ class AuthService:
 
         try:
             api_key = self.api_key_repository.find_one(
-                {"name": params.api_key_name, "user_id": user_id}
+                name=params.api_key_name, user_id=user_id
             )
         except Exception:
             raise BaseError(Errors.DHRUVA208.value, traceback.format_exc())
