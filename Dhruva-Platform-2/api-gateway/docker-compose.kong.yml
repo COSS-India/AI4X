@@ -21,7 +21,7 @@ services:
 
   # Kong Migration
   kong-migration:
-    image: kong:3.4-alpine
+    image: kong:latest
     container_name: kong-migration
     environment:
       KONG_DATABASE: postgres
@@ -39,7 +39,7 @@ services:
 
   # Kong API Gateway
   kong:
-    image: kong:3.4-alpine
+    image: kong:latest
     container_name: kong-gateway
     environment:
       KONG_DATABASE: postgres
@@ -114,13 +114,14 @@ services:
       dockerfile: Dockerfile
     container_name: kong-api-manager
     environment:
-      - MONGODB_URI=mongodb://dhruva-platform-app-db:27017
+      - MONGODB_URI=mongodb://dhruvaadmin:dhruva123@dhruva-platform-app-db:27017/admin?authSource=admin
       - KONG_ADMIN_URL=http://kong:8001
       - SYNC_INTERVAL=30
     depends_on:
       - kong
     networks:
       - kong-network
+      - dhruva-network
     restart: unless-stopped
 
 volumes:
@@ -130,3 +131,6 @@ networks:
   kong-network:
     name: kong-network
     external: false
+  dhruva-network:
+    name: dhruva-network
+    external: true
