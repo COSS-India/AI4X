@@ -351,19 +351,29 @@ class AuthService:
         )
 
     def __filter_service_id(self, keys: List[ApiKey], service_id: str):
+        from schema.auth.common import ServiceLevelApiKeyDisplay
+        
         total_usage = 0
+        filtered_keys = []
+        
         for key in keys:
             service = list(
                 filter(lambda service: service.service_id == service_id, key.services)
             )
             if service:
-                total_usage += service[0].usage
-                key.usage = service[0].usage
+                usage = service[0].usage
+                total_usage += usage
             else:
-                key.usage = 0
-                key.services = []
+                usage = 0
 
-        return keys, total_usage
+            # Convert ApiKey to ServiceLevelApiKeyDisplay
+            service_level_key = ServiceLevelApiKeyDisplay(
+                name=key.name,
+                usage=usage
+            )
+            filtered_keys.append(service_level_key)
+
+        return filtered_keys, total_usage
 
     def get_all_api_keys(self, params: GetAllApiKeysRequest, id: str):
         try:
