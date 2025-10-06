@@ -77,9 +77,12 @@ class UserService:
             raise BaseError(Errors.DHRUVA206.value, traceback.format_exc())
         return users
 
-    def modify_user(self, params: ModifyUserQuery, user_id: str):
+    def modify_user(self, params: ModifyUserQuery, user_id):
         try:
-            user = self.user_repository.get_by_id(uuid.UUID(user_id))
+            # Handle both UUID and string inputs
+            if isinstance(user_id, str):
+                user_id = uuid.UUID(user_id)
+            user = self.user_repository.get_by_id(user_id)
         except Exception:
             raise BaseError(Errors.DHRUVA206.value, traceback.format_exc())
 
