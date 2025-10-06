@@ -72,7 +72,7 @@ class UserService:
 
     def list_users(self):
         try:
-            users = self.user_repository.find({})
+            users = self.user_repository.find_all()
         except Exception:
             raise BaseError(Errors.DHRUVA206.value, traceback.format_exc())
         return users
