@@ -2,7 +2,8 @@ import datetime
 import traceback
 
 from exception.base_error import BaseError
-from fastapi import Depends
+from exception.client_error import ClientError
+from fastapi import Depends, status
 from schema.auth.response.get_all_api_keys_response import GetAllApiKeysDetailsResponse
 from schema.services.request import (
     ModelCreateRequest,
@@ -14,7 +15,8 @@ from schema.services.request import (
 
 from ...auth.service.auth_service import AuthService
 from ..error.errors import Errors
-from ..model import Model, ModelCache, Service, ServiceCache
+from ..model import ModelCache, Service, ServiceCache
+from db.postgresql_models import Model
 from ..repository import ModelRepository, ServiceRepository
 
 
@@ -59,12 +61,43 @@ class AdminService:
         cache.save()
         return insert_id
 
+    def _json_safe(self, value):
+        # Recursively convert datetime objects to ISO strings inside JSON structures
+        import datetime as _dt
+        if isinstance(value, dict):
+            return {k: self._json_safe(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [self._json_safe(v) for v in value]
+        if isinstance(value, _dt.datetime):
+            return value.isoformat()
+        return value
+
     def create_model(self, request: ModelCreateRequest):
         mdl = request.dict()
-        model = Model(**mdl)
+        
+        # Transform camelCase to snake_case for PostgreSQL
+        postgres_data = {
+            "model_id": mdl["modelId"],
+            "version": mdl["version"],
+            "submitted_on": mdl["submittedOn"],
+            "updated_on": mdl["updatedOn"],
+            "name": mdl["name"],
+            "description": mdl["description"],
+            "ref_url": mdl["refUrl"],
+            # JSONB fields serialized safely
+            "task": self._json_safe(mdl["task"]),
+            "languages": self._json_safe(mdl["languages"]),
+            "license": mdl["license"],
+            "domain": self._json_safe(mdl["domain"]),
+            "inference_endpoint": self._json_safe(mdl["inferenceEndPoint"]),
+            "benchmarks": self._json_safe(mdl.get("benchmarks")),
+            "submitter": self._json_safe(mdl["submitter"])
+        }
+        
+        model = Model(**postgres_data)
         insert_id = self.model_repository.insert_one(model)
 
-        mdl.update({"_id": insert_id})
+        # Do NOT overwrite modelId; cache is keyed by modelId
         cache = ModelCache(**mdl)
         cache.save()
         return insert_id
@@ -85,19 +118,40 @@ class AdminService:
         return self.service_repository.update_one(request.dict())
 
     def update_model(self, request: ModelUpdateRequest):
-        cache = ModelCache.get(request.modelId)
         request_dict = request.dict()
+
+        # Require presence in cache (consistent behavior): 404 if not found
+        try:
+            cache = ModelCache.get(request.modelId)
+        except Exception:
+            raise ClientError(status.HTTP_404_NOT_FOUND, message="Model not found in cache")
 
         # Cache ignores all complex fields
         new_cache = cache.dict()
         for key, value in request_dict.items():
             if key in cache.__fields__ and value:
                 new_cache[key] = value
-
         new_cache = ModelCache(**new_cache)
         new_cache.save()
 
-        return self.model_repository.update_one(request.dict())
+        # Transform camelCase to snake_case for PostgreSQL
+        postgres_data = {}
+        for key, value in request_dict.items():
+            if value is not None:  # Only include non-null values
+                if key == "modelId":
+                    # filter will use model_id; do not include in data
+                    continue
+                elif key == "refUrl":
+                    postgres_data["ref_url"] = value
+                elif key == "inferenceEndPoint":
+                    postgres_data["inference_endpoint"] = self._json_safe(value)
+                elif key in ("task", "languages", "domain", "benchmarks", "submitter"):
+                    postgres_data[key] = self._json_safe(value)
+                else:
+                    postgres_data[key] = value
+
+        # Use update_by_filter with model_id filter
+        return self.model_repository.update_by_filter({"model_id": request.modelId}, postgres_data)
 
     def delete_service(self, id):
         ServiceCache.delete(id)

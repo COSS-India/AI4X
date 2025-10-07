@@ -5,6 +5,7 @@ import redis
 from bson import ObjectId
 from bson.int64 import Int64
 from pydantic import Extra, Field, root_validator
+from uuid import UUID as _UUID
 from redis_om import Field as RedisField
 from redis_om import HashModel
 from redis_om.model.model import PrimaryKey
@@ -14,7 +15,7 @@ from .app_cache import get_cache_connection
 
 # Ignore these fields when creating models from Mongo DB Model Schemas
 EXCLUDED_FIELDS = ["id", "key", "services"]
-ACCEPTED_FIELD_TYPES = (str, int, float, bytes, bool, ObjectId, Int64, datetime)
+ACCEPTED_FIELD_TYPES = (str, int, float, bytes, bool, ObjectId, Int64, datetime, _UUID)
 
 
 class CacheBaseModel(HashModel):

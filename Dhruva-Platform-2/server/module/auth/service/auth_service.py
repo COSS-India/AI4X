@@ -219,7 +219,7 @@ class AuthService:
         )
 
         try:
-            id = self.session_repository.insert_one(session)
+            id = self.session_repository.insert_one(session.dict())
         except Exception:
             raise BaseError(Errors.DHRUVA203.value, traceback.format_exc())
 
