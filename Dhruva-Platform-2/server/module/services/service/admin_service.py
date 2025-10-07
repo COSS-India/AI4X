@@ -112,12 +112,26 @@ class AdminService:
             service = self.service_repository.find_by_id(request_body.serviceId)
             if not service:
                 raise BaseError(Errors.DHRUVA104.value)
-            service = service.dict()
-            if "healthStatus" not in service:
-                service["healthStatus"] = {}
-            service["healthStatus"]["status"] = request_body.status
-            service["healthStatus"]["lastUpdated"] = str(datetime.datetime.now())
-            self.service_repository.update_one(service)
+            
+            # Convert SQLAlchemy model to dict
+            service_dict = {
+                "id": str(service.id),
+                "service_id": service.service_id,
+                "name": service.name,
+                "description": service.description,
+                "endpoint": service.endpoint,
+                "task": service.task,
+                "languages": service.languages,
+                "active": service.active,
+                "created_at": service.created_at.isoformat() if service.created_at else None,
+                "updated_at": service.updated_at.isoformat() if service.updated_at else None
+            }
+            
+            if "healthStatus" not in service_dict:
+                service_dict["healthStatus"] = {}
+            service_dict["healthStatus"]["status"] = request_body.status
+            service_dict["healthStatus"]["lastUpdated"] = str(datetime.datetime.now())
+            self.service_repository.update_one(service_dict)
             return {"message": "Service status updated successfully"}
         except:
             raise BaseError(Errors.DHRUVA113.value, traceback.format_exc())

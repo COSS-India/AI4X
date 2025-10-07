@@ -236,9 +236,15 @@ class AuthService:
 
     def create_api_key(self, request: CreateApiKeyRequest, id: str):
         try:
-            user_id = (
-                id if not request.target_user_id else request.target_user_id
-            )
+            # Convert string id to UUID if needed
+            if isinstance(id, str):
+                id = uuid.UUID(id)
+            
+            # Use target_user_id if provided, otherwise use the passed id
+            if request.target_user_id:
+                user_id = uuid.UUID(request.target_user_id)
+            else:
+                user_id = id
         except Exception:
             raise ClientError(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -278,18 +284,21 @@ class AuthService:
             "user_id": uuid.UUID(id) if isinstance(id, str) else id,
             "type": request.type.value if hasattr(request.type, 'value') else request.type,
             "created_timestamp": datetime.now(),
+            "usage": 0,
+            "hits": 0,
             "data_tracking": request.data_tracking,
         }
 
         try:
             inserted_id = self.api_key_repository.insert_one(api_key_data)
             
-            # Create ApiKey object for caching
-            api_key = ApiKey(**api_key_data)
-            api_key.id = inserted_id
-
-            # Cache write
-            api_key_cache = ApiKeyCache(**api_key.dict())
+            # Cache write - prepare data for caching
+            cache_data = api_key_data.copy()
+            cache_data["id"] = str(inserted_id)
+            cache_data["user_id"] = str(cache_data["user_id"])
+            cache_data["created_timestamp"] = cache_data["created_timestamp"].isoformat() if cache_data["created_timestamp"] else None
+            
+            api_key_cache = ApiKeyCache(**cache_data)
             api_key_cache.save()
         except Exception:
             raise BaseError(Errors.DHRUVA204.value, traceback.format_exc())
@@ -314,7 +323,9 @@ class AuthService:
                 "active": existing_api_key.active,
                 "user_id": str(existing_api_key.user_id),
                 "type": existing_api_key.type,
-                "created_timestamp": existing_api_key.created_timestamp,
+                "created_timestamp": existing_api_key.created_timestamp.isoformat() if existing_api_key.created_timestamp else None,
+                "usage": existing_api_key.usage,
+                "hits": existing_api_key.hits,
                 "data_tracking": existing_api_key.data_tracking,
                 "services": existing_api_key.services or []
             }
@@ -493,9 +504,15 @@ class AuthService:
 
     def modify_api_key(self, params: ModifyApiKeyParamsQuery, id: str):
         try:
-            user_id = (
-                id if not params.target_user_id else params.target_user_id
-            )
+            # Convert string id to UUID if needed
+            if isinstance(id, str):
+                id = uuid.UUID(id)
+            
+            # Use target_user_id if provided, otherwise use the passed id
+            if params.target_user_id:
+                user_id = uuid.UUID(params.target_user_id)
+            else:
+                user_id = id
         except Exception:
             raise ClientError(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -524,13 +541,39 @@ class AuthService:
         try:
             self.api_key_repository.save(api_key)
 
-            # Cache write
-            api_key_cache = ApiKeyCache(**api_key.dict())
+            # Cache write - convert SQLAlchemy model to dict for caching
+            api_key_dict = {
+                "id": str(api_key.id),
+                "name": api_key.name,
+                "api_key": api_key.api_key,
+                "masked_key": api_key.masked_key,
+                "active": api_key.active,
+                "user_id": str(api_key.user_id),
+                "type": api_key.type,
+                "created_timestamp": api_key.created_timestamp.isoformat() if api_key.created_timestamp else None,
+                "usage": api_key.usage,
+                "hits": api_key.hits,
+                "data_tracking": api_key.data_tracking,
+                "services": api_key.services or []
+            }
+            api_key_cache = ApiKeyCache(**api_key_dict)
             api_key_cache.save()
         except Exception:
             raise BaseError(Errors.DHRUVA211.value, traceback.format_exc())
 
-        return api_key
+        # Create the GetApiKeyResponse model with proper field mapping
+        from schema.auth.response.get_api_key_response import GetApiKeyResponse
+        
+        return GetApiKeyResponse(
+            _id=str(api_key.id),  # Use _id as the key (due to alias)
+            name=api_key.name,
+            masked_key=api_key.masked_key,
+            active=api_key.active,
+            type=api_key.type,
+            created_timestamp=api_key.created_timestamp,
+            data_tracking=api_key.data_tracking,
+            services=api_key.services or []  # Use actual services data
+        )
 
     def set_api_key_status_ulca(self, request: ULCADeleteApiKeyRequest, id: str):
         api_key_name = request.emailId + "/" + request.appName

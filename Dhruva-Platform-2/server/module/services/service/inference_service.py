@@ -65,14 +65,39 @@ from .triton_utils_service import TritonUtilsService
 
 def populate_service_cache(serviceId: str, service_repository: ServiceRepository):
     service = service_repository.get_by_service_id(serviceId)
-    service_cache = ServiceCache(**service.dict())
+    # Convert SQLAlchemy model to dict for caching
+    service_dict = {
+        "id": str(service.id),
+        "service_id": service.service_id,
+        "name": service.name,
+        "description": service.description,
+        "endpoint": service.endpoint,
+        "task": service.task,
+        "languages": service.languages,
+        "active": service.active,
+        "created_at": service.created_at.isoformat() if service.created_at else None,
+        "updated_at": service.updated_at.isoformat() if service.updated_at else None
+    }
+    service_cache = ServiceCache(**service_dict)
     service_cache.save()
     return service_cache
 
 
 def populate_model_cache(modelId: str, model_repository: ModelRepository):
     model = model_repository.get_by_id(modelId)
-    model_cache = ModelCache(**model.dict())
+    # Convert SQLAlchemy model to dict for caching
+    model_dict = {
+        "id": str(model.id),
+        "model_id": model.model_id,
+        "name": model.name,
+        "description": model.description,
+        "task": model.task,
+        "languages": model.languages,
+        "active": model.active,
+        "created_at": model.created_at.isoformat() if model.created_at else None,
+        "updated_at": model.updated_at.isoformat() if model.updated_at else None
+    }
+    model_cache = ModelCache(**model_dict)
     model_cache.save()
     return model_cache
 
