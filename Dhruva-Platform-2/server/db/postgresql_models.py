@@ -124,10 +124,13 @@ class Feedback(AppDBBase):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
     api_key_name = Column(String(255))
+    feedback_timestamp = Column(Integer)  # Store the original feedbackTimeStamp
+    feedback_language = Column(String(50))  # Store the feedbackLanguage
     pipeline_input = Column(JSONB)
     pipeline_output = Column(JSONB)
     suggested_pipeline_output = Column(JSONB)
     pipeline_feedback = Column(JSONB)
+    task_feedback = Column(JSONB)  # Store taskFeedback as JSONB
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     

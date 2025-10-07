@@ -1,13 +1,12 @@
 from datetime import datetime
+from uuid import UUID
 
-from bson import ObjectId
-
-from db.MongoBaseModel import MongoBaseModel
+from db.PostgreSQLBaseModel import PostgreSQLBaseModel
 from schema.services.request import ULCAFeedbackRequest
 
 
-class Feedback(MongoBaseModel, ULCAFeedbackRequest):
-    user_id: ObjectId
+class Feedback(PostgreSQLBaseModel, ULCAFeedbackRequest):
+    user_id: UUID
     api_key_name: str
 
     def to_export_row(self):
