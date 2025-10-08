@@ -60,8 +60,10 @@ async def _list_models(model_repository: ModelRepository = Depends(ModelReposito
         try:
             # Transform languages from complex objects to simple strings
             languages = []
-            if hasattr(model, 'languages') and model.languages:
-                for lang in model.languages[:10]:  # Limit to first 10 language pairs
+            langs_src = getattr(model, 'languages', None)
+            if langs_src:
+                # Expect list of dicts from JSONB; be defensive
+                for lang in (langs_src[:10] if isinstance(langs_src, list) else []):
                     if isinstance(lang, dict):
                         source = lang.get('sourceLanguage', '')
                         target = lang.get('targetLanguage', '')
@@ -72,44 +74,42 @@ async def _list_models(model_repository: ModelRepository = Depends(ModelReposito
 
             # Transform domain from list to string
             domain = "general"
-            if hasattr(model, 'domain') and model.domain:
-                if isinstance(model.domain, list) and len(model.domain) > 0:
-                    domain = model.domain[0]
-                elif isinstance(model.domain, str):
-                    domain = model.domain
+            domain_src = getattr(model, 'domain', None)
+            if domain_src:
+                if isinstance(domain_src, list) and len(domain_src) > 0:
+                    domain = domain_src[0]
+                elif isinstance(domain_src, str):
+                    domain = domain_src
 
-            # Transform submitter from object to string
+            # Transform submitter from object to string (JSONB dict)
             submitter = "Unknown"
-            if hasattr(model, 'submitter') and model.submitter:
-                if hasattr(model.submitter, 'name'):
-                    submitter = model.submitter.name
-                elif isinstance(model.submitter, dict):
-                    submitter = model.submitter.get('name', 'Unknown')
+            submitter_src = getattr(model, 'submitter', None)
+            if isinstance(submitter_src, dict):
+                submitter = submitter_src.get('name', 'Unknown')
 
-            # Transform task from object to string
+            # Transform task from object to string (JSONB dict)
             task = "unknown"
-            if hasattr(model, 'task') and model.task:
-                if hasattr(model.task, 'type'):
-                    task = model.task.type
-                elif isinstance(model.task, dict):
-                    task = model.task.get('type', 'unknown')
+            task_src = getattr(model, 'task', None)
+            if isinstance(task_src, dict):
+                task = task_src.get('type', 'unknown')
 
-            # Transform inferenceEndPoint from object to string
+            # Transform inferenceEndPoint from DB fields
             inference_endpoint = ""
-            if hasattr(model, 'refUrl') and model.refUrl:
-                inference_endpoint = model.refUrl
-            elif hasattr(model, 'inferenceEndPoint'):
+            ref_url = getattr(model, 'ref_url', None)
+            if ref_url:
+                inference_endpoint = ref_url
+            elif getattr(model, 'inference_endpoint', None):
                 inference_endpoint = "Available"
 
             # Create the transformed model
             transformed_model = ModelViewResponse(
-                modelId=model.modelId,
-                name=model.name,
-                description=model.description,
+                modelId=getattr(model, 'model_id', ''),
+                name=getattr(model, 'name', ''),
+                description=getattr(model, 'description', ''),
                 languages=languages,
                 domain=domain,
                 submitter=submitter,
-                license=model.license if hasattr(model, 'license') else "Unknown",
+                license=getattr(model, 'license', 'Unknown'),
                 inferenceEndPoint=inference_endpoint,
                 source="dhruva",  # Add default source
                 task=task
@@ -117,7 +117,7 @@ async def _list_models(model_repository: ModelRepository = Depends(ModelReposito
             transformed_models.append(transformed_model)
         except Exception as e:
             # Log the error but continue with other models
-            print(f"Error transforming model {getattr(model, 'modelId', 'unknown')}: {str(e)}")
+            print(f"Error transforming model {getattr(model, 'model_id', 'unknown')}: {str(e)}")
             continue
 
     return transformed_models
@@ -138,10 +138,11 @@ async def _view_model_details(
 
     # Transform the model to match ModelViewResponse schema
     try:
-        # Transform languages from complex objects to simple strings
+        # Transform languages from JSONB list of dicts to simple strings
         languages = []
-        if hasattr(model, 'languages') and model.languages:
-            for lang in model.languages[:10]:  # Limit to first 10 language pairs
+        langs_src = getattr(model, 'languages', None)
+        if langs_src:
+            for lang in (langs_src[:10] if isinstance(langs_src, list) else []):
                 if isinstance(lang, dict):
                     source = lang.get('sourceLanguage', '')
                     target = lang.get('targetLanguage', '')
@@ -150,49 +151,47 @@ async def _view_model_details(
                     elif source:
                         languages.append(source)
 
-        # Transform domain from list to string
+        # Transform domain from list/string to single string
         domain = "general"
-        if hasattr(model, 'domain') and model.domain:
-            if isinstance(model.domain, list) and len(model.domain) > 0:
-                domain = model.domain[0]
-            elif isinstance(model.domain, str):
-                domain = model.domain
+        domain_src = getattr(model, 'domain', None)
+        if domain_src:
+            if isinstance(domain_src, list) and len(domain_src) > 0:
+                domain = domain_src[0]
+            elif isinstance(domain_src, str):
+                domain = domain_src
 
-        # Transform submitter from object to string
+        # Submitter name from JSONB dict
         submitter = "Unknown"
-        if hasattr(model, 'submitter') and model.submitter:
-            if hasattr(model.submitter, 'name'):
-                submitter = model.submitter.name
-            elif isinstance(model.submitter, dict):
-                submitter = model.submitter.get('name', 'Unknown')
+        submitter_src = getattr(model, 'submitter', None)
+        if isinstance(submitter_src, dict):
+            submitter = submitter_src.get('name', 'Unknown')
 
-        # Transform task from object to string
+        # Task type from JSONB dict
         task = "unknown"
-        if hasattr(model, 'task') and model.task:
-            if hasattr(model.task, 'type'):
-                task = model.task.type
-            elif isinstance(model.task, dict):
-                task = model.task.get('type', 'unknown')
+        task_src = getattr(model, 'task', None)
+        if isinstance(task_src, dict):
+            task = task_src.get('type', 'unknown')
 
-        # Transform inferenceEndPoint from object to string
+        # Inference endpoint string
         inference_endpoint = ""
-        if hasattr(model, 'refUrl') and model.refUrl:
-            inference_endpoint = model.refUrl
-        elif hasattr(model, 'inferenceEndPoint'):
+        ref_url = getattr(model, 'ref_url', None)
+        if ref_url:
+            inference_endpoint = ref_url
+        elif getattr(model, 'inference_endpoint', None):
             inference_endpoint = "Available"
 
-        # Create the transformed model
+        # Create the transformed model using snake_case fields
         transformed_model = ModelViewResponse(
-            modelId=model.modelId,
-            name=model.name,
-            description=model.description,
+            modelId=getattr(model, 'model_id', ''),
+            name=getattr(model, 'name', ''),
+            description=getattr(model, 'description', ''),
             languages=languages,
             domain=domain,
             submitter=submitter,
-            license=model.license if hasattr(model, 'license') else "Unknown",
+            license=getattr(model, 'license', 'Unknown'),
             inferenceEndPoint=inference_endpoint,
-            source="dhruva",  # Add default source
-            task=task
+            source="dhruva",
+            task=task,
         )
 
         return transformed_model

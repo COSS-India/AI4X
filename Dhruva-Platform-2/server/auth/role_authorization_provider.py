@@ -14,16 +14,26 @@ class RoleAuthorizationProvider:
         self.roles = roles
 
     def __call__(self, request: Request, db: Session = Depends(get_app_db_session)):
-        # Get user from PostgreSQL using SQLAlchemy
-        user = db.query(SQLUser).filter(SQLUser.id == request.state.user_id).first()
-        
+        try:
+            user_id = UUID(str(request.state.user_id))
+        except Exception:
+            raise ClientError(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                message="Invalid user id",
+            )
+
+        user = db.query(SQLUser).filter(SQLUser.id == user_id).first()
         if not user:
             raise ClientError(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=status.HTTP_401_UNAUTHORIZED,
                 message="User not found",
             )
 
-        user_role = RoleType[user.role]
+        # Convert DB role string to RoleType enum
+        try:
+            user_role = RoleType(user.role)   # if RoleType values are strings
+        except Exception:
+            user_role = RoleType[user.role]   # fallback if RoleType expects names
 
         if user_role == RoleType.ADMIN:
             return

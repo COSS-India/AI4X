@@ -41,6 +41,7 @@ class _Schema(BaseModel):
 class _InferenceEndPoint(BaseModel):
     class Config:
         fields = {"schema_": "schema"}
+        allow_population_by_field_name = True
 
     schema_: _Schema
 

@@ -6,6 +6,7 @@ import traceback
 import uuid
 from datetime import datetime
 from typing import List
+from uuid import UUID
 
 import jwt
 from argon2 import PasswordHasher
@@ -70,7 +71,8 @@ class AuthService:
 
     def validate_user(self, request: SignInRequest):
         try:
-            user = self.user_repository.find_one(email=request.email)
+            #user = self.user_repository.find_one({"email": request.email})
+            user = self.user_repository.find_by_email(request.email)
         except:
             raise BaseError(Errors.DHRUVA201.value, traceback.format_exc())
 
@@ -170,7 +172,7 @@ class AuthService:
 
             api_key = self.create_api_key(
                 request=api_request,
-                id=str(created_user.id),
+                id=created_user.id,
             )
         except Exception:
             raise BaseError(Errors.DHRUVA207.value, traceback.format_exc())
@@ -234,17 +236,11 @@ class AuthService:
 
         return token
 
-    def create_api_key(self, request: CreateApiKeyRequest, id: str):
+    def create_api_key(self, request: CreateApiKeyRequest, id: UUID):
         try:
-            # Convert string id to UUID if needed
-            if isinstance(id, str):
-                id = uuid.UUID(id)
-            
-            # Use target_user_id if provided, otherwise use the passed id
-            if request.target_user_id:
-                user_id = uuid.UUID(request.target_user_id)
-            else:
-                user_id = id
+            user_id = (
+                id if not request.target_user_id else UUID(request.target_user_id)
+            )
         except Exception:
             raise ClientError(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -253,7 +249,7 @@ class AuthService:
 
         try:
             existing_api_key = self.api_key_repository.find_one(
-                name=request.name, user_id=user_id
+               name=request.name, user_id=user_id
             )
         except Exception:
             raise BaseError(Errors.DHRUVA208.value, traceback.format_exc())
@@ -274,7 +270,7 @@ class AuthService:
         masked_key = key[:4] + (len(key) - 8) * "*" + key[-4:]
         return masked_key
 
-    def __generate_new_api_key(self, request: CreateApiKeyRequest, id: str):
+    def __generate_new_api_key(self, request: CreateApiKeyRequest, id: UUID):
         key = secrets.token_urlsafe(48)
         api_key_data = {
             "name": request.name,
@@ -338,10 +334,10 @@ class AuthService:
 
         return key
 
-    def get_api_key(self, params: GetApiKeyQuery, id: str):
+    def get_api_key(self, params: GetApiKeyQuery, id: UUID):
         try:
             user_id = (
-                id if not params.target_user_id else params.target_user_id
+                id if not params.target_user_id else UUID(params.target_user_id)
             )
         except Exception:
             raise ClientError(
@@ -397,13 +393,12 @@ class AuthService:
                 usage=usage
             )
             filtered_keys.append(service_level_key)
-
         return filtered_keys, total_usage
 
-    def get_all_api_keys(self, params: GetAllApiKeysRequest, id: str):
+    def get_all_api_keys(self, params: GetAllApiKeysRequest, id: UUID):
         try:
             user_id = (
-                id if not params.target_user_id else params.target_user_id
+                id if not params.target_user_id else UUID(params.target_user_id)
             )
             # Convert string to UUID if needed
             if isinstance(user_id, str):
@@ -502,17 +497,11 @@ class AuthService:
             math.ceil(len(keys) / limit),
         )
 
-    def modify_api_key(self, params: ModifyApiKeyParamsQuery, id: str):
+    def modify_api_key(self, params: ModifyApiKeyParamsQuery, id: UUID):
         try:
-            # Convert string id to UUID if needed
-            if isinstance(id, str):
-                id = uuid.UUID(id)
-            
-            # Use target_user_id if provided, otherwise use the passed id
-            if params.target_user_id:
-                user_id = uuid.UUID(params.target_user_id)
-            else:
-                user_id = id
+            user_id = (
+                id if not params.target_user_id else UUID(params.target_user_id)
+            )
         except Exception:
             raise ClientError(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -575,7 +564,7 @@ class AuthService:
             services=api_key.services or []  # Use actual services data
         )
 
-    def set_api_key_status_ulca(self, request: ULCADeleteApiKeyRequest, id: str):
+    def set_api_key_status_ulca(self, request: ULCADeleteApiKeyRequest, id: UUID):
         api_key_name = request.emailId + "/" + request.appName
 
         try:
@@ -624,7 +613,7 @@ class AuthService:
         )
 
     def set_api_key_tracking_ulca(
-        self, request: ULCASetApiKeyTrackingRequest, id: str
+        self, request: ULCASetApiKeyTrackingRequest, id: UUID
     ):
         api_key_name = request.emailId + "/" + request.appName
 

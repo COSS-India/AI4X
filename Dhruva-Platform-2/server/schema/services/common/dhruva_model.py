@@ -36,9 +36,9 @@ class _Schema(BaseModel):
 class _InferenceEndPoint(BaseModel):
     class Config:
         fields = {"schema_": "schema"}
+        allow_population_by_field_name = True
 
     schema_: _Schema
-
 
 class _LanguagePair(BaseModel):
     sourceLanguage: str
@@ -78,3 +78,4 @@ class Model(BaseModel):
 
     class Config:
         allow_population_by_field_name = True
+        allow_population_by_alias = True

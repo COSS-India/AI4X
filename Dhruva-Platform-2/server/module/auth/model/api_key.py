@@ -3,6 +3,8 @@ from typing import List, Optional
 from uuid import UUID
 
 import pydantic
+from bson import ObjectId
+from uuid import UUID
 
 from cache.CacheBaseModel import CacheBaseModel, generate_cache_model
 from db.PostgreSQLBaseModel import PostgreSQLBaseModel
