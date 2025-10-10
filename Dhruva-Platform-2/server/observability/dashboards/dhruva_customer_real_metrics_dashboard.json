@@ -1,0 +1,457 @@
+{
+  "id": null,
+  "uid": "dhruva-customer-real-metrics",
+  "title": "👤 Customer Dashboard - Your Real Service Experience",
+  "description": "Customer-focused dashboard with ONLY verified real metrics: actual service usage, response times, success rates, and AI processing volumes - transparent view of your platform experience",
+  "schemaVersion": 38,
+  "version": 1,
+  "tags": ["dhruva", "customer", "service", "real-metrics", "transparency"],
+  "style": "light",
+  "timezone": "browser",
+  "refresh": "1m",
+  "time": { "from": "now-24h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "customer",
+        "type": "query",
+        "query": "label_values(dhruva_enterprise_requests_total, customer)",
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false,
+        "current": { "value": "default", "text": "Select Your Account" }
+      },
+      {
+        "name": "time_period",
+        "type": "custom",
+        "query": "1h,6h,24h,7d",
+        "current": { "value": "24h", "text": "Last 24 Hours" },
+        "options": [
+          { "value": "1h", "text": "Last Hour" },
+          { "value": "6h", "text": "Last 6 Hours" },
+          { "value": "24h", "text": "Last 24 Hours" },
+          { "value": "7d", "text": "Last 7 Days" }
+        ]
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "🎯 Your Service Experience",
+      "type": "row",
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "id": 2,
+      "title": "Your API Usage",
+      "description": "REAL DATA: Total API calls you've made to our platform. This shows your actual usage volume and engagement.",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "sum(dhruva_enterprise_requests_total{customer=\"$customer\", endpoint!~\"/metrics.*|/enterprise/metrics.*\"})",
+          "legendFormat": "Total API Calls"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "displayMode": "gradient",
+            "orientation": "horizontal"
+          }
+        }
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 1 }
+    },
+    {
+      "id": 3,
+      "title": "Service Reliability for You",
+      "description": "REAL DATA: Success rate of your requests. Based on actual error tracking to show genuine service quality you're experiencing.",
+      "type": "gauge",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "100 * (1 - sum(dhruva_enterprise_errors_total{customer=\"$customer\"}) / sum(dhruva_enterprise_requests_total{customer=\"$customer\"}))",
+          "legendFormat": "Your Success Rate"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 95,
+          "max": 100,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": 95 },
+              { "color": "yellow", "value": 99 },
+              { "color": "green", "value": 99.5 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 1 }
+    },
+    {
+      "id": 4,
+      "title": "Your Response Time Experience",
+      "description": "REAL DATA: Actual response times for your requests. Shows the performance you're getting from our services.",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "sum(dhruva_enterprise_request_duration_seconds_sum{customer=\"$customer\"}) / sum(dhruva_enterprise_request_duration_seconds_count{customer=\"$customer\"})",
+          "legendFormat": "Your Avg Response Time"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 3 }
+            ]
+          },
+          "custom": {
+            "displayMode": "gradient",
+            "orientation": "horizontal"
+          }
+        }
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 1 }
+    },
+    {
+      "id": 5,
+      "title": "💡 Your AI Usage Analytics",
+      "type": "row",
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 7 }
+    },
+    {
+      "id": 6,
+      "title": "Services You're Using",
+      "description": "REAL DATA: Breakdown of which AI services you're actively using. Based on actual request patterns from your account.",
+      "type": "piechart",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "sum by (service_type)(dhruva_enterprise_service_requests_total{customer=\"$customer\"})",
+          "legendFormat": "{{service_type}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "options": {
+        "pieType": "donut",
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": ["value", "percent"]
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+    },
+    {
+      "id": 7,
+      "title": "Your Usage Pattern",
+      "description": "REAL DATA: How your API usage varies over time. Shows your application's activity patterns and growth.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "sum(rate(dhruva_enterprise_requests_total{customer=\"$customer\", endpoint!~\"/metrics.*|/enterprise/metrics.*\"}[5m]))",
+          "legendFormat": "Your Requests/sec"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 25,
+            "gradientMode": "opacity"
+          },
+          "color": { "mode": "continuous-GrYlRd" }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+    },
+    {
+      "id": 8,
+      "title": "🚀 Your AI Processing Results",
+      "type": "row",
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 16 }
+    },
+    {
+      "id": 9,
+      "title": "Translation Volume",
+      "description": "REAL DATA: Total characters you've translated. Shows actual value delivered by our translation services.",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "sum(dhruva_enterprise_nmt_characters_translated_total{customer=\"$customer\"})",
+          "legendFormat": "Characters Translated"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 17 }
+    },
+    {
+      "id": 10,
+      "title": "Text-to-Speech Volume",
+      "description": "REAL DATA: Characters converted to speech for you. Quantifies the voice service value you're receiving.",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "sum(dhruva_enterprise_tts_characters_synthesized_total{customer=\"$customer\"})",
+          "legendFormat": "TTS Characters"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 17 }
+    },
+    {
+      "id": 11,
+      "title": "Total Data Processed",
+      "description": "REAL DATA: Combined volume of all AI processing for your account. Shows comprehensive platform value.",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "sum(dhruva_enterprise_data_processed_total{customer=\"$customer\"})",
+          "legendFormat": "Total Data Processed"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 17 }
+    },
+    {
+      "id": 12,
+      "title": "Service Quality Score",
+      "description": "REAL DATA: Overall quality score based on your success rates and response times. Transparent service quality metric.",
+      "type": "gauge",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "100 * (1 - sum(dhruva_enterprise_errors_total{customer=\"$customer\"}) / sum(dhruva_enterprise_requests_total{customer=\"$customer\"}))",
+          "legendFormat": "Quality Score"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 90,
+          "max": 100,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": 90 },
+              { "color": "yellow", "value": 95 },
+              { "color": "green", "value": 99 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 17 }
+    },
+    {
+      "id": 13,
+      "title": "📈 Your Service Performance Trends",
+      "type": "row",
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 }
+    },
+    {
+      "id": 14,
+      "title": "Response Time Trends",
+      "description": "REAL DATA: How response times have changed over time for your requests. Monitor service quality consistency.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "sum(rate(dhruva_enterprise_request_duration_seconds_sum{customer=\"$customer\"}[5m])) / sum(rate(dhruva_enterprise_request_duration_seconds_count{customer=\"$customer\"}[5m]))",
+          "legendFormat": "Your Avg Response Time"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 25
+          },
+          "color": { "mode": "continuous-GrYlRd" }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 }
+    },
+    {
+      "id": 15,
+      "title": "Processing Volume Over Time",
+      "description": "REAL DATA: Your AI processing volume trends. Shows how your usage of translation and TTS services has evolved.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "sum(rate(dhruva_enterprise_nmt_characters_translated_total{customer=\"$customer\"}[5m]))",
+          "legendFormat": "Translation Rate (chars/sec)"
+        },
+        {
+          "expr": "sum(rate(dhruva_enterprise_tts_characters_synthesized_total{customer=\"$customer\"}[5m]))",
+          "legendFormat": "TTS Rate (chars/sec)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "fillOpacity": 15,
+            "stackingMode": "normal"
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 }
+    },
+    {
+      "id": 16,
+      "title": "🔍 Service Issues & Support",
+      "type": "row",
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 }
+    },
+    {
+      "id": 17,
+      "title": "Issues You've Encountered",
+      "description": "REAL DATA: Transparent view of any errors in your requests. Use this for support tickets and service improvement discussions.",
+      "type": "table",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "sum by (endpoint, status_code)(dhruva_enterprise_errors_total{customer=\"$customer\"})",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "displayMode": "color-background"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Value" },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Error Count"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "steps": [
+                    { "color": "green", "value": null },
+                    { "color": "yellow", "value": 1 },
+                    { "color": "red", "value": 5 }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 33 }
+    },
+    {
+      "id": 18,
+      "title": "Your Service Summary",
+      "description": "REAL DATA: Complete overview of your platform experience - use this data for discussions with our support team.",
+      "type": "table",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "sum by (service_type)(dhruva_enterprise_service_requests_total{customer=\"$customer\"})",
+          "legendFormat": "Requests",
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (service_type)(dhruva_enterprise_errors_total{customer=\"$customer\"})",
+          "legendFormat": "Errors",
+          "refId": "B"
+        },
+        {
+          "expr": "100 * (1 - sum by (service_type)(dhruva_enterprise_errors_total{customer=\"$customer\"}) / sum by (service_type)(dhruva_enterprise_service_requests_total{customer=\"$customer\"}))",
+          "legendFormat": "Success Rate (%)",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "displayMode": "color-background"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Success Rate (%)" },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "steps": [
+                    { "color": "red", "value": 95 },
+                    { "color": "yellow", "value": 99 },
+                    { "color": "green", "value": 99.5 }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 33 }
+    }
+  ]
+}

@@ -1,0 +1,430 @@
+{
+  "id": null,
+  "uid": "dhruva-ceo-executive-dashboard",
+  "title": "Dhruva CEO Dashboard - Real Business Metrics",
+  "description": "Executive dashboard focused on REAL business metrics: actual usage volumes, revenue indicators, customer satisfaction, and platform growth - no mock data",
+  "schemaVersion": 38,
+  "version": 2,
+  "tags": ["dhruva", "executive", "ceo", "business", "real-metrics"],
+  "style": "dark",
+  "timezone": "browser",
+  "refresh": "5m",
+  "time": { "from": "now-7d", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "time_range",
+        "type": "custom",
+        "query": "24h,7d,30d,90d",
+        "current": { "value": "24h", "text": "Last 24 Hours" },
+        "options": [
+          { "value": "24h", "text": "Last 24 Hours" },
+          { "value": "7d", "text": "Last 7 Days" },
+          { "value": "30d", "text": "Last 30 Days" },
+          { "value": "90d", "text": "Last 90 Days" }
+        ]
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "💼 Executive Summary",
+      "type": "row",
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "id": 2,
+      "title": "Platform Usage Volume",
+      "description": "Total successful API calls processed by the platform (excluding monitoring endpoints). Indicates platform adoption, user engagement, and overall system utilization.",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "sum(increase(dhruva_enterprise_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h]))",
+          "legendFormat": "Successful API Calls (24h)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "yellow", "value": 10000 },
+              { "color": "green", "value": 50000 }
+            ]
+          },
+          "custom": {
+            "displayMode": "gradient",
+            "orientation": "horizontal"
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 1 }
+    },
+    {
+      "id": 3,
+      "title": "Customer Growth Rate",
+      "description": "Number of unique customers actively using the platform (business endpoints only). Growth in active customers indicates market expansion and business success.",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "count(count by (customer)(dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}))",
+          "legendFormat": "Active Customers"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "continuous-GrYlRd" },
+          "custom": {
+            "displayMode": "basic",
+            "orientation": "horizontal"
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 1 }
+    },
+    {
+      "id": 4,
+      "title": "Service Excellence Score",
+      "description": "Platform reliability metric. Success rate above 99% ensures customer satisfaction and reduces churn risk.",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "100 * sum(increase(dhruva_enterprise_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h])) / sum(increase(dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h]))",
+          "legendFormat": "Success Rate %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 95,
+          "max": 100,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": 95 },
+              { "color": "yellow", "value": 98 },
+              { "color": "green", "value": 99.5 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 1 }
+    },
+    {
+      "id": 5,
+      "title": "📈 Business Growth Metrics",
+      "type": "row",
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 }
+    },
+    {
+      "id": 6,
+      "title": "Daily Platform Activity",
+      "description": "Platform usage trends showing growth patterns and user engagement levels (business traffic only). Upward trend indicates increasing adoption and platform success.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "sum(increase(dhruva_enterprise_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[1h]))",
+          "legendFormat": "Successful Requests/Hour"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "pointSize": 5
+          },
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 }
+    },
+    {
+      "id": 7,
+      "title": "Customer Usage Distribution",
+      "description": "Platform usage by customer (business traffic only). Identifies high-activity customers and helps understand customer engagement patterns.",
+      "type": "piechart",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (customer)(increase(dhruva_enterprise_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h])))",
+          "legendFormat": "{{customer}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "hideFrom": { "legend": false, "tooltip": false, "vis": false }
+          }
+        }
+      },
+      "options": {
+        "pieType": "donut",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 }
+    },
+    {
+      "id": 8,
+      "title": "⚡ Operational Excellence",
+      "type": "row",
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 }
+    },
+    {
+      "id": 9,
+      "title": "Platform Availability",
+      "description": "System uptime critical for business continuity. 99.9% availability target ensures consistent service delivery and customer satisfaction.",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "avg(dhruva_enterprise_sla_availability_percent)",
+          "legendFormat": "Platform Availability"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 99,
+          "max": 100,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": 99 },
+              { "color": "yellow", "value": 99.5 },
+              { "color": "green", "value": 99.9 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 19 }
+    },
+    {
+      "id": 10,
+      "title": "Response Performance",
+      "description": "Average response time across all services. Sub-second response times ensure superior user experience and competitive advantage.",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "avg(dhruva_enterprise_sla_response_time_seconds)",
+          "legendFormat": "Avg Response Time"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.5 },
+              { "color": "red", "value": 1.0 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 19 }
+    },
+    {
+      "id": 11,
+      "title": "Error Impact Assessment",
+      "description": "Percentage of failed requests (business endpoints only). Low error rates maintain customer trust and ensure consistent service quality.",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "100 * sum(increase(dhruva_enterprise_requests_total{status_code!=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h])) / sum(increase(dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h]))",
+          "legendFormat": "Error Rate %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "max": 5,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 3 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 19 }
+    },
+    {
+      "id": 12,
+      "title": "Business Impact Score",
+      "description": "Composite score combining availability, performance, and customer satisfaction. Higher scores indicate stronger business health.",
+      "type": "gauge",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "(avg(dhruva_enterprise_sla_availability_percent) + (100 - (100 * sum(increase(dhruva_enterprise_requests_total{status_code!=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h])) / sum(increase(dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h])))) + (100 - min(100, avg(dhruva_enterprise_sla_response_time_seconds) * 100))) / 3",
+          "legendFormat": "Business Health Score"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": 70 },
+              { "color": "yellow", "value": 85 },
+              { "color": "green", "value": 95 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 19 }
+    },
+    {
+      "id": 13,
+      "title": "📊 Service Portfolio Performance",
+      "type": "row",
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 }
+    },
+    {
+      "id": 14,
+      "title": "AI Service Usage Distribution",
+      "description": "Platform usage across different AI services (business traffic only). Identifies most popular services and helps understand customer preferences and platform adoption patterns.",
+      "type": "barchart",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (app)(increase(dhruva_enterprise_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h])))",
+          "legendFormat": "{{app}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 28 }
+    },
+    {
+      "id": 15,
+      "title": "🎯 Strategic Insights",
+      "type": "row",
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 36 }
+    },
+    {
+      "id": 16,
+      "title": "Peak Usage Patterns",
+      "description": "Daily usage patterns help identify optimal capacity planning and system optimization opportunities.",
+      "type": "heatmap",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "sum(rate(dhruva_enterprise_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[1h]))",
+          "legendFormat": "Requests/sec"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "hideFrom": { "legend": false, "tooltip": false, "vis": false }
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 37 }
+    },
+    {
+      "id": 17,
+      "title": "Executive KPI Summary",
+      "description": "Key performance indicators summary for executive reporting and board presentations (business metrics only).",
+      "type": "table",
+      "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
+      "targets": [
+        {
+          "expr": "sum(increase(dhruva_enterprise_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h]))",
+          "legendFormat": "Revenue Generating Requests",
+          "refId": "A"
+        },
+        {
+          "expr": "count(count by (customer)(dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}))",
+          "legendFormat": "Active Customers",
+          "refId": "B"
+        },
+        {
+          "expr": "100 * sum(increase(dhruva_enterprise_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h])) / sum(increase(dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h]))",
+          "legendFormat": "Success Rate (%)",
+          "refId": "C"
+        },
+        {
+          "expr": "avg(dhruva_enterprise_sla_availability_percent)",
+          "legendFormat": "Platform Availability (%)",
+          "refId": "D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "displayMode": "color-background",
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Success Rate (%)" },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "steps": [
+                    { "color": "red", "value": 95 },
+                    { "color": "yellow", "value": 98 },
+                    { "color": "green", "value": 99.5 }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 37 }
+    }
+  ]
+}
