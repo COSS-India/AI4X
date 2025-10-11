@@ -118,6 +118,14 @@ class MetricsCollector:
             registry=self.registry,
         )
 
+        # ASR audio length tracking
+        self.enterprise_asr_audio_seconds_processed = Counter(
+            "dhruva_enterprise_asr_audio_seconds_processed_total",
+            "Total ASR audio seconds processed",
+            ["customer", "app", "language"],
+            registry=self.registry,
+        )
+
         # SLA compliance tracking
         self.enterprise_sla_compliance = Gauge(
             "dhruva_enterprise_sla_compliance_percent",
@@ -152,6 +160,13 @@ class MetricsCollector:
         self.enterprise_customer_nmt_quota = Gauge(
             "dhruva_enterprise_customer_nmt_quota_per_month",
             "Customer NMT quota per month",
+            ["customer"],
+            registry=self.registry,
+        )
+
+        self.enterprise_customer_asr_quota = Gauge(
+            "dhruva_enterprise_customer_asr_quota_per_month",
+            "Customer ASR quota per month (in audio seconds)",
             ["customer"],
             registry=self.registry,
         )
@@ -287,6 +302,17 @@ class MetricsCollector:
         # Also track as data processing
         self.track_data_processing(customer, app, "nmt_characters", characters)
 
+    def track_asr_audio_length(
+        self, customer: str, app: str, language: str, audio_seconds: float
+    ):
+        """Track ASR audio length processing."""
+        self.enterprise_asr_audio_seconds_processed.labels(
+            customer=customer, app=app, language=language
+        ).inc(audio_seconds)
+
+        # Also track as data processing
+        self.track_data_processing(customer, app, "asr_audio_seconds", int(audio_seconds))
+
     def track_component_latency(
         self, customer: str, app: str, component: str, duration: float
     ):
@@ -309,11 +335,13 @@ class MetricsCollector:
         llm_quota: int = 1000000,
         tts_quota: int = 1000000,
         nmt_quota: int = 1000000,
+        asr_quota: int = 1000000,
     ):
         """Update customer quotas."""
         self.enterprise_customer_llm_quota.labels(customer=customer).set(llm_quota)
         self.enterprise_customer_tts_quota.labels(customer=customer).set(tts_quota)
         self.enterprise_customer_nmt_quota.labels(customer=customer).set(nmt_quota)
+        self.enterprise_customer_asr_quota.labels(customer=customer).set(asr_quota)
 
     def update_system_metrics_advanced(self):
         """Update advanced system metrics."""

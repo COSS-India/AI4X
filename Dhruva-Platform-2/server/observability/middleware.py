@@ -6,6 +6,9 @@ Handles request tracking, service detection, and metrics collection.
 import time
 import jwt
 import json
+import base64
+import io
+import wave
 from typing import Optional, Dict, Any
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -41,9 +44,35 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         # Detect service type
         service_type = self._detect_service_type(path)
         
+        # Extract real character count for TTS, translation, and ASR requests
+        # IMPORTANT: We need to read and restore the body to avoid consuming the stream
+        tts_characters = 0
+        translation_characters = 0
+        asr_audio_length = 0
+        if method == "POST" and service_type in ["tts", "translation", "asr"]:
+            body_bytes = await request.body()
+            # Restore the body for downstream handlers
+            async def receive():
+                return {"type": "http.request", "body": body_bytes}
+            request._receive = receive
+            
+            # Extract metrics from the body
+            if service_type == "tts":
+                tts_characters = self._extract_tts_characters_from_body(body_bytes)
+            elif service_type == "translation":
+                translation_characters = self._extract_translation_characters_from_body(body_bytes)
+            elif service_type == "asr":
+                asr_audio_length = self._extract_asr_audio_length_from_body(body_bytes)
+        
         # Debug logging
         if self.config.debug:
             print(f"🔍 Request: {method} {path} -> Service: {service_type}, Customer: {customer}, App: {app}")
+            if tts_characters > 0:
+                print(f"📝 TTS Characters detected: {tts_characters}")
+            if translation_characters > 0:
+                print(f"📝 Translation Characters detected: {translation_characters}")
+            if asr_audio_length > 0:
+                print(f"🎵 ASR Audio length detected: {asr_audio_length:.2f} seconds")
         
         # Process request
         response = await call_next(request)
@@ -64,7 +93,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
             )
             
             # Track additional metrics based on service type
-            self._track_additional_metrics(customer, app, service_type, path, duration)
+            self._track_additional_metrics(customer, app, service_type, path, duration, tts_characters, translation_characters, asr_audio_length)
             
         except Exception as e:
             # Don't let metrics collection break the request
@@ -158,7 +187,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         else:
             return "unknown"
     
-    def _track_additional_metrics(self, customer: str, app: str, service_type: str, path: str, duration: float):
+    def _track_additional_metrics(self, customer: str, app: str, service_type: str, path: str, duration: float, tts_characters: int = 0, translation_characters: int = 0, asr_audio_length: float = 0):
         """Track additional metrics based on service type."""
         try:
             # Track component latency
@@ -180,24 +209,39 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                     tokens=tokens
                 )
             elif service_type == "tts":
-                # Mock TTS character synthesis
-                characters = self._estimate_tts_characters(path)
-                self.metrics_collector.track_tts_characters(
-                    customer=customer,
-                    app=app,
-                    language="en",  # Mock language
-                    characters=characters
-                )
+                # Track real TTS character count
+                if tts_characters > 0:
+                    self.metrics_collector.track_tts_characters(
+                        customer=customer,
+                        app=app,
+                        language="en",  # Default language
+                        characters=tts_characters
+                    )
+                    if self.config.debug:
+                        print(f"📊 Tracked real TTS characters: {tts_characters}")
             elif service_type == "translation":
-                # Mock NMT character translation
-                characters = self._estimate_nmt_characters(path)
-                self.metrics_collector.track_nmt_characters(
-                    customer=customer,
-                    app=app,
-                    source_lang="en",
-                    target_lang="hi",
-                    characters=characters
-                )
+                # Track real translation character count
+                if translation_characters > 0:
+                    self.metrics_collector.track_nmt_characters(
+                        customer=customer,
+                        app=app,
+                        source_lang="en",  # Default source language
+                        target_lang="hi",  # Default target language
+                        characters=translation_characters
+                    )
+                    if self.config.debug:
+                        print(f"📊 Tracked real translation characters: {translation_characters}")
+            elif service_type == "asr":
+                # Track real ASR audio length
+                if asr_audio_length > 0:
+                    self.metrics_collector.track_asr_audio_length(
+                        customer=customer,
+                        app=app,
+                        language="en",  # Default language
+                        audio_seconds=asr_audio_length
+                    )
+                    if self.config.debug:
+                        print(f"📊 Tracked real ASR audio length: {asr_audio_length:.2f} seconds")
             
             # Update SLA compliance (mock calculation)
             compliance = self._calculate_sla_compliance(service_type, duration)
@@ -217,15 +261,131 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         # Mock estimation - in real implementation, this would analyze request content
         return 100  # Mock value
     
-    def _estimate_tts_characters(self, path: str) -> int:
-        """Estimate TTS characters based on path."""
-        # Mock estimation - in real implementation, this would analyze request content
-        return 50  # Mock value
     
-    def _estimate_nmt_characters(self, path: str) -> int:
-        """Estimate NMT characters based on path."""
-        # Mock estimation - in real implementation, this would analyze request content
-        return 200  # Mock value
+    
+    def _extract_tts_characters_from_body(self, body_bytes: bytes) -> int:
+        """Extract real character count from TTS request body."""
+        try:
+            if not body_bytes:
+                return 0
+            
+            # Parse JSON request
+            request_data = json.loads(body_bytes.decode('utf-8'))
+            
+            # Extract character count from TTS input
+            total_characters = 0
+            if 'input' in request_data:
+                for input_item in request_data['input']:
+                    if 'source' in input_item:
+                        total_characters += len(input_item['source'])
+            
+            return total_characters
+            
+        except Exception as e:
+            if self.config.debug:
+                print(f"⚠️ Failed to extract TTS characters: {e}")
+            return 0
+    
+    def _extract_translation_characters_from_body(self, body_bytes: bytes) -> int:
+        """Extract real character count from translation request body."""
+        try:
+            if not body_bytes:
+                return 0
+            
+            # Parse JSON request
+            request_data = json.loads(body_bytes.decode('utf-8'))
+            
+            # Extract character count from translation input
+            total_characters = 0
+            if 'input' in request_data:
+                for input_item in request_data['input']:
+                    if 'source' in input_item:
+                        total_characters += len(input_item['source'])
+            
+            return total_characters
+            
+        except Exception as e:
+            if self.config.debug:
+                print(f"⚠️ Failed to extract translation characters: {e}")
+            return 0
+    
+    def _extract_asr_audio_length_from_body(self, body_bytes: bytes) -> float:
+        """Extract real audio length in seconds from ASR request body."""
+        try:
+            if not body_bytes:
+                return 0.0
+            
+            # Parse JSON request
+            request_data = json.loads(body_bytes.decode('utf-8'))
+            
+            # Extract audio length from ASR input
+            total_audio_length = 0.0
+            audio_items_found = 0
+            
+            # Check for standard ASR format: {"audio": [...], "config": {...}}
+            if 'audio' in request_data:
+                for audio_item in request_data['audio']:
+                    if 'audioContent' in audio_item:
+                        # Decode base64 audio and calculate length
+                        audio_length = self._calculate_audio_length_from_base64(audio_item['audioContent'])
+                        total_audio_length += audio_length
+                        audio_items_found += 1
+                        if self.config.debug:
+                            print(f"🎵 ASR audio item {audio_items_found}: {audio_length:.2f} seconds")
+            # Also check for pipeline format: {"inputData": {"audio": [...]}, ...}
+            elif 'inputData' in request_data and 'audio' in request_data['inputData']:
+                for audio_item in request_data['inputData']['audio']:
+                    if 'audioContent' in audio_item:
+                        # Decode base64 audio and calculate length
+                        audio_length = self._calculate_audio_length_from_base64(audio_item['audioContent'])
+                        total_audio_length += audio_length
+                        audio_items_found += 1
+                        if self.config.debug:
+                            print(f"🎵 ASR audio item {audio_items_found}: {audio_length:.2f} seconds")
+            else:
+                if self.config.debug:
+                    print(f"⚠️ ASR request structure not recognized. Keys: {list(request_data.keys())}")
+            
+            return total_audio_length
+            
+        except Exception as e:
+            if self.config.debug:
+                print(f"⚠️ Failed to extract ASR audio length: {e}")
+            return 0.0
+    
+    def _calculate_audio_length_from_base64(self, base64_audio: str) -> float:
+        """Calculate audio length in seconds from base64 encoded audio."""
+        try:
+            # Decode base64 audio
+            audio_data = base64.b64decode(base64_audio)
+            
+            # Create a BytesIO object to read the audio data
+            audio_buffer = io.BytesIO(audio_data)
+            
+            # Try to read as WAV file
+            with wave.open(audio_buffer, 'rb') as wav_file:
+                frames = wav_file.getnframes()
+                sample_rate = wav_file.getframerate()
+                duration = frames / float(sample_rate)
+                if self.config.debug:
+                    print(f"✅ Calculated WAV audio length: {duration:.2f} seconds ({frames} frames @ {sample_rate} Hz)")
+                return duration
+                
+        except Exception as e:
+            if self.config.debug:
+                print(f"⚠️ Failed to parse as WAV file: {e}, trying fallback estimation")
+            # Fallback: estimate based on data size (rough approximation)
+            try:
+                audio_data = base64.b64decode(base64_audio)
+                # Rough estimate: 16-bit audio at 16kHz = 32KB per second
+                estimated_duration = len(audio_data) / 32000
+                if self.config.debug:
+                    print(f"📊 Estimated audio length: {estimated_duration:.2f} seconds (based on {len(audio_data)} bytes)")
+                return estimated_duration
+            except Exception as fallback_error:
+                if self.config.debug:
+                    print(f"❌ Fallback estimation also failed: {fallback_error}")
+                return 0.0
     
     def _calculate_sla_compliance(self, service_type: str, duration: float) -> float:
         """Calculate SLA compliance based on service type and duration."""
