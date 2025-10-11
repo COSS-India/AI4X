@@ -32,7 +32,7 @@ from prometheus_client import make_asgi_app
 
 # Dhruva Observability Plugin Integration (Local Module)
 try:
-    from observability import ObservabilityPlugin
+    from module.observability import ObservabilityPlugin
     OBSERVABILITY_AVAILABLE = True
     logger.info("✅ Using local observability module")
 except ImportError as e:
