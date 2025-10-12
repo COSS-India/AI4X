@@ -102,27 +102,30 @@ class MetricsCollector:
             registry=self.registry,
         )
 
-        # TTS character tracking
-        self.enterprise_tts_characters_synthesized = Counter(
-            "dhruva_enterprise_tts_characters_synthesized_total",
-            "Total TTS characters synthesized",
+        # TTS character tracking (Histogram for percentile calculations)
+        self.enterprise_tts_characters_synthesized = Histogram(
+            "dhruva_enterprise_tts_characters_synthesized",
+            "TTS characters synthesized per request",
             ["organization", "app", "language"],
+            buckets=(10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, float("inf")),
             registry=self.registry,
         )
 
-        # NMT character tracking
-        self.enterprise_nmt_characters_translated = Counter(
-            "dhruva_enterprise_nmt_characters_translated_total",
-            "Total NMT characters translated",
+        # NMT character tracking (Histogram for percentile calculations)
+        self.enterprise_nmt_characters_translated = Histogram(
+            "dhruva_enterprise_nmt_characters_translated",
+            "NMT characters translated per request",
             ["organization", "app", "source_language", "target_language"],
+            buckets=(10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, float("inf")),
             registry=self.registry,
         )
 
-        # ASR audio length tracking
-        self.enterprise_asr_audio_seconds_processed = Counter(
-            "dhruva_enterprise_asr_audio_seconds_processed_total",
-            "Total ASR audio seconds processed",
+        # ASR audio length tracking (Histogram for percentile calculations)
+        self.enterprise_asr_audio_seconds_processed = Histogram(
+            "dhruva_enterprise_asr_audio_seconds_processed",
+            "ASR audio seconds processed per request",
             ["organization", "app", "language"],
+            buckets=(1, 5, 10, 30, 50, 60, 120, 300, 600, 1800, 3600, float("inf")),
             registry=self.registry,
         )
 
@@ -278,7 +281,7 @@ class MetricsCollector:
         """Track TTS character synthesis."""
         self.enterprise_tts_characters_synthesized.labels(
             organization=organization, app=app, language=language
-        ).inc(characters)
+        ).observe(characters)
 
         # Also track as data processing
         self.track_data_processing(organization, app, "tts_characters", characters)
@@ -297,7 +300,7 @@ class MetricsCollector:
             app=app,
             source_language=source_lang,
             target_language=target_lang,
-        ).inc(characters)
+        ).observe(characters)
 
         # Also track as data processing
         self.track_data_processing(organization, app, "nmt_characters", characters)
@@ -308,7 +311,7 @@ class MetricsCollector:
         """Track ASR audio length processing."""
         self.enterprise_asr_audio_seconds_processed.labels(
             organization=organization, app=app, language=language
-        ).inc(audio_seconds)
+        ).observe(audio_seconds)
 
         # Also track as data processing
         self.track_data_processing(organization, app, "asr_audio_seconds", int(audio_seconds))

@@ -50,9 +50,9 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
-      "description": "Median response time across all services.",
+      "description": "Median total time taken across all core services (ASR, Translation, and TTS).",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -111,15 +111,15 @@
           "refId": "A"
         }
       ],
-      "title": "Median Overall Latency",
+      "title": "Overall Latency",
       "type": "stat"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
-      "description": "Median latency trend over time.",
+      "description": "Median overall latency changes over the selected time period.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -207,10 +207,11 @@
           "refId": "A"
         }
       ],
-      "title": "Median Overall Latency (Trend Series)",
+      "title": "Overall Latency Trend",
       "type": "timeseries"
     },
     {
+      "description": "Median latency of each individual service ",
       "fieldConfig": {
         "defaults": {},
         "overrides": []
@@ -228,7 +229,7 @@
           "showLineNumbers": false,
           "showMiniMap": false
         },
-        "content": "<div style=\"text-align: center;\">\n\n#### Median Latency - Service Level\n\n</div>",
+        "content": "<div style=\"text-align: center;\">\n\n#### Latency by Service\n\n</div>",
         "mode": "markdown"
       },
       "pluginVersion": "12.1.1",
@@ -238,9 +239,9 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
-      "description": "ASR response time (green=good, red=slow).",
+      "description": "Median time taken by ASR",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -311,15 +312,15 @@
           "refId": "B"
         }
       ],
-      "title": "ASR Median Latency",
+      "title": "ASR Latency",
       "type": "gauge"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
-      "description": "TTS response time (green=good, red=slow).",
+      "description": "Median time taken by TTS",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -390,15 +391,15 @@
           "refId": "B"
         }
       ],
-      "title": "TTS Median Latency",
+      "title": "TTS Latency",
       "type": "gauge"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
-      "description": "Translation response time (green=good, red=slow).",
+      "description": "Median time taken by NMT",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -469,7 +470,7 @@
           "refId": "B"
         }
       ],
-      "title": "Translation Median Latency",
+      "title": "Translation Latency",
       "type": "gauge"
     },
     {
@@ -500,9 +501,9 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
-      "description": "Average characters per TTS request.",
+      "description": "Median number of characters processed by the TTS service.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -554,7 +555,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(dhruva_enterprise_tts_characters_synthesized_total{organization=~\"$organization\"})/sum(dhruva_enterprise_requests_total{organization=~\"$organization\", endpoint=\"/services/inference/tts\"})",
+          "expr": "histogram_quantile(\r\n  0.5,\r\n  sum(\r\n    rate(dhruva_enterprise_tts_characters_synthesized_bucket{\r\n      organization=~\"$organization\"\r\n    }[1d])\r\n  ) by (le)\r\n)\r\n",
           "legendFormat": "Characters (24h)",
           "range": true,
           "refId": "A"
@@ -562,7 +563,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "kdjfS_R7c"
+            "uid": "ff0r3n2qm5a0wb"
           },
           "editorMode": "code",
           "expr": "dhruva_enterprise_requests_total{organization=~\"$organization\", endpoint=\"/services/inference/tts\"}",
@@ -573,15 +574,15 @@
           "refId": "B"
         }
       ],
-      "title": "Average TTS Payload (Characters)",
+      "title": "TTS Payload Size (Characters)",
       "type": "stat"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
-      "description": "Average characters per translation request.",
+      "description": "Median number of characters sent to the translation service.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -633,7 +634,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(dhruva_enterprise_nmt_characters_translated_total{organization=~\"$organization\"})/sum(dhruva_enterprise_requests_total{organization=~\"$organization\", endpoint=\"/services/inference/translation\"})",
+          "expr": "histogram_quantile(\r\n  0.5,\r\n  sum(\r\n    rate(dhruva_enterprise_nmt_characters_translated_bucket{\r\n      organization=~\"$organization\"\r\n    }[1d])\r\n  ) by (le)\r\n)\r\n",
           "legendFormat": "Characters Translated (24h)",
           "range": true,
           "refId": "A"
@@ -641,7 +642,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "kdjfS_R7c"
+            "uid": "ff0r3n2qm5a0wb"
           },
           "editorMode": "code",
           "expr": "",
@@ -652,15 +653,15 @@
           "refId": "B"
         }
       ],
-      "title": "Average Translation payload (Characters)",
+      "title": "Translation Payload Size (Characters)",
       "type": "stat"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
-      "description": "Average audio seconds per ASR request.",
+      "description": "Median length of the input audio sent to the ASR service.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -712,13 +713,13 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(dhruva_enterprise_asr_audio_seconds_processed_total{organization=~\"$organization\"})/sum(dhruva_enterprise_requests_total{organization=~\"$organization\", endpoint=\"/services/inference/asr\"})",
+          "expr": "histogram_quantile(\r\n  0.5,\r\n  sum(\r\n    rate(dhruva_enterprise_asr_audio_seconds_processed_bucket{\r\n      organization=~\"$organization\"\r\n    }[1d])\r\n  ) by (le)\r\n)",
           "legendFormat": "Data Units Processed (24h)",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Average ASR Payload (Seconds)",
+      "title": "ASR Payload Size (Seconds)",
       "type": "stat"
     },
     {
@@ -749,9 +750,9 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
-      "description": "Overall error rate (ideal <1%, critical >10%).",
+      "description": "Average percentage of unsuccessful requests across all services.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -804,7 +805,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "kdjfS_R7c"
+            "uid": "ff0r3n2qm5a0wb"
           },
           "editorMode": "code",
           "expr": "sum(dhruva_enterprise_errors_total{organization=~\"$organization\", endpoint=~\"/services/inference/.*\"})\r\n/\r\nsum(dhruva_enterprise_requests_total{organization=~\"$organization\", endpoint=~\"/services/inference/.*\"})\r\n* 100",
@@ -817,7 +818,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "kdjfS_R7c"
+            "uid": "ff0r3n2qm5a0wb"
           },
           "editorMode": "code",
           "expr": "dhruva_enterprise_errors_total{organization=~\"$organization\"}",
@@ -834,9 +835,9 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
-      "description": "ASR Error rate (green=good, red >10%).",
+      "description": "Average percentage of unsuccessful requests in the ASR service.",
       "fieldConfig": {
         "defaults": {
           "mappings": [],
@@ -898,9 +899,9 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
-      "description": "ASR errors by type (4xx=client, 5xx=server).",
+      "description": "Average distribution of ASR errors grouped by error type. ",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -953,7 +954,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "kdjfS_R7c"
+            "uid": "ff0r3n2qm5a0wb"
           },
           "disableTextWrap": false,
           "editorMode": "code",
@@ -968,15 +969,15 @@
           "useBackend": false
         }
       ],
-      "title": "ASR Error Rate by Type",
+      "title": "ASR Error Breakdown by Type",
       "type": "piechart"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
-      "description": "TTS Error rate (green=good, red >10%).",
+      "description": "Average percentage of unsuccessful requests in the TTS service.",
       "fieldConfig": {
         "defaults": {
           "mappings": [],
@@ -1038,9 +1039,9 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
-      "description": "TTS errors by type (4xx=client, 5xx=server).",
+      "description": "Average distribution of TTS errors grouped by error type. ",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1093,7 +1094,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "kdjfS_R7c"
+            "uid": "ff0r3n2qm5a0wb"
           },
           "disableTextWrap": false,
           "editorMode": "code",
@@ -1108,15 +1109,15 @@
           "useBackend": false
         }
       ],
-      "title": "TTS Error Rate by Type",
+      "title": "TTS Error Breakdown by Type",
       "type": "piechart"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
-      "description": "Translation Error rate (green=good, red >10%).",
+      "description": "Average percentage of unsuccessful requests in the ASR service.",
       "fieldConfig": {
         "defaults": {
           "mappings": [],
@@ -1178,9 +1179,9 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
-      "description": "Translation errors by type (4xx=client, 5xx=server).",
+      "description": "Average distribution of Translation errors grouped by error type. ",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1234,7 +1235,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "kdjfS_R7c"
+            "uid": "ff0r3n2qm5a0wb"
           },
           "disableTextWrap": false,
           "editorMode": "code",
@@ -1249,7 +1250,7 @@
           "useBackend": false
         }
       ],
-      "title": "Translation Error Rate by Type",
+      "title": "Translation Error Breakdown by Type",
       "type": "piechart"
     }
   ],
@@ -1306,5 +1307,5 @@
   "timezone": "browser",
   "title": "Dhruva DevOps Operations Dashboard-v3",
   "uid": "dhruva-devops-operational-dashboard-v3",
-  "version": 91
+  "version": 114
 }
