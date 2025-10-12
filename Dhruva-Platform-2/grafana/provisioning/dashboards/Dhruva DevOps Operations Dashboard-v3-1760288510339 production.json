@@ -50,7 +50,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Median total time taken across all core services (ASR, Translation, and TTS).",
       "fieldConfig": {
@@ -111,13 +111,13 @@
           "refId": "A"
         }
       ],
-      "title": "Overall Latency",
+      "title": "Overall Latency (Seconds)",
       "type": "stat"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Median overall latency changes over the selected time period.",
       "fieldConfig": {
@@ -207,7 +207,7 @@
           "refId": "A"
         }
       ],
-      "title": "Overall Latency Trend",
+      "title": "Overall Latency Trend (Seconds)",
       "type": "timeseries"
     },
     {
@@ -239,7 +239,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Median time taken by ASR",
       "fieldConfig": {
@@ -312,13 +312,13 @@
           "refId": "B"
         }
       ],
-      "title": "ASR Latency",
+      "title": "ASR Latency (Seconds)",
       "type": "gauge"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Median time taken by TTS",
       "fieldConfig": {
@@ -391,13 +391,13 @@
           "refId": "B"
         }
       ],
-      "title": "TTS Latency",
+      "title": "TTS Latency (Seconds)",
       "type": "gauge"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Median time taken by NMT",
       "fieldConfig": {
@@ -470,7 +470,7 @@
           "refId": "B"
         }
       ],
-      "title": "Translation Latency",
+      "title": "Translation Latency (Seconds)",
       "type": "gauge"
     },
     {
@@ -501,7 +501,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Median number of characters processed by the TTS service.",
       "fieldConfig": {
@@ -563,7 +563,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "kdjfS_R7c"
+            "uid": "ff0r3n2qm5a0wb"
           },
           "editorMode": "code",
           "expr": "dhruva_enterprise_requests_total{organization=~\"$organization\", endpoint=\"/services/inference/tts\"}",
@@ -580,7 +580,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Median number of characters sent to the translation service.",
       "fieldConfig": {
@@ -642,7 +642,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "kdjfS_R7c"
+            "uid": "ff0r3n2qm5a0wb"
           },
           "editorMode": "code",
           "expr": "",
@@ -659,7 +659,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Median length of the input audio sent to the ASR service.",
       "fieldConfig": {
@@ -750,7 +750,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Average percentage of unsuccessful requests across all services.",
       "fieldConfig": {
@@ -805,7 +805,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "kdjfS_R7c"
+            "uid": "ff0r3n2qm5a0wb"
           },
           "editorMode": "code",
           "expr": "sum(dhruva_enterprise_errors_total{organization=~\"$organization\", endpoint=~\"/services/inference/.*\"})\r\n/\r\nsum(dhruva_enterprise_requests_total{organization=~\"$organization\", endpoint=~\"/services/inference/.*\"})\r\n* 100",
@@ -818,7 +818,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "kdjfS_R7c"
+            "uid": "ff0r3n2qm5a0wb"
           },
           "editorMode": "code",
           "expr": "dhruva_enterprise_errors_total{organization=~\"$organization\"}",
@@ -835,7 +835,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Average percentage of unsuccessful requests in the ASR service.",
       "fieldConfig": {
@@ -899,7 +899,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Average distribution of ASR errors grouped by error type. ",
       "fieldConfig": {
@@ -954,7 +954,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "kdjfS_R7c"
+            "uid": "ff0r3n2qm5a0wb"
           },
           "disableTextWrap": false,
           "editorMode": "code",
@@ -975,7 +975,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Average percentage of unsuccessful requests in the TTS service.",
       "fieldConfig": {
@@ -1039,7 +1039,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Average distribution of TTS errors grouped by error type. ",
       "fieldConfig": {
@@ -1094,7 +1094,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "kdjfS_R7c"
+            "uid": "ff0r3n2qm5a0wb"
           },
           "disableTextWrap": false,
           "editorMode": "code",
@@ -1115,7 +1115,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Average percentage of unsuccessful requests in the ASR service.",
       "fieldConfig": {
@@ -1179,7 +1179,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Average distribution of Translation errors grouped by error type. ",
       "fieldConfig": {
@@ -1235,7 +1235,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "kdjfS_R7c"
+            "uid": "ff0r3n2qm5a0wb"
           },
           "disableTextWrap": false,
           "editorMode": "code",
@@ -1307,5 +1307,5 @@
   "timezone": "browser",
   "title": "Dhruva DevOps Operations Dashboard-v3",
   "uid": "dhruva-devops-operational-dashboard-v3",
-  "version": 114
+  "version": 119
 }
