@@ -50,7 +50,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Median response time across all services.",
       "fieldConfig": {
@@ -117,7 +117,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Median latency trend over time.",
       "fieldConfig": {
@@ -238,7 +238,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "ASR response time (green=good, red=slow).",
       "fieldConfig": {
@@ -317,7 +317,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "TTS response time (green=good, red=slow).",
       "fieldConfig": {
@@ -396,7 +396,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Translation response time (green=good, red=slow).",
       "fieldConfig": {
@@ -500,7 +500,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Average characters per TTS request.",
       "fieldConfig": {
@@ -562,7 +562,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "kdjfS_R7c"
+            "uid": "ff0r3n2qm5a0wb"
           },
           "editorMode": "code",
           "expr": "dhruva_enterprise_requests_total{organization=~\"$organization\", endpoint=\"/services/inference/tts\"}",
@@ -579,7 +579,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Average characters per translation request.",
       "fieldConfig": {
@@ -641,7 +641,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "kdjfS_R7c"
+            "uid": "ff0r3n2qm5a0wb"
           },
           "editorMode": "code",
           "expr": "",
@@ -658,7 +658,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Average audio seconds per ASR request.",
       "fieldConfig": {
@@ -749,7 +749,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Overall error rate (ideal <1%, critical >10%).",
       "fieldConfig": {
@@ -804,7 +804,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "kdjfS_R7c"
+            "uid": "ff0r3n2qm5a0wb"
           },
           "editorMode": "code",
           "expr": "sum(dhruva_enterprise_errors_total{organization=~\"$organization\", endpoint=~\"/services/inference/.*\"})\r\n/\r\nsum(dhruva_enterprise_requests_total{organization=~\"$organization\", endpoint=~\"/services/inference/.*\"})\r\n* 100",
@@ -817,7 +817,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "kdjfS_R7c"
+            "uid": "ff0r3n2qm5a0wb"
           },
           "editorMode": "code",
           "expr": "dhruva_enterprise_errors_total{organization=~\"$organization\"}",
@@ -834,7 +834,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "ASR Error rate (green=good, red >10%).",
       "fieldConfig": {
@@ -898,7 +898,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "ASR errors by type (4xx=client, 5xx=server).",
       "fieldConfig": {
@@ -953,7 +953,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "kdjfS_R7c"
+            "uid": "ff0r3n2qm5a0wb"
           },
           "disableTextWrap": false,
           "editorMode": "code",
@@ -974,7 +974,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "TTS Error rate (green=good, red >10%).",
       "fieldConfig": {
@@ -1038,7 +1038,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "TTS errors by type (4xx=client, 5xx=server).",
       "fieldConfig": {
@@ -1093,7 +1093,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "kdjfS_R7c"
+            "uid": "ff0r3n2qm5a0wb"
           },
           "disableTextWrap": false,
           "editorMode": "code",
@@ -1114,7 +1114,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Translation Error rate (green=good, red >10%).",
       "fieldConfig": {
@@ -1178,7 +1178,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "kdjfS_R7c"
+        "uid": "ff0r3n2qm5a0wb"
       },
       "description": "Translation errors by type (4xx=client, 5xx=server).",
       "fieldConfig": {
@@ -1234,7 +1234,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "kdjfS_R7c"
+            "uid": "ff0r3n2qm5a0wb"
           },
           "disableTextWrap": false,
           "editorMode": "code",

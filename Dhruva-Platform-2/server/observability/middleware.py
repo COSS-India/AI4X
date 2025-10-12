@@ -9,6 +9,7 @@ import json
 import base64
 import io
 import wave
+import hashlib
 from typing import Optional, Dict, Any
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -38,8 +39,8 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         method = request.method
         headers = request.headers
         
-        # Extract customer and app (including from JWT token)
-        customer, app = self._extract_customer_app(request)
+        # Extract organization and app (including from JWT token)
+        organization, app = self._extract_customer_app(request)
         
         # Detect service type
         service_type = self._detect_service_type(path)
@@ -66,7 +67,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         
         # Debug logging
         if self.config.debug:
-            print(f"🔍 Request: {method} {path} -> Service: {service_type}, Customer: {customer}, App: {app}")
+            print(f"🔍 Request: {method} {path} -> Service: {service_type}, Organization: {organization}, App: {app}")
             if tts_characters > 0:
                 print(f"📝 TTS Characters detected: {tts_characters}")
             if translation_characters > 0:
@@ -83,7 +84,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         # Track request
         try:
             self.metrics_collector.track_request(
-                customer=customer,
+                organization=organization,
                 app=app,
                 method=method,
                 endpoint=path,
@@ -93,7 +94,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
             )
             
             # Track additional metrics based on service type
-            self._track_additional_metrics(customer, app, service_type, path, duration, tts_characters, translation_characters, asr_audio_length)
+            self._track_additional_metrics(organization, app, service_type, path, duration, tts_characters, translation_characters, asr_audio_length)
             
         except Exception as e:
             # Don't let metrics collection break the request
@@ -121,6 +122,18 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                 print(f"⚠️ JWT decoding failed: {e}")
             return None
     
+    @staticmethod
+    def _get_organization_from_api_key(api_key: str) -> str:
+        """Map API key to organization name using consistent hashing."""
+        # Organization names
+        organizations = ["irctc", "kisanmitra", "bashadaan", "beml"]
+        
+        # Use hash of API key to consistently map to same organization
+        hash_value = int(hashlib.md5(api_key.encode()).hexdigest(), 16)
+        org_index = hash_value % len(organizations)
+        
+        return organizations[org_index]
+    
     def _extract_customer_from_token(self, request: Request) -> str:
         """Extract customer name from JWT token in authorization header."""
         auth_header = request.headers.get("authorization", "")
@@ -145,23 +158,36 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         return self.config.default_customer
     
     def _extract_customer_app(self, request: Request) -> tuple:
-        """Extract customer and app from request headers and JWT token."""
+        """Extract organization and app from request headers and JWT token."""
         # First try to get customer from JWT token
-        customer = self._extract_customer_from_token(request)
+        organization = self._extract_customer_from_token(request)
         
         # If not found in token, fallback to header
-        if customer == self.config.default_customer:
-            customer = request.headers.get("X-Customer-ID", customer)
+        if organization == self.config.default_customer:
+            organization = request.headers.get("X-Customer-ID", organization)
+        
+        # Extract organization from API key
+        auth_header = request.headers.get("authorization", "")
+        
+        if auth_header:
+            # Extract the API key (remove "Bearer " prefix if present)
+            api_key = auth_header
+            if auth_header.startswith("Bearer "):
+                api_key = auth_header[7:]
+            
+            # Map API key to organization (overrides any previous value)
+            organization = self._get_organization_from_api_key(api_key)
+            
+            if self.config.debug:
+                print(f"🏢 Mapped API key to organization: {organization}")
         
         app = request.headers.get("X-App-ID", self.config.default_app)
         
-        # Validate against allowed lists
-        if not self.config.is_customer_allowed(customer):
-            customer = self.config.default_customer
+        # Validate app against allowed list
         if not self.config.is_app_allowed(app):
             app = self.config.default_app
             
-        return customer, app
+        return organization, app
     
     def _detect_service_type(self, path: str) -> str:
         """Detect service type from URL path."""
@@ -187,12 +213,12 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         else:
             return "unknown"
     
-    def _track_additional_metrics(self, customer: str, app: str, service_type: str, path: str, duration: float, tts_characters: int = 0, translation_characters: int = 0, asr_audio_length: float = 0):
+    def _track_additional_metrics(self, organization: str, app: str, service_type: str, path: str, duration: float, tts_characters: int = 0, translation_characters: int = 0, asr_audio_length: float = 0):
         """Track additional metrics based on service type."""
         try:
             # Track component latency
             self.metrics_collector.track_component_latency(
-                customer=customer,
+                organization=organization,
                 app=app,
                 component=service_type,
                 duration=duration
@@ -203,7 +229,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                 # Mock LLM token processing
                 tokens = self._estimate_llm_tokens(path)
                 self.metrics_collector.track_llm_tokens(
-                    customer=customer,
+                    organization=organization,
                     app=app,
                     model="gpt-3.5-turbo",  # Mock model
                     tokens=tokens
@@ -212,7 +238,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                 # Track real TTS character count
                 if tts_characters > 0:
                     self.metrics_collector.track_tts_characters(
-                        customer=customer,
+                        organization=organization,
                         app=app,
                         language="en",  # Default language
                         characters=tts_characters
@@ -223,7 +249,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                 # Track real translation character count
                 if translation_characters > 0:
                     self.metrics_collector.track_nmt_characters(
-                        customer=customer,
+                        organization=organization,
                         app=app,
                         source_lang="en",  # Default source language
                         target_lang="hi",  # Default target language
@@ -235,7 +261,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                 # Track real ASR audio length
                 if asr_audio_length > 0:
                     self.metrics_collector.track_asr_audio_length(
-                        customer=customer,
+                        organization=organization,
                         app=app,
                         language="en",  # Default language
                         audio_seconds=asr_audio_length
@@ -246,7 +272,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
             # Update SLA compliance (mock calculation)
             compliance = self._calculate_sla_compliance(service_type, duration)
             self.metrics_collector.update_sla_compliance(
-                customer=customer,
+                organization=organization,
                 app=app,
                 sla_type=f"{service_type}_availability",
                 compliance_percent=compliance

@@ -31,14 +31,14 @@ class MetricsCollector:
         self.enterprise_requests_total = Counter(
             "dhruva_enterprise_requests_total",
             "Total enterprise requests",
-            ["customer", "app", "method", "endpoint", "status_code"],
+            ["organization", "app", "method", "endpoint", "status_code"],
             registry=self.registry,
         )
 
         self.enterprise_request_duration = Histogram(
             "dhruva_enterprise_request_duration_seconds",
             "Enterprise request duration",
-            ["customer", "app", "method", "endpoint"],
+            ["organization", "app", "method", "endpoint"],
             registry=self.registry,
         )
 
@@ -46,7 +46,7 @@ class MetricsCollector:
         self.enterprise_service_requests = Counter(
             "dhruva_enterprise_service_requests_total",
             "Service requests by type",
-            ["customer", "app", "service_type"],
+            ["organization", "app", "service_type"],
             registry=self.registry,
         )
 
@@ -67,14 +67,14 @@ class MetricsCollector:
         self.enterprise_sla_availability = Gauge(
             "dhruva_enterprise_sla_availability_percent",
             "Service availability percentage",
-            ["customer", "app"],
+            ["organization", "app"],
             registry=self.registry,
         )
 
         self.enterprise_sla_response_time = Gauge(
             "dhruva_enterprise_sla_response_time_seconds",
             "Average response time",
-            ["customer", "app"],
+            ["organization", "app"],
             registry=self.registry,
         )
 
@@ -82,7 +82,7 @@ class MetricsCollector:
         self.enterprise_errors_total = Counter(
             "dhruva_enterprise_errors_total",
             "Total errors by status code",
-            ["customer", "app", "endpoint", "status_code", "error_type"],
+            ["organization", "app", "endpoint", "status_code", "error_type"],
             registry=self.registry,
         )
 
@@ -90,7 +90,7 @@ class MetricsCollector:
         self.enterprise_data_processed_total = Counter(
             "dhruva_enterprise_data_processed_total",
             "Total data processed",
-            ["customer", "app", "data_type"],
+            ["organization", "app", "data_type"],
             registry=self.registry,
         )
 
@@ -98,7 +98,7 @@ class MetricsCollector:
         self.enterprise_llm_tokens_processed = Counter(
             "dhruva_enterprise_llm_tokens_processed_total",
             "Total LLM tokens processed",
-            ["customer", "app", "model"],
+            ["organization", "app", "model"],
             registry=self.registry,
         )
 
@@ -106,7 +106,7 @@ class MetricsCollector:
         self.enterprise_tts_characters_synthesized = Counter(
             "dhruva_enterprise_tts_characters_synthesized_total",
             "Total TTS characters synthesized",
-            ["customer", "app", "language"],
+            ["organization", "app", "language"],
             registry=self.registry,
         )
 
@@ -114,7 +114,7 @@ class MetricsCollector:
         self.enterprise_nmt_characters_translated = Counter(
             "dhruva_enterprise_nmt_characters_translated_total",
             "Total NMT characters translated",
-            ["customer", "app", "source_language", "target_language"],
+            ["organization", "app", "source_language", "target_language"],
             registry=self.registry,
         )
 
@@ -122,7 +122,7 @@ class MetricsCollector:
         self.enterprise_asr_audio_seconds_processed = Counter(
             "dhruva_enterprise_asr_audio_seconds_processed_total",
             "Total ASR audio seconds processed",
-            ["customer", "app", "language"],
+            ["organization", "app", "language"],
             registry=self.registry,
         )
 
@@ -130,7 +130,7 @@ class MetricsCollector:
         self.enterprise_sla_compliance = Gauge(
             "dhruva_enterprise_sla_compliance_percent",
             "SLA compliance percentage",
-            ["customer", "app", "sla_type"],
+            ["organization", "app", "sla_type"],
             registry=self.registry,
         )
 
@@ -138,36 +138,36 @@ class MetricsCollector:
         self.enterprise_component_latency = Histogram(
             "dhruva_enterprise_component_latency_seconds",
             "Component latency",
-            ["customer", "app", "component"],
+            ["organization", "app", "component"],
             registry=self.registry,
         )
 
-        # Customer quota tracking
-        self.enterprise_customer_llm_quota = Gauge(
-            "dhruva_enterprise_customer_llm_quota_per_month",
-            "Customer LLM quota per month",
-            ["customer"],
+        # Organization quota tracking
+        self.enterprise_organization_llm_quota = Gauge(
+            "dhruva_enterprise_organization_llm_quota_per_month",
+            "Organization LLM quota per month",
+            ["organization"],
             registry=self.registry,
         )
 
-        self.enterprise_customer_tts_quota = Gauge(
-            "dhruva_enterprise_customer_tts_quota_per_month",
-            "Customer TTS quota per month",
-            ["customer"],
+        self.enterprise_organization_tts_quota = Gauge(
+            "dhruva_enterprise_organization_tts_quota_per_month",
+            "Organization TTS quota per month",
+            ["organization"],
             registry=self.registry,
         )
 
-        self.enterprise_customer_nmt_quota = Gauge(
-            "dhruva_enterprise_customer_nmt_quota_per_month",
-            "Customer NMT quota per month",
-            ["customer"],
+        self.enterprise_organization_nmt_quota = Gauge(
+            "dhruva_enterprise_organization_nmt_quota_per_month",
+            "Organization NMT quota per month",
+            ["organization"],
             registry=self.registry,
         )
 
-        self.enterprise_customer_asr_quota = Gauge(
-            "dhruva_enterprise_customer_asr_quota_per_month",
-            "Customer ASR quota per month (in audio seconds)",
-            ["customer"],
+        self.enterprise_organization_asr_quota = Gauge(
+            "dhruva_enterprise_organization_asr_quota_per_month",
+            "Organization ASR quota per month (in audio seconds)",
+            ["organization"],
             registry=self.registry,
         )
 
@@ -196,19 +196,19 @@ class MetricsCollector:
             self.enterprise_system_memory.set(memory.percent)
 
             # SLA metrics (simplified)
-            customers = self.config.get("customers", ["default"])
+            organizations = self.config.get("organizations", ["default"])
             apps = self.config.get("apps", ["default"])
 
-            for customer in customers:
+            for organization in organizations:
                 for app in apps:
                     self.enterprise_sla_availability.labels(
-                        customer=customer, app=app
+                        organization=organization, app=app
                     ).set(
                         99.9
                     )  # Mock availability
 
                     self.enterprise_sla_response_time.labels(
-                        customer=customer, app=app
+                        organization=organization, app=app
                     ).set(
                         0.5
                     )  # Mock response time
@@ -219,7 +219,7 @@ class MetricsCollector:
 
     def track_request(
         self,
-        customer: str,
+        organization: str,
         app: str,
         method: str,
         endpoint: str,
@@ -229,7 +229,7 @@ class MetricsCollector:
     ):
         """Track a request."""
         self.enterprise_requests_total.labels(
-            customer=customer,
+            organization=organization,
             app=app,
             method=method,
             endpoint=endpoint,
@@ -237,18 +237,18 @@ class MetricsCollector:
         ).inc()
 
         self.enterprise_request_duration.labels(
-            customer=customer, app=app, method=method, endpoint=endpoint
+            organization=organization, app=app, method=method, endpoint=endpoint
         ).observe(duration)
 
         self.enterprise_service_requests.labels(
-            customer=customer, app=app, service_type=service_type
+            organization=organization, app=app, service_type=service_type
         ).inc()
 
         # Track errors if status code indicates error
         if status_code >= 400:
             error_type = self._get_error_type(status_code)
             self.enterprise_errors_total.labels(
-                customer=customer,
+                organization=organization,
                 app=app,
                 endpoint=endpoint,
                 status_code=str(status_code),
@@ -256,36 +256,36 @@ class MetricsCollector:
             ).inc()
 
     def track_data_processing(
-        self, customer: str, app: str, data_type: str, amount: int
+        self, organization: str, app: str, data_type: str, amount: int
     ):
         """Track data processing."""
         self.enterprise_data_processed_total.labels(
-            customer=customer, app=app, data_type=data_type
+            organization=organization, app=app, data_type=data_type
         ).inc(amount)
 
-    def track_llm_tokens(self, customer: str, app: str, model: str, tokens: int):
+    def track_llm_tokens(self, organization: str, app: str, model: str, tokens: int):
         """Track LLM token processing."""
         self.enterprise_llm_tokens_processed.labels(
-            customer=customer, app=app, model=model
+            organization=organization, app=app, model=model
         ).inc(tokens)
 
         # Also track as data processing
-        self.track_data_processing(customer, app, "llm_tokens", tokens)
+        self.track_data_processing(organization, app, "llm_tokens", tokens)
 
     def track_tts_characters(
-        self, customer: str, app: str, language: str, characters: int
+        self, organization: str, app: str, language: str, characters: int
     ):
         """Track TTS character synthesis."""
         self.enterprise_tts_characters_synthesized.labels(
-            customer=customer, app=app, language=language
+            organization=organization, app=app, language=language
         ).inc(characters)
 
         # Also track as data processing
-        self.track_data_processing(customer, app, "tts_characters", characters)
+        self.track_data_processing(organization, app, "tts_characters", characters)
 
     def track_nmt_characters(
         self,
-        customer: str,
+        organization: str,
         app: str,
         source_lang: str,
         target_lang: str,
@@ -293,55 +293,55 @@ class MetricsCollector:
     ):
         """Track NMT character translation."""
         self.enterprise_nmt_characters_translated.labels(
-            customer=customer,
+            organization=organization,
             app=app,
             source_language=source_lang,
             target_language=target_lang,
         ).inc(characters)
 
         # Also track as data processing
-        self.track_data_processing(customer, app, "nmt_characters", characters)
+        self.track_data_processing(organization, app, "nmt_characters", characters)
 
     def track_asr_audio_length(
-        self, customer: str, app: str, language: str, audio_seconds: float
+        self, organization: str, app: str, language: str, audio_seconds: float
     ):
         """Track ASR audio length processing."""
         self.enterprise_asr_audio_seconds_processed.labels(
-            customer=customer, app=app, language=language
+            organization=organization, app=app, language=language
         ).inc(audio_seconds)
 
         # Also track as data processing
-        self.track_data_processing(customer, app, "asr_audio_seconds", int(audio_seconds))
+        self.track_data_processing(organization, app, "asr_audio_seconds", int(audio_seconds))
 
     def track_component_latency(
-        self, customer: str, app: str, component: str, duration: float
+        self, organization: str, app: str, component: str, duration: float
     ):
         """Track component latency."""
         self.enterprise_component_latency.labels(
-            customer=customer, app=app, component=component
+            organization=organization, app=app, component=component
         ).observe(duration)
 
     def update_sla_compliance(
-        self, customer: str, app: str, sla_type: str, compliance_percent: float
+        self, organization: str, app: str, sla_type: str, compliance_percent: float
     ):
         """Update SLA compliance."""
         self.enterprise_sla_compliance.labels(
-            customer=customer, app=app, sla_type=sla_type
+            organization=organization, app=app, sla_type=sla_type
         ).set(compliance_percent)
 
-    def update_customer_quotas(
+    def update_organization_quotas(
         self,
-        customer: str,
+        organization: str,
         llm_quota: int = 1000000,
         tts_quota: int = 1000000,
         nmt_quota: int = 1000000,
         asr_quota: int = 1000000,
     ):
-        """Update customer quotas."""
-        self.enterprise_customer_llm_quota.labels(customer=customer).set(llm_quota)
-        self.enterprise_customer_tts_quota.labels(customer=customer).set(tts_quota)
-        self.enterprise_customer_nmt_quota.labels(customer=customer).set(nmt_quota)
-        self.enterprise_customer_asr_quota.labels(customer=customer).set(asr_quota)
+        """Update organization quotas."""
+        self.enterprise_organization_llm_quota.labels(organization=organization).set(llm_quota)
+        self.enterprise_organization_tts_quota.labels(organization=organization).set(tts_quota)
+        self.enterprise_organization_nmt_quota.labels(organization=organization).set(nmt_quota)
+        self.enterprise_organization_asr_quota.labels(organization=organization).set(asr_quota)
 
     def update_system_metrics_advanced(self):
         """Update advanced system metrics."""
