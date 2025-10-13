@@ -19,7 +19,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 6,
+  "id": 14,
   "links": [],
   "panels": [
     {
@@ -50,7 +50,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ff0r3n2qm5a0wb"
+        "uid": "kdjfS_R7c"
       },
       "description": "Median total time taken across all core services (ASR, Translation, and TTS).",
       "fieldConfig": {
@@ -117,7 +117,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ff0r3n2qm5a0wb"
+        "uid": "kdjfS_R7c"
       },
       "description": "Median overall latency changes over the selected time period.",
       "fieldConfig": {
@@ -239,7 +239,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ff0r3n2qm5a0wb"
+        "uid": "kdjfS_R7c"
       },
       "description": "Median time taken by ASR",
       "fieldConfig": {
@@ -318,7 +318,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ff0r3n2qm5a0wb"
+        "uid": "kdjfS_R7c"
       },
       "description": "Median time taken by TTS",
       "fieldConfig": {
@@ -397,7 +397,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ff0r3n2qm5a0wb"
+        "uid": "kdjfS_R7c"
       },
       "description": "Median time taken by NMT",
       "fieldConfig": {
@@ -501,7 +501,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ff0r3n2qm5a0wb"
+        "uid": "kdjfS_R7c"
       },
       "description": "Median number of characters processed by the TTS service.",
       "fieldConfig": {
@@ -563,7 +563,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "ff0r3n2qm5a0wb"
+            "uid": "kdjfS_R7c"
           },
           "editorMode": "code",
           "expr": "telemetry_obsv_requests_total{organization=~\"$organization\", endpoint=\"/services/inference/tts\"}",
@@ -580,7 +580,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ff0r3n2qm5a0wb"
+        "uid": "kdjfS_R7c"
       },
       "description": "Median number of characters sent to the translation service.",
       "fieldConfig": {
@@ -642,7 +642,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "ff0r3n2qm5a0wb"
+            "uid": "kdjfS_R7c"
           },
           "editorMode": "code",
           "expr": "",
@@ -659,7 +659,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ff0r3n2qm5a0wb"
+        "uid": "kdjfS_R7c"
       },
       "description": "Median length of the input audio sent to the ASR service.",
       "fieldConfig": {
@@ -750,7 +750,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ff0r3n2qm5a0wb"
+        "uid": "kdjfS_R7c"
       },
       "description": "Average percentage of unsuccessful requests across all services.",
       "fieldConfig": {
@@ -805,7 +805,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "ff0r3n2qm5a0wb"
+            "uid": "kdjfS_R7c"
           },
           "editorMode": "code",
           "expr": "sum(telemetry_obsv_errors_total{organization=~\"$organization\", endpoint=~\"/services/inference/.*\"})\r\n/\r\nsum(telemetry_obsv_requests_total{organization=~\"$organization\", endpoint=~\"/services/inference/.*\"})\r\n* 100",
@@ -818,7 +818,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "ff0r3n2qm5a0wb"
+            "uid": "kdjfS_R7c"
           },
           "editorMode": "code",
           "expr": "telemetry_obsv_errors_total{organization=~\"$organization\"}",
@@ -835,7 +835,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ff0r3n2qm5a0wb"
+        "uid": "kdjfS_R7c"
       },
       "description": "Average percentage of unsuccessful requests in the ASR service.",
       "fieldConfig": {
@@ -899,7 +899,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ff0r3n2qm5a0wb"
+        "uid": "kdjfS_R7c"
       },
       "description": "Average distribution of ASR errors grouped by error type. ",
       "fieldConfig": {
@@ -915,6 +915,7 @@
             }
           },
           "mappings": [],
+          "noValue": "No Errors Reported",
           "unit": "percent"
         },
         "overrides": []
@@ -954,7 +955,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "ff0r3n2qm5a0wb"
+            "uid": "kdjfS_R7c"
           },
           "disableTextWrap": false,
           "editorMode": "code",
@@ -975,7 +976,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ff0r3n2qm5a0wb"
+        "uid": "kdjfS_R7c"
       },
       "description": "Average percentage of unsuccessful requests in the TTS service.",
       "fieldConfig": {
@@ -1039,7 +1040,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ff0r3n2qm5a0wb"
+        "uid": "kdjfS_R7c"
       },
       "description": "Average distribution of TTS errors grouped by error type. ",
       "fieldConfig": {
@@ -1094,7 +1095,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "ff0r3n2qm5a0wb"
+            "uid": "kdjfS_R7c"
           },
           "disableTextWrap": false,
           "editorMode": "code",
@@ -1115,7 +1116,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ff0r3n2qm5a0wb"
+        "uid": "kdjfS_R7c"
       },
       "description": "Average percentage of unsuccessful requests in the ASR service.",
       "fieldConfig": {
@@ -1179,7 +1180,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ff0r3n2qm5a0wb"
+        "uid": "kdjfS_R7c"
       },
       "description": "Average distribution of Translation errors grouped by error type. ",
       "fieldConfig": {
@@ -1235,7 +1236,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "ff0r3n2qm5a0wb"
+            "uid": "kdjfS_R7c"
           },
           "disableTextWrap": false,
           "editorMode": "code",
@@ -1307,5 +1308,5 @@
   "timezone": "browser",
   "title": "Dhruva DevOps Operations Dashboard-v3",
   "uid": "dhruva-devops-operational-dashboard-v3",
-  "version": 119
+  "version": 2
 }
