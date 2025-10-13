@@ -11,35 +11,35 @@ I have successfully analyzed the metrics available through the Dhruva Enterprise
 After examining the actual metrics being exposed by the observability plugin, I identified **19 core metric families** with **34 total metric variants** (including Prometheus histogram buckets, counters, and sums):
 
 #### 🏢 Business Intelligence Metrics
-- **Request Tracking**: `dhruva_enterprise_requests_total` with labels for customer, app, method, endpoint, status_code
-- **Service Usage**: `dhruva_enterprise_service_requests_total` by service type (NMT, TTS, LLM, Pipeline)
-- **Response Times**: `dhruva_enterprise_request_duration_seconds` histogram for latency analysis
+- **Request Tracking**: `telemetry_obsv_requests_total` with labels for customer, app, method, endpoint, status_code
+- **Service Usage**: `telemetry_obsv_service_requests_total` by service type (NMT, TTS, LLM, Pipeline)
+- **Response Times**: `telemetry_obsv_request_duration_seconds` histogram for latency analysis
 
 #### 💰 Revenue & Resource Metrics  
-- **LLM Usage**: `dhruva_enterprise_llm_tokens_processed_total` by customer, app, model
-- **TTS Usage**: `dhruva_enterprise_tts_characters_synthesized_total` by customer, app, language  
-- **NMT Usage**: `dhruva_enterprise_nmt_characters_translated_total` by language pairs
-- **Data Processing**: `dhruva_enterprise_data_processed_total` by data type
+- **LLM Usage**: `telemetry_obsv_llm_tokens_processed_total` by customer, app, model
+- **TTS Usage**: `telemetry_obsv_tts_characters_synthesized_total` by customer, app, language  
+- **NMT Usage**: `telemetry_obsv_nmt_characters_translated_total` by language pairs
+- **Data Processing**: `telemetry_obsv_data_processed_total` by data type
 
 #### 👥 Customer Management
-- **LLM Quotas**: `dhruva_enterprise_customer_llm_quota_per_month` per customer
-- **TTS Quotas**: `dhruva_enterprise_customer_tts_quota_per_month` per customer
-- **NMT Quotas**: `dhruva_enterprise_customer_nmt_quota_per_month` per customer
+- **LLM Quotas**: `telemetry_obsv_customer_llm_quota_per_month` per customer
+- **TTS Quotas**: `telemetry_obsv_customer_tts_quota_per_month` per customer
+- **NMT Quotas**: `telemetry_obsv_customer_nmt_quota_per_month` per customer
 
 #### 🖥️ System Health & Infrastructure
-- **CPU Usage**: `dhruva_enterprise_system_cpu_percent` - Real-time CPU monitoring
-- **Memory Usage**: `dhruva_enterprise_system_memory_percent` - Real-time memory monitoring
-- **Peak Throughput**: `dhruva_enterprise_system_peak_throughput_rpm` - Capacity metrics
-- **Service Count**: `dhruva_enterprise_system_service_count` - Active services
+- **CPU Usage**: `telemetry_obsv_system_cpu_percent` - Real-time CPU monitoring
+- **Memory Usage**: `telemetry_obsv_system_memory_percent` - Real-time memory monitoring
+- **Peak Throughput**: `telemetry_obsv_system_peak_throughput_rpm` - Capacity metrics
+- **Service Count**: `telemetry_obsv_system_service_count` - Active services
 
 #### 🎯 SLA & Quality Metrics
-- **Availability**: `dhruva_enterprise_sla_availability_percent` by customer/app
-- **Response Time SLA**: `dhruva_enterprise_sla_response_time_seconds` by customer/app
-- **SLA Compliance**: `dhruva_enterprise_sla_compliance_percent` by SLA type
-- **Component Latency**: `dhruva_enterprise_component_latency_seconds` for database, model inference
+- **Availability**: `telemetry_obsv_sla_availability_percent` by customer/app
+- **Response Time SLA**: `telemetry_obsv_sla_response_time_seconds` by customer/app
+- **SLA Compliance**: `telemetry_obsv_sla_compliance_percent` by SLA type
+- **Component Latency**: `telemetry_obsv_component_latency_seconds` for database, model inference
 
 #### 🚨 Error & Reliability Tracking
-- **Error Tracking**: `dhruva_enterprise_errors_total` by status code, endpoint, error type
+- **Error Tracking**: `telemetry_obsv_errors_total` by status code, endpoint, error type
 - Error categorization: client_error (4xx), server_error (5xx), unknown_error
 
 ## New Dashboard: `dhruva_business_dashboard.json`

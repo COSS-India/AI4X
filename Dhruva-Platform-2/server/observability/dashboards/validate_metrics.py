@@ -23,7 +23,7 @@ def extract_metrics_from_dashboard(dashboard_path):
             for key, value in obj.items():
                 if key == 'expr' and isinstance(value, str):
                     # Extract metrics from Prometheus expressions
-                    metric_matches = re.findall(r'dhruva_enterprise_[a-zA-Z_]+', value)
+                    metric_matches = re.findall(r'telemetry_obsv_[a-zA-Z_]+', value)
                     metrics.update(metric_matches)
                 else:
                     find_metrics_in_obj(value)
@@ -37,31 +37,31 @@ def extract_metrics_from_dashboard(dashboard_path):
 def get_available_metrics():
     """Define the metrics that are actually available from the enterprise endpoint."""
     base_metrics = {
-        'dhruva_enterprise_requests_total',
-        'dhruva_enterprise_request_duration_seconds',
-        'dhruva_enterprise_service_requests_total', 
-        'dhruva_enterprise_system_cpu_percent',
-        'dhruva_enterprise_system_memory_percent',
-        'dhruva_enterprise_sla_availability_percent',
-        'dhruva_enterprise_sla_response_time_seconds',
-        'dhruva_enterprise_errors_total',
-        'dhruva_enterprise_data_processed_total',
-        'dhruva_enterprise_llm_tokens_processed_total',
-        'dhruva_enterprise_tts_characters_synthesized_total',
-        'dhruva_enterprise_nmt_characters_translated_total',
-        'dhruva_enterprise_sla_compliance_percent',
-        'dhruva_enterprise_component_latency_seconds',
-        'dhruva_enterprise_customer_llm_quota_per_month',
-        'dhruva_enterprise_customer_tts_quota_per_month',
-        'dhruva_enterprise_customer_nmt_quota_per_month',
-        'dhruva_enterprise_system_peak_throughput_rpm',
-        'dhruva_enterprise_system_service_count'
+        'telemetry_obsv_requests_total',
+        'telemetry_obsv_request_duration_seconds',
+        'telemetry_obsv_service_requests_total', 
+        'telemetry_obsv_system_cpu_percent',
+        'telemetry_obsv_system_memory_percent',
+        'telemetry_obsv_sla_availability_percent',
+        'telemetry_obsv_sla_response_time_seconds',
+        'telemetry_obsv_errors_total',
+        'telemetry_obsv_data_processed_total',
+        'telemetry_obsv_llm_tokens_processed_total',
+        'telemetry_obsv_tts_characters_synthesized_total',
+        'telemetry_obsv_nmt_characters_translated_total',
+        'telemetry_obsv_sla_compliance_percent',
+        'telemetry_obsv_component_latency_seconds',
+        'telemetry_obsv_customer_llm_quota_per_month',
+        'telemetry_obsv_customer_tts_quota_per_month',
+        'telemetry_obsv_customer_nmt_quota_per_month',
+        'telemetry_obsv_system_peak_throughput_rpm',
+        'telemetry_obsv_system_service_count'
     }
     
     # Add histogram variants for histogram metrics
     histogram_metrics = {
-        'dhruva_enterprise_request_duration_seconds',
-        'dhruva_enterprise_component_latency_seconds'
+        'telemetry_obsv_request_duration_seconds',
+        'telemetry_obsv_component_latency_seconds'
     }
     
     all_metrics = base_metrics.copy()
@@ -73,13 +73,13 @@ def get_available_metrics():
     
     # Add counter _created variants
     counter_metrics = {
-        'dhruva_enterprise_requests_total',
-        'dhruva_enterprise_service_requests_total',
-        'dhruva_enterprise_errors_total',
-        'dhruva_enterprise_data_processed_total',
-        'dhruva_enterprise_llm_tokens_processed_total',
-        'dhruva_enterprise_tts_characters_synthesized_total',
-        'dhruva_enterprise_nmt_characters_translated_total'
+        'telemetry_obsv_requests_total',
+        'telemetry_obsv_service_requests_total',
+        'telemetry_obsv_errors_total',
+        'telemetry_obsv_data_processed_total',
+        'telemetry_obsv_llm_tokens_processed_total',
+        'telemetry_obsv_tts_characters_synthesized_total',
+        'telemetry_obsv_nmt_characters_translated_total'
     }
     
     for metric in counter_metrics:

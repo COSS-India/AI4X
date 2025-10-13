@@ -44,7 +44,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum(dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*\"})",
+          "expr": "sum(telemetry_obsv_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*\"})",
           "legendFormat": "Total API Calls"
         }
       ],
@@ -75,7 +75,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum(dhruva_enterprise_requests_total{endpoint=~\"/services/.*\", status_code=\"200\"})",
+          "expr": "sum(telemetry_obsv_requests_total{endpoint=~\"/services/.*\", status_code=\"200\"})",
           "legendFormat": "AI Service Calls"
         }
       ],
@@ -102,7 +102,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "100 * (1 - sum(dhruva_enterprise_errors_total) / sum(dhruva_enterprise_requests_total))",
+          "expr": "100 * (1 - sum(telemetry_obsv_errors_total) / sum(telemetry_obsv_requests_total))",
           "legendFormat": "Success Rate"
         }
       ],
@@ -139,7 +139,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (service_type)(dhruva_enterprise_service_requests_total)",
+          "expr": "sum by (service_type)(telemetry_obsv_service_requests_total)",
           "legendFormat": "{{service_type}}"
         }
       ],
@@ -167,11 +167,11 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum(dhruva_enterprise_nmt_characters_translated_total)",
+          "expr": "sum(telemetry_obsv_nmt_characters_translated_total)",
           "legendFormat": "Translation Characters"
         },
         {
-          "expr": "sum(dhruva_enterprise_tts_characters_synthesized_total)",
+          "expr": "sum(telemetry_obsv_tts_characters_synthesized_total)",
           "legendFormat": "TTS Characters"
         }
       ],
@@ -204,7 +204,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (error_type)(dhruva_enterprise_errors_total)",
+          "expr": "sum by (error_type)(telemetry_obsv_errors_total)",
           "legendFormat": "{{error_type}}"
         }
       ],
@@ -228,11 +228,11 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "dhruva_enterprise_system_cpu_percent",
+          "expr": "telemetry_obsv_system_cpu_percent",
           "legendFormat": "CPU Usage"
         },
         {
-          "expr": "dhruva_enterprise_system_memory_percent",
+          "expr": "telemetry_obsv_system_memory_percent",
           "legendFormat": "Memory Usage"
         }
       ],
@@ -267,7 +267,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum(rate(dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*\"}[5m]))",
+          "expr": "sum(rate(telemetry_obsv_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*\"}[5m]))",
           "legendFormat": "API Requests/sec"
         }
       ],
@@ -293,7 +293,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum(rate(dhruva_enterprise_request_duration_seconds_bucket[5m])) by (le)",
+          "expr": "sum(rate(telemetry_obsv_request_duration_seconds_bucket[5m])) by (le)",
           "legendFormat": "{{le}}"
         }
       ],
@@ -323,22 +323,22 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (service_type)(dhruva_enterprise_service_requests_total)",
+          "expr": "sum by (service_type)(telemetry_obsv_service_requests_total)",
           "legendFormat": "Total Requests",
           "refId": "A"
         },
         {
-          "expr": "sum by (service_type)(dhruva_enterprise_errors_total)",
+          "expr": "sum by (service_type)(telemetry_obsv_errors_total)",
           "legendFormat": "Errors",
           "refId": "B"
         },
         {
-          "expr": "sum by (service_type)(dhruva_enterprise_component_latency_seconds_sum) / sum by (service_type)(dhruva_enterprise_component_latency_seconds_count)",
+          "expr": "sum by (service_type)(telemetry_obsv_component_latency_seconds_sum) / sum by (service_type)(telemetry_obsv_component_latency_seconds_count)",
           "legendFormat": "Avg Response Time (s)",
           "refId": "C"
         },
         {
-          "expr": "100 * (1 - sum by (service_type)(dhruva_enterprise_errors_total) / sum by (service_type)(dhruva_enterprise_service_requests_total))",
+          "expr": "100 * (1 - sum by (service_type)(telemetry_obsv_errors_total) / sum by (service_type)(telemetry_obsv_service_requests_total))",
           "legendFormat": "Success Rate (%)",
           "refId": "D"
         }

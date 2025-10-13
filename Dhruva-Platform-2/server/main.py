@@ -231,11 +231,11 @@ def metrics_info():
                 "available": OBSERVABILITY_AVAILABLE,
                 "registered_by_plugin": True,
                 "metrics": [
-                    "dhruva_enterprise_requests_total",
-                    "dhruva_enterprise_request_duration_seconds", 
-                    "dhruva_enterprise_errors_total",
-                    "dhruva_enterprise_gpu_usage_percent",
-                    "dhruva_enterprise_db_connections_active"
+                    "telemetry_obsv_requests_total",
+                    "telemetry_obsv_request_duration_seconds", 
+                    "telemetry_obsv_errors_total",
+                    "telemetry_obsv_gpu_usage_percent",
+                    "telemetry_obsv_db_connections_active"
                 ]
             },
             "/enterprise/health": {

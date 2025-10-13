@@ -103,27 +103,27 @@ def enterprise_metrics():
     TEST_REQUESTS.labels(endpoint="/enterprise/metrics", status="success").inc()
     
     # Sample enterprise metrics data
-    metrics_data = f"""# HELP dhruva_enterprise_info Plugin information
-# TYPE dhruva_enterprise_info gauge
-dhruva_enterprise_info{{version="1.0.9",status="active",available="{OBSERVABILITY_AVAILABLE}"}} 1
+    metrics_data = f"""# HELP telemetry_obsv_info Plugin information
+# TYPE telemetry_obsv_info gauge
+telemetry_obsv_info{{version="1.0.9",status="active",available="{OBSERVABILITY_AVAILABLE}"}} 1
 
-# HELP dhruva_enterprise_requests_total Total number of requests processed
-# TYPE dhruva_enterprise_requests_total counter
-dhruva_enterprise_requests_total{{app="default",customer="default",endpoint="/",status="success"}} 1
-dhruva_enterprise_requests_total{{app="default",customer="default",endpoint="/health",status="success"}} 1
-dhruva_enterprise_requests_total{{app="default",customer="default",endpoint="/metrics-info",status="success"}} 1
+# HELP telemetry_obsv_requests_total Total number of requests processed
+# TYPE telemetry_obsv_requests_total counter
+telemetry_obsv_requests_total{{app="default",customer="default",endpoint="/",status="success"}} 1
+telemetry_obsv_requests_total{{app="default",customer="default",endpoint="/health",status="success"}} 1
+telemetry_obsv_requests_total{{app="default",customer="default",endpoint="/metrics-info",status="success"}} 1
 
-# HELP dhruva_enterprise_request_duration_seconds Request duration in seconds
-# TYPE dhruva_enterprise_request_duration_seconds histogram
-dhruva_enterprise_request_duration_seconds_bucket{{app="default",customer="default",endpoint="/",le="0.05"}} 1
-dhruva_enterprise_request_duration_seconds_bucket{{app="default",customer="default",endpoint="/",le="0.1"}} 1
-dhruva_enterprise_request_duration_seconds_bucket{{app="default",customer="default",endpoint="/",le="+Inf"}} 1
-dhruva_enterprise_request_duration_seconds_sum{{app="default",customer="default",endpoint="/"}} 0.001
-dhruva_enterprise_request_duration_seconds_count{{app="default",customer="default",endpoint="/"}} 1
+# HELP telemetry_obsv_request_duration_seconds Request duration in seconds
+# TYPE telemetry_obsv_request_duration_seconds histogram
+telemetry_obsv_request_duration_seconds_bucket{{app="default",customer="default",endpoint="/",le="0.05"}} 1
+telemetry_obsv_request_duration_seconds_bucket{{app="default",customer="default",endpoint="/",le="0.1"}} 1
+telemetry_obsv_request_duration_seconds_bucket{{app="default",customer="default",endpoint="/",le="+Inf"}} 1
+telemetry_obsv_request_duration_seconds_sum{{app="default",customer="default",endpoint="/"}} 0.001
+telemetry_obsv_request_duration_seconds_count{{app="default",customer="default",endpoint="/"}} 1
 
-# HELP dhruva_enterprise_system_info System information
-# TYPE dhruva_enterprise_system_info gauge
-dhruva_enterprise_system_info{{hostname="dhruva-test",environment="development"}} 1
+# HELP telemetry_obsv_system_info System information
+# TYPE telemetry_obsv_system_info gauge
+telemetry_obsv_system_info{{hostname="dhruva-test",environment="development"}} 1
 """
     
     return Response(content=metrics_data, media_type="text/plain")

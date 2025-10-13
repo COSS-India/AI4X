@@ -127,7 +127,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "100 *\r\nsum(\r\n  increase(dhruva_enterprise_requests_total{status=\"success\", endpoint!=\"/metrics\"}[24h])\r\n)\r\n/\r\nsum(\r\n  increase(dhruva_enterprise_requests_total{endpoint!=\"/metrics\"}[24h])\r\n)",
+          "expr": "100 *\r\nsum(\r\n  increase(telemetry_obsv_requests_total{status=\"success\", endpoint!=\"/metrics\"}[24h])\r\n)\r\n/\r\nsum(\r\n  increase(telemetry_obsv_requests_total{endpoint!=\"/metrics\"}[24h])\r\n)",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -192,7 +192,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "100 *\r\nclamp_min(\r\n  sum(\r\n    increase(dhruva_enterprise_requests_total{\r\n      status!=\"success\",\r\n      endpoint=~\"/nmt/translate|/tts/speak|/llm/generate|/pipeline\"\r\n    }[2h])\r\n  ), 0\r\n)\r\n/\r\nclamp_min(\r\n  sum(\r\n    increase(dhruva_enterprise_requests_total{\r\n      endpoint=~\"/nmt/translate|/tts/speak|/llm/generate|/pipeline\"\r\n    }[2h])\r\n  ), 1\r\n)",
+          "expr": "100 *\r\nclamp_min(\r\n  sum(\r\n    increase(telemetry_obsv_requests_total{\r\n      status!=\"success\",\r\n      endpoint=~\"/nmt/translate|/tts/speak|/llm/generate|/pipeline\"\r\n    }[2h])\r\n  ), 0\r\n)\r\n/\r\nclamp_min(\r\n  sum(\r\n    increase(telemetry_obsv_requests_total{\r\n      endpoint=~\"/nmt/translate|/tts/speak|/llm/generate|/pipeline\"\r\n    }[2h])\r\n  ), 1\r\n)",
           "legendFormat": "Error Rate (24h)",
           "range": true,
           "refId": "A"
@@ -271,7 +271,7 @@
         {
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "sum(dhruva_enterprise_requests_total{endpoint!=\"/metrics\"})",
+          "expr": "sum(telemetry_obsv_requests_total{endpoint!=\"/metrics\"})",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "legendFormat": "__auto",
@@ -339,7 +339,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "1000*(sum(rate(dhruva_enterprise_request_duration_seconds_sum[5m]))\r\n/\r\nsum(rate(dhruva_enterprise_request_duration_seconds_count[5m])))",
+          "expr": "1000*(sum(rate(telemetry_obsv_request_duration_seconds_sum[5m]))\r\n/\r\nsum(rate(telemetry_obsv_request_duration_seconds_count[5m])))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -403,7 +403,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(rate(dhruva_enterprise_requests_total[1m])) * 60",
+          "expr": "sum(rate(telemetry_obsv_requests_total[1m])) * 60",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -502,7 +502,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "100 *\r\nclamp_min(\r\n  sum(\r\n    increase(dhruva_enterprise_requests_total{\r\n      status!=\"success\",\r\n      endpoint=~\"/nmt/translate|/tts/speak|/llm/generate|/pipeline\"\r\n    }[2h])\r\n  ), 0\r\n)\r\n/\r\nclamp_min(\r\n  sum(\r\n    increase(dhruva_enterprise_requests_total{\r\n      endpoint=~\"/nmt/translate|/tts/speak|/llm/generate|/pipeline\"\r\n    }[2h])\r\n  ), 1\r\n)",
+          "expr": "100 *\r\nclamp_min(\r\n  sum(\r\n    increase(telemetry_obsv_requests_total{\r\n      status!=\"success\",\r\n      endpoint=~\"/nmt/translate|/tts/speak|/llm/generate|/pipeline\"\r\n    }[2h])\r\n  ), 0\r\n)\r\n/\r\nclamp_min(\r\n  sum(\r\n    increase(telemetry_obsv_requests_total{\r\n      endpoint=~\"/nmt/translate|/tts/speak|/llm/generate|/pipeline\"\r\n    }[2h])\r\n  ), 1\r\n)",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
@@ -604,7 +604,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "sum(dhruva_enterprise_requests_total)",
+          "expr": "sum(telemetry_obsv_requests_total)",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
@@ -707,7 +707,7 @@
         {
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "100 *\r\nsum by (endpoint) (\r\n  increase(dhruva_enterprise_requests_total{status=\"success\", endpoint!=\"/metrics\"}[1h])\r\n)\r\n/\r\nsum by (endpoint) (\r\n  increase(dhruva_enterprise_requests_total{endpoint!=\"/metrics\"}[1h])\r\n)\r\n",
+          "expr": "100 *\r\nsum by (endpoint) (\r\n  increase(telemetry_obsv_requests_total{status=\"success\", endpoint!=\"/metrics\"}[1h])\r\n)\r\n/\r\nsum by (endpoint) (\r\n  increase(telemetry_obsv_requests_total{endpoint!=\"/metrics\"}[1h])\r\n)\r\n",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "legendFormat": "{{service_endpoint}}",
@@ -783,7 +783,7 @@
         {
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "100 *\r\n(\r\n  1 -\r\n  sum by (endpoint) (\r\n    increase(dhruva_enterprise_requests_total{status=\"success\", endpoint!=\"/metrics\"}[1h])\r\n  )\r\n  /\r\n  sum by (endpoint) (\r\n    increase(dhruva_enterprise_requests_total{endpoint!=\"/metrics\"}[1h])\r\n  )\r\n)",
+          "expr": "100 *\r\n(\r\n  1 -\r\n  sum by (endpoint) (\r\n    increase(telemetry_obsv_requests_total{status=\"success\", endpoint!=\"/metrics\"}[1h])\r\n  )\r\n  /\r\n  sum by (endpoint) (\r\n    increase(telemetry_obsv_requests_total{endpoint!=\"/metrics\"}[1h])\r\n  )\r\n)",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "legendFormat": "{{service_endpoint}}",
@@ -887,7 +887,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "100 *\r\n(\r\n  1 -\r\n  sum by (endpoint) (\r\n    increase(dhruva_enterprise_requests_total{status=\"success\", endpoint!=\"/metrics\"}[1h])\r\n  )\r\n  /\r\n  sum by (endpoint) (\r\n    increase(dhruva_enterprise_requests_total{endpoint!=\"/metrics\"}[1h])\r\n  )\r\n)",
+          "expr": "100 *\r\n(\r\n  1 -\r\n  sum by (endpoint) (\r\n    increase(telemetry_obsv_requests_total{status=\"success\", endpoint!=\"/metrics\"}[1h])\r\n  )\r\n  /\r\n  sum by (endpoint) (\r\n    increase(telemetry_obsv_requests_total{endpoint!=\"/metrics\"}[1h])\r\n  )\r\n)",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
@@ -965,7 +965,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "1000 *\r\n(\r\n  sum by (endpoint) (\r\n    rate(dhruva_enterprise_request_duration_seconds_sum[24h])\r\n  )\r\n  /\r\n  sum by (endpoint) (\r\n    rate(dhruva_enterprise_request_duration_seconds_count[24h])\r\n  )\r\n)",
+          "expr": "1000 *\r\n(\r\n  sum by (endpoint) (\r\n    rate(telemetry_obsv_request_duration_seconds_sum[24h])\r\n  )\r\n  /\r\n  sum by (endpoint) (\r\n    rate(telemetry_obsv_request_duration_seconds_count[24h])\r\n  )\r\n)",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -1043,7 +1043,7 @@
             "uid": "kdjfS_R7c"
           },
           "editorMode": "code",
-          "expr": "avg by(endpoint) (dhruva_enterprise_sla_compliance_percent)",
+          "expr": "avg by(endpoint) (telemetry_obsv_sla_compliance_percent)",
           "hide": false,
           "instant": false,
           "legendFormat": "{{endpoint}}",
@@ -1114,7 +1114,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "avg by(sla_type) (dhruva_enterprise_sla_compliance_percent)",
+          "expr": "avg by(sla_type) (telemetry_obsv_sla_compliance_percent)",
           "legendFormat": "{{sla_type}}",
           "range": true,
           "refId": "A"
@@ -1204,7 +1204,7 @@
         {
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "100 *\r\nsum by (status_series) (\r\n  increase(dhruva_enterprise_errors_total{status_series!=\"2xx\"}[1h])\r\n)\r\n/\r\nscalar(\r\n  sum without(app, customer, domain, endpoint, error_type, status_series) (\r\n    increase(dhruva_enterprise_errors_total{status_series!=\"2xx\"}[1h])\r\n  )\r\n)",
+          "expr": "100 *\r\nsum by (status_series) (\r\n  increase(telemetry_obsv_errors_total{status_series!=\"2xx\"}[1h])\r\n)\r\n/\r\nscalar(\r\n  sum without(app, customer, domain, endpoint, error_type, status_series) (\r\n    increase(telemetry_obsv_errors_total{status_series!=\"2xx\"}[1h])\r\n  )\r\n)",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "legendFormat": "__auto",
@@ -1280,7 +1280,7 @@
         {
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "100 *\r\nsum by (endpoint) (\r\n  increase(dhruva_enterprise_requests_total{status=\"success\", endpoint!=\"/metrics\"}[1h])\r\n)\r\n/\r\nsum by (endpoint) (\r\n  increase(dhruva_enterprise_requests_total{endpoint!=\"/metrics\"}[1h])\r\n)\r\n",
+          "expr": "100 *\r\nsum by (endpoint) (\r\n  increase(telemetry_obsv_requests_total{status=\"success\", endpoint!=\"/metrics\"}[1h])\r\n)\r\n/\r\nsum by (endpoint) (\r\n  increase(telemetry_obsv_requests_total{endpoint!=\"/metrics\"}[1h])\r\n)\r\n",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "legendFormat": "{{service_endpoint}}",
@@ -1377,7 +1377,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "1000 *\r\nhistogram_quantile(\r\n  0.90,\r\n  sum by (le, endpoint) (rate(dhruva_enterprise_request_duration_seconds_bucket[5m]))\r\n)\r\n",
+          "expr": "1000 *\r\nhistogram_quantile(\r\n  0.90,\r\n  sum by (le, endpoint) (rate(telemetry_obsv_request_duration_seconds_bucket[5m]))\r\n)\r\n",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -1471,7 +1471,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "1000 *\r\nhistogram_quantile(\r\n  0.95,\r\n  sum by (le, endpoint) (rate(dhruva_enterprise_request_duration_seconds_bucket[5m]))\r\n)\r\n",
+          "expr": "1000 *\r\nhistogram_quantile(\r\n  0.95,\r\n  sum by (le, endpoint) (rate(telemetry_obsv_request_duration_seconds_bucket[5m]))\r\n)\r\n",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -1565,7 +1565,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "1000 *\r\nhistogram_quantile(\r\n  0.99,\r\n  sum by (le, endpoint) (rate(dhruva_enterprise_request_duration_seconds_bucket[5m]))\r\n)\r\n",
+          "expr": "1000 *\r\nhistogram_quantile(\r\n  0.99,\r\n  sum by (le, endpoint) (rate(telemetry_obsv_request_duration_seconds_bucket[5m]))\r\n)\r\n",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -1634,7 +1634,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "1000 * (sum by (component) (dhruva_enterprise_component_latency_seconds_sum)\r\n/\r\nsum by (component) (dhruva_enterprise_component_latency_seconds_count))",
+          "expr": "1000 * (sum by (component) (telemetry_obsv_component_latency_seconds_sum)\r\n/\r\nsum by (component) (telemetry_obsv_component_latency_seconds_count))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "C"
@@ -1698,7 +1698,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "100 *\r\nsum by (customer) (\r\n  increase(dhruva_enterprise_data_processed_total{data_type=\"llm_tokens\"}[30d])\r\n)\r\n/\r\nsum by (customer) (\r\n  dhruva_enterprise_customer_llm_quota_per_month\r\n)\r\n",
+          "expr": "100 *\r\nsum by (customer) (\r\n  increase(telemetry_obsv_data_processed_total{data_type=\"llm_tokens\"}[30d])\r\n)\r\n/\r\nsum by (customer) (\r\n  telemetry_obsv_customer_llm_quota_per_month\r\n)\r\n",
           "legendFormat": "{{customer}}",
           "range": true,
           "refId": "A"
@@ -1762,7 +1762,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "100 *\r\nsum by (customer) (\r\n  increase(dhruva_enterprise_data_processed_total{data_type=\"nmt_characters\"}[30d])\r\n)\r\n/\r\nsum by (customer) (\r\n  dhruva_enterprise_customer_nmt_quota_per_month\r\n)",
+          "expr": "100 *\r\nsum by (customer) (\r\n  increase(telemetry_obsv_data_processed_total{data_type=\"nmt_characters\"}[30d])\r\n)\r\n/\r\nsum by (customer) (\r\n  telemetry_obsv_customer_nmt_quota_per_month\r\n)",
           "legendFormat": "{{customer}}",
           "range": true,
           "refId": "A"
@@ -1826,7 +1826,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "100 *\r\nsum by (customer) (\r\n  increase(dhruva_enterprise_data_processed_total{data_type=\"tts_characters\"}[30d])\r\n)\r\n/\r\nsum by (customer) (\r\n  dhruva_enterprise_customer_tts_quota_per_month\r\n)",
+          "expr": "100 *\r\nsum by (customer) (\r\n  increase(telemetry_obsv_data_processed_total{data_type=\"tts_characters\"}[30d])\r\n)\r\n/\r\nsum by (customer) (\r\n  telemetry_obsv_customer_tts_quota_per_month\r\n)",
           "legendFormat": "{{customer}}",
           "range": true,
           "refId": "A"
@@ -1921,7 +1921,7 @@
             "uid": "kdjfS_R7c"
           },
           "editorMode": "code",
-          "expr": "avg by(endpoint) (dhruva_enterprise_system_cpu_percent)",
+          "expr": "avg by(endpoint) (telemetry_obsv_system_cpu_percent)",
           "legendFormat": "{{endpoint}}",
           "range": true,
           "refId": "A"
@@ -1991,7 +1991,7 @@
             "uid": "kdjfS_R7c"
           },
           "editorMode": "code",
-          "expr": "avg by(endpoint) (dhruva_enterprise_system_memory_percent)",
+          "expr": "avg by(endpoint) (telemetry_obsv_system_memory_percent)",
           "legendFormat": "{{endpoint}}",
           "range": true,
           "refId": "A"
@@ -2058,7 +2058,7 @@
           "disableTextWrap": false,
           "editorMode": "code",
           "exemplar": false,
-          "expr": "count(count by (endpoint) (dhruva_enterprise_requests_total))",
+          "expr": "count(count by (endpoint) (telemetry_obsv_requests_total))",
           "format": "table",
           "fullMetaSearch": false,
           "hide": false,
@@ -2075,7 +2075,7 @@
             "uid": "kdjfS_R7c"
           },
           "editorMode": "code",
-          "expr": "dhruva_enterprise_system_service_count",
+          "expr": "telemetry_obsv_system_service_count",
           "hide": true,
           "instant": false,
           "legendFormat": "__auto",
@@ -2141,7 +2141,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "dhruva_enterprise_system_peak_throughput_rpm",
+          "expr": "telemetry_obsv_system_peak_throughput_rpm",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -2206,7 +2206,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "100 *\r\nclamp_min(\r\n  sum(\r\n    increase(dhruva_enterprise_requests_total{\r\n      status!=\"success\",\r\n      endpoint=~\"/nmt/translate|/tts/speak|/llm/generate|/pipeline\"\r\n    }[2h])\r\n  ), 0\r\n)\r\n/\r\nclamp_min(\r\n  sum(\r\n    increase(dhruva_enterprise_requests_total{\r\n      endpoint=~\"/nmt/translate|/tts/speak|/llm/generate|/pipeline\"\r\n    }[2h])\r\n  ), 1\r\n)",
+          "expr": "100 *\r\nclamp_min(\r\n  sum(\r\n    increase(telemetry_obsv_requests_total{\r\n      status!=\"success\",\r\n      endpoint=~\"/nmt/translate|/tts/speak|/llm/generate|/pipeline\"\r\n    }[2h])\r\n  ), 0\r\n)\r\n/\r\nclamp_min(\r\n  sum(\r\n    increase(telemetry_obsv_requests_total{\r\n      endpoint=~\"/nmt/translate|/tts/speak|/llm/generate|/pipeline\"\r\n    }[2h])\r\n  ), 1\r\n)",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -2275,7 +2275,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "avg by (endpoint) (\r\n  rate(dhruva_enterprise_request_duration_seconds_sum{endpoint=~\"/tts/speak|/llm/generate|/nmt/translate|/pipeline\"}[1h])\r\n  /\r\n  rate(dhruva_enterprise_request_duration_seconds_count{endpoint=~\"/tts/speak|/llm/generate|/nmt/translate|/pipeline\"}[1h])\r\n) * 1000",
+          "expr": "avg by (endpoint) (\r\n  rate(telemetry_obsv_request_duration_seconds_sum{endpoint=~\"/tts/speak|/llm/generate|/nmt/translate|/pipeline\"}[1h])\r\n  /\r\n  rate(telemetry_obsv_request_duration_seconds_count{endpoint=~\"/tts/speak|/llm/generate|/nmt/translate|/pipeline\"}[1h])\r\n) * 1000",
           "legendFormat": "__auto",
           "range": true,
           "refId": "C"
@@ -2369,7 +2369,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(increase(dhruva_enterprise_llm_tokens_processed_total[1h]))",
+          "expr": "sum(increase(telemetry_obsv_llm_tokens_processed_total[1h]))",
           "hide": false,
           "legendFormat": "{{customer}}[hour]",
           "range": true,
@@ -2482,7 +2482,7 @@
             "uid": "kdjfS_R7c"
           },
           "editorMode": "code",
-          "expr": "avg by (sla_type) (\r\n  avg_over_time(dhruva_enterprise_sla_compliance_percent[1w])\r\n)",
+          "expr": "avg by (sla_type) (\r\n  avg_over_time(telemetry_obsv_sla_compliance_percent[1w])\r\n)",
           "hide": false,
           "instant": false,
           "legendFormat": "{{service}}",
@@ -2583,7 +2583,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "sum(increase(dhruva_enterprise_tts_characters_synthesized_total[1h]))",
+          "expr": "sum(increase(telemetry_obsv_tts_characters_synthesized_total[1h]))",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
@@ -2651,7 +2651,7 @@
         {
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum by (endpoint) (increase(dhruva_enterprise_requests_total[1h]))",
+          "expr": "sum by (endpoint) (increase(telemetry_obsv_requests_total[1h]))",
           "format": "time_series",
           "hide": false,
           "instant": false,
@@ -2735,7 +2735,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "sum by (service) (dhruva_enterprise_service_requests_total)",
+          "expr": "sum by (service) (telemetry_obsv_service_requests_total)",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
@@ -2839,7 +2839,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "sum(increase(dhruva_enterprise_nmt_characters_translated_total[1h]))",
+          "expr": "sum(increase(telemetry_obsv_nmt_characters_translated_total[1h]))",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,

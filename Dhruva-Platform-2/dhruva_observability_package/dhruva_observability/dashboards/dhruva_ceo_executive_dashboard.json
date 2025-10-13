@@ -43,7 +43,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum(increase(dhruva_enterprise_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h]))",
+          "expr": "sum(increase(telemetry_obsv_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h]))",
           "legendFormat": "Successful API Calls (24h)"
         }
       ],
@@ -74,7 +74,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "count(count by (customer)(dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}))",
+          "expr": "count(count by (customer)(telemetry_obsv_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}))",
           "legendFormat": "Active Customers"
         }
       ],
@@ -98,7 +98,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "100 * sum(increase(dhruva_enterprise_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h])) / sum(increase(dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h]))",
+          "expr": "100 * sum(increase(telemetry_obsv_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h])) / sum(increase(telemetry_obsv_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h]))",
           "legendFormat": "Success Rate %"
         }
       ],
@@ -135,7 +135,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum(increase(dhruva_enterprise_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[1h]))",
+          "expr": "sum(increase(telemetry_obsv_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[1h]))",
           "legendFormat": "Successful Requests/Hour"
         }
       ],
@@ -162,7 +162,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "topk(10, sum by (customer)(increase(dhruva_enterprise_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h])))",
+          "expr": "topk(10, sum by (customer)(increase(telemetry_obsv_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h])))",
           "legendFormat": "{{customer}}"
         }
       ],
@@ -200,7 +200,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "avg(dhruva_enterprise_sla_availability_percent)",
+          "expr": "avg(telemetry_obsv_sla_availability_percent)",
           "legendFormat": "Platform Availability"
         }
       ],
@@ -229,7 +229,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "avg(dhruva_enterprise_sla_response_time_seconds)",
+          "expr": "avg(telemetry_obsv_sla_response_time_seconds)",
           "legendFormat": "Avg Response Time"
         }
       ],
@@ -256,7 +256,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "100 * sum(increase(dhruva_enterprise_requests_total{status_code!=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h])) / sum(increase(dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h]))",
+          "expr": "100 * sum(increase(telemetry_obsv_requests_total{status_code!=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h])) / sum(increase(telemetry_obsv_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h]))",
           "legendFormat": "Error Rate %"
         }
       ],
@@ -284,7 +284,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "(avg(dhruva_enterprise_sla_availability_percent) + (100 - (100 * sum(increase(dhruva_enterprise_requests_total{status_code!=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h])) / sum(increase(dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h])))) + (100 - min(100, avg(dhruva_enterprise_sla_response_time_seconds) * 100))) / 3",
+          "expr": "(avg(telemetry_obsv_sla_availability_percent) + (100 - (100 * sum(increase(telemetry_obsv_requests_total{status_code!=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h])) / sum(increase(telemetry_obsv_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h])))) + (100 - min(100, avg(telemetry_obsv_sla_response_time_seconds) * 100))) / 3",
           "legendFormat": "Business Health Score"
         }
       ],
@@ -321,7 +321,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "topk(10, sum by (app)(increase(dhruva_enterprise_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h])))",
+          "expr": "topk(10, sum by (app)(increase(telemetry_obsv_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h])))",
           "legendFormat": "{{app}}"
         }
       ],
@@ -354,7 +354,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum(rate(dhruva_enterprise_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[1h]))",
+          "expr": "sum(rate(telemetry_obsv_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[1h]))",
           "legendFormat": "Requests/sec"
         }
       ],
@@ -375,22 +375,22 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum(increase(dhruva_enterprise_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h]))",
+          "expr": "sum(increase(telemetry_obsv_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h]))",
           "legendFormat": "Revenue Generating Requests",
           "refId": "A"
         },
         {
-          "expr": "count(count by (customer)(dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}))",
+          "expr": "count(count by (customer)(telemetry_obsv_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}))",
           "legendFormat": "Active Customers",
           "refId": "B"
         },
         {
-          "expr": "100 * sum(increase(dhruva_enterprise_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h])) / sum(increase(dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h]))",
+          "expr": "100 * sum(increase(telemetry_obsv_requests_total{status_code=\"200\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h])) / sum(increase(telemetry_obsv_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[24h]))",
           "legendFormat": "Success Rate (%)",
           "refId": "C"
         },
         {
-          "expr": "avg(dhruva_enterprise_sla_availability_percent)",
+          "expr": "avg(telemetry_obsv_sla_availability_percent)",
           "legendFormat": "Platform Availability (%)",
           "refId": "D"
         }

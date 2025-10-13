@@ -66,11 +66,11 @@ The **Dhruva Observability Dashboard Suite** provides three targeted, high-impac
 - **Dashboard Design:** Three specialized dashboards optimized for different stakeholder needs
 
 ### **Key Metrics Utilized:**
-- `dhruva_enterprise_requests_total` - API request tracking (excludes `/metrics` endpoints)
-- `dhruva_enterprise_sla_*` - Service level agreement compliance tracking
-- `dhruva_enterprise_system_*` - Infrastructure health and capacity metrics
-- `dhruva_enterprise_errors_total` - Error analysis and quality monitoring
-- `dhruva_enterprise_*_processed_total` - Business processing volume metrics
+- `telemetry_obsv_requests_total` - API request tracking (excludes `/metrics` endpoints)
+- `telemetry_obsv_sla_*` - Service level agreement compliance tracking
+- `telemetry_obsv_system_*` - Infrastructure health and capacity metrics
+- `telemetry_obsv_errors_total` - Error analysis and quality monitoring
+- `telemetry_obsv_*_processed_total` - Business processing volume metrics
 
 ### **Dashboard Architecture:**
 ✅ **CEO Dashboard**: Executive KPIs and strategic business intelligence  

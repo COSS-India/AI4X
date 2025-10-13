@@ -1,7 +1,7 @@
 {
   "id": null,
   "uid": "dhruva-enterprise-ob        {
-          "expr": "rate(dhruva_enterprise_requests_total{status_code!~\"2..\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[5m]) / rate(dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[5m]) * 100",
+          "expr": "rate(telemetry_obsv_requests_total{status_code!~\"2..\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[5m]) / rate(telemetry_obsv_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[5m]) * 100",
           "legendFormat": "{{customer}}/{{app}}"
         }ability-v2",
   "title": "Dhruva Enterprise Observability",
@@ -20,7 +20,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "rate(dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[5m])",
+          "expr": "rate(telemetry_obsv_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[5m])",
           "legendFormat": "{{customer}}/{{app}}"
         }
       ],
@@ -34,7 +34,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, rate(dhruva_enterprise_request_duration_seconds_bucket[5m]))",
+          "expr": "histogram_quantile(0.95, rate(telemetry_obsv_request_duration_seconds_bucket[5m]))",
           "legendFormat": "95th percentile"
         }
       ],
@@ -48,7 +48,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "rate(dhruva_enterprise_requests_total{status_code!~\"2..\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[5m]) / rate(dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[5m]) * 100",
+          "expr": "rate(telemetry_obsv_requests_total{status_code!~\"2..\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[5m]) / rate(telemetry_obsv_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[5m]) * 100",
           "legendFormat": "{{customer}}/{{app}}"
         }
       ],
@@ -62,7 +62,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "dhruva_enterprise_system_cpu_percent",
+          "expr": "telemetry_obsv_system_cpu_percent",
           "legendFormat": "CPU Usage"
         }
       ],
@@ -76,7 +76,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (customer) (rate(dhruva_enterprise_service_requests_total[1h]))",
+          "expr": "sum by (customer) (rate(telemetry_obsv_service_requests_total[1h]))",
           "legendFormat": "{{customer}}"
         }
       ],
@@ -89,11 +89,11 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, rate(dhruva_enterprise_request_duration_seconds_bucket[5m]))",
+          "expr": "histogram_quantile(0.95, rate(telemetry_obsv_request_duration_seconds_bucket[5m]))",
           "legendFormat": "95th percentile"
         },
         {
-          "expr": "histogram_quantile(0.50, rate(dhruva_enterprise_request_duration_seconds_bucket[5m]))",
+          "expr": "histogram_quantile(0.50, rate(telemetry_obsv_request_duration_seconds_bucket[5m]))",
           "legendFormat": "50th percentile"
         }
       ],
@@ -107,7 +107,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "rate(dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[1h])",
+          "expr": "rate(telemetry_obsv_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[1h])",
           "legendFormat": "{{endpoint}} - {{method}}"
         }
       ],
@@ -121,11 +121,11 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "dhruva_enterprise_system_cpu_percent",
+          "expr": "telemetry_obsv_system_cpu_percent",
           "legendFormat": "CPU Usage"
         },
         {
-          "expr": "dhruva_enterprise_system_memory_percent",
+          "expr": "telemetry_obsv_system_memory_percent",
           "legendFormat": "Memory Usage"
         }
       ],
@@ -139,11 +139,11 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "dhruva_enterprise_sla_availability_percent",
+          "expr": "telemetry_obsv_sla_availability_percent",
           "legendFormat": "Availability - {{customer}}/{{app}}"
         },
         {
-          "expr": "dhruva_enterprise_sla_response_time_seconds",
+          "expr": "telemetry_obsv_sla_response_time_seconds",
           "legendFormat": "Response Time - {{customer}}/{{app}}"
         }
       ],
@@ -157,7 +157,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "rate(dhruva_enterprise_service_requests_total[5m])",
+          "expr": "rate(telemetry_obsv_service_requests_total[5m])",
           "legendFormat": "{{service_type}} - {{customer}}/{{app}}"
         }
       ],
@@ -171,7 +171,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (service_type) (dhruva_enterprise_service_requests_total)",
+          "expr": "sum by (service_type) (telemetry_obsv_service_requests_total)",
           "legendFormat": "{{service_type}}"
         }
       ],
@@ -190,7 +190,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (customer) (dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"})",
+          "expr": "sum by (customer) (telemetry_obsv_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"})",
           "legendFormat": "{{customer}}"
         }
       ],

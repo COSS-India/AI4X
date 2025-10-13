@@ -11,41 +11,41 @@ Based on the analysis of the `/enterprise/metrics` endpoint, this dashboard util
 ### 🏢 Business Metrics
 
 #### Request Tracking
-- `dhruva_enterprise_requests_total` - Total enterprise requests by customer, app, method, endpoint, and status code
-- `dhruva_enterprise_request_duration_seconds` - Request duration histogram with percentiles
-- `dhruva_enterprise_service_requests_total` - Service requests by type (NMT, TTS, LLM, Pipeline)
+- `telemetry_obsv_requests_total` - Total enterprise requests by customer, app, method, endpoint, and status code
+- `telemetry_obsv_request_duration_seconds` - Request duration histogram with percentiles
+- `telemetry_obsv_service_requests_total` - Service requests by type (NMT, TTS, LLM, Pipeline)
 
 #### Data Processing Metrics
-- `dhruva_enterprise_llm_tokens_processed_total` - LLM tokens processed by customer, app, and model
-- `dhruva_enterprise_tts_characters_synthesized_total` - TTS characters by customer, app, and language
-- `dhruva_enterprise_nmt_characters_translated_total` - NMT characters by source/target language pairs
-- `dhruva_enterprise_data_processed_total` - General data processing by type
+- `telemetry_obsv_llm_tokens_processed_total` - LLM tokens processed by customer, app, and model
+- `telemetry_obsv_tts_characters_synthesized_total` - TTS characters by customer, app, and language
+- `telemetry_obsv_nmt_characters_translated_total` - NMT characters by source/target language pairs
+- `telemetry_obsv_data_processed_total` - General data processing by type
 
 #### Customer Quota Management
-- `dhruva_enterprise_customer_llm_quota_per_month` - Monthly LLM token quotas
-- `dhruva_enterprise_customer_tts_quota_per_month` - Monthly TTS character quotas
-- `dhruva_enterprise_customer_nmt_quota_per_month` - Monthly NMT character quotas
+- `telemetry_obsv_customer_llm_quota_per_month` - Monthly LLM token quotas
+- `telemetry_obsv_customer_tts_quota_per_month` - Monthly TTS character quotas
+- `telemetry_obsv_customer_nmt_quota_per_month` - Monthly NMT character quotas
 
 ### 🛠️ System & Infrastructure Metrics
 
 #### System Health
-- `dhruva_enterprise_system_cpu_percent` - Real-time CPU usage
-- `dhruva_enterprise_system_memory_percent` - Real-time memory usage
-- `dhruva_enterprise_system_peak_throughput_rpm` - Peak requests per minute
-- `dhruva_enterprise_system_service_count` - Active services count
+- `telemetry_obsv_system_cpu_percent` - Real-time CPU usage
+- `telemetry_obsv_system_memory_percent` - Real-time memory usage
+- `telemetry_obsv_system_peak_throughput_rpm` - Peak requests per minute
+- `telemetry_obsv_system_service_count` - Active services count
 
 #### Component Performance
-- `dhruva_enterprise_component_latency_seconds` - Latency tracking for database, model_inference, etc.
+- `telemetry_obsv_component_latency_seconds` - Latency tracking for database, model_inference, etc.
 
 ### 📊 Quality & SLA Metrics
 
 #### SLA Compliance
-- `dhruva_enterprise_sla_availability_percent` - Service availability percentage
-- `dhruva_enterprise_sla_response_time_seconds` - Average response time SLA
-- `dhruva_enterprise_sla_compliance_percent` - SLA compliance by type (availability, response_time)
+- `telemetry_obsv_sla_availability_percent` - Service availability percentage
+- `telemetry_obsv_sla_response_time_seconds` - Average response time SLA
+- `telemetry_obsv_sla_compliance_percent` - SLA compliance by type (availability, response_time)
 
 #### Error Tracking
-- `dhruva_enterprise_errors_total` - Errors by status code, endpoint, and error type
+- `telemetry_obsv_errors_total` - Errors by status code, endpoint, and error type
 - Error categorization: `client_error` (4xx), `server_error` (5xx), `unknown_error`
 
 ## Dashboard Sections

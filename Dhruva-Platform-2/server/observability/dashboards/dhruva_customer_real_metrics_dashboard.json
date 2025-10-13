@@ -15,7 +15,7 @@
       {
         "name": "customer",
         "type": "query",
-        "query": "label_values(dhruva_enterprise_requests_total, customer)",
+        "query": "label_values(telemetry_obsv_requests_total, customer)",
         "refresh": 1,
         "includeAll": false,
         "multi": false,
@@ -52,7 +52,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum(dhruva_enterprise_requests_total{customer=\"$customer\", endpoint!~\"/metrics.*|/enterprise/metrics.*\"})",
+          "expr": "sum(telemetry_obsv_requests_total{customer=\"$customer\", endpoint!~\"/metrics.*|/enterprise/metrics.*\"})",
           "legendFormat": "Total API Calls"
         }
       ],
@@ -76,7 +76,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "100 * (1 - sum(dhruva_enterprise_errors_total{customer=\"$customer\"}) / sum(dhruva_enterprise_requests_total{customer=\"$customer\"}))",
+          "expr": "100 * (1 - sum(telemetry_obsv_errors_total{customer=\"$customer\"}) / sum(telemetry_obsv_requests_total{customer=\"$customer\"}))",
           "legendFormat": "Your Success Rate"
         }
       ],
@@ -105,7 +105,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum(dhruva_enterprise_request_duration_seconds_sum{customer=\"$customer\"}) / sum(dhruva_enterprise_request_duration_seconds_count{customer=\"$customer\"})",
+          "expr": "sum(telemetry_obsv_request_duration_seconds_sum{customer=\"$customer\"}) / sum(telemetry_obsv_request_duration_seconds_count{customer=\"$customer\"})",
           "legendFormat": "Your Avg Response Time"
         }
       ],
@@ -144,7 +144,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (service_type)(dhruva_enterprise_service_requests_total{customer=\"$customer\"})",
+          "expr": "sum by (service_type)(telemetry_obsv_service_requests_total{customer=\"$customer\"})",
           "legendFormat": "{{service_type}}"
         }
       ],
@@ -172,7 +172,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum(rate(dhruva_enterprise_requests_total{customer=\"$customer\", endpoint!~\"/metrics.*|/enterprise/metrics.*\"}[5m]))",
+          "expr": "sum(rate(telemetry_obsv_requests_total{customer=\"$customer\", endpoint!~\"/metrics.*|/enterprise/metrics.*\"}[5m]))",
           "legendFormat": "Your Requests/sec"
         }
       ],
@@ -206,7 +206,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum(dhruva_enterprise_nmt_characters_translated_total{customer=\"$customer\"})",
+          "expr": "sum(telemetry_obsv_nmt_characters_translated_total{customer=\"$customer\"})",
           "legendFormat": "Characters Translated"
         }
       ],
@@ -226,7 +226,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum(dhruva_enterprise_tts_characters_synthesized_total{customer=\"$customer\"})",
+          "expr": "sum(telemetry_obsv_tts_characters_synthesized_total{customer=\"$customer\"})",
           "legendFormat": "TTS Characters"
         }
       ],
@@ -246,7 +246,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum(dhruva_enterprise_data_processed_total{customer=\"$customer\"})",
+          "expr": "sum(telemetry_obsv_data_processed_total{customer=\"$customer\"})",
           "legendFormat": "Total Data Processed"
         }
       ],
@@ -266,7 +266,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "100 * (1 - sum(dhruva_enterprise_errors_total{customer=\"$customer\"}) / sum(dhruva_enterprise_requests_total{customer=\"$customer\"}))",
+          "expr": "100 * (1 - sum(telemetry_obsv_errors_total{customer=\"$customer\"}) / sum(telemetry_obsv_requests_total{customer=\"$customer\"}))",
           "legendFormat": "Quality Score"
         }
       ],
@@ -303,7 +303,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum(rate(dhruva_enterprise_request_duration_seconds_sum{customer=\"$customer\"}[5m])) / sum(rate(dhruva_enterprise_request_duration_seconds_count{customer=\"$customer\"}[5m]))",
+          "expr": "sum(rate(telemetry_obsv_request_duration_seconds_sum{customer=\"$customer\"}[5m])) / sum(rate(telemetry_obsv_request_duration_seconds_count{customer=\"$customer\"}[5m]))",
           "legendFormat": "Your Avg Response Time"
         }
       ],
@@ -328,11 +328,11 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum(rate(dhruva_enterprise_nmt_characters_translated_total{customer=\"$customer\"}[5m]))",
+          "expr": "sum(rate(telemetry_obsv_nmt_characters_translated_total{customer=\"$customer\"}[5m]))",
           "legendFormat": "Translation Rate (chars/sec)"
         },
         {
-          "expr": "sum(rate(dhruva_enterprise_tts_characters_synthesized_total{customer=\"$customer\"}[5m]))",
+          "expr": "sum(rate(telemetry_obsv_tts_characters_synthesized_total{customer=\"$customer\"}[5m]))",
           "legendFormat": "TTS Rate (chars/sec)"
         }
       ],
@@ -365,7 +365,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (endpoint, status_code)(dhruva_enterprise_errors_total{customer=\"$customer\"})",
+          "expr": "sum by (endpoint, status_code)(telemetry_obsv_errors_total{customer=\"$customer\"})",
           "legendFormat": "",
           "refId": "A"
         }
@@ -408,17 +408,17 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (service_type)(dhruva_enterprise_service_requests_total{customer=\"$customer\"})",
+          "expr": "sum by (service_type)(telemetry_obsv_service_requests_total{customer=\"$customer\"})",
           "legendFormat": "Requests",
           "refId": "A"
         },
         {
-          "expr": "sum by (service_type)(dhruva_enterprise_errors_total{customer=\"$customer\"})",
+          "expr": "sum by (service_type)(telemetry_obsv_errors_total{customer=\"$customer\"})",
           "legendFormat": "Errors",
           "refId": "B"
         },
         {
-          "expr": "100 * (1 - sum by (service_type)(dhruva_enterprise_errors_total{customer=\"$customer\"}) / sum by (service_type)(dhruva_enterprise_service_requests_total{customer=\"$customer\"}))",
+          "expr": "100 * (1 - sum by (service_type)(telemetry_obsv_errors_total{customer=\"$customer\"}) / sum by (service_type)(telemetry_obsv_service_requests_total{customer=\"$customer\"}))",
           "legendFormat": "Success Rate (%)",
           "refId": "C"
         }

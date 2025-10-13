@@ -15,7 +15,7 @@
       {
         "name": "customer",
         "type": "query",
-        "query": "label_values(dhruva_enterprise_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}, customer)",
+        "query": "label_values(telemetry_obsv_requests_total{endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}, customer)",
         "refresh": 1,
         "includeAll": true,
         "multi": true,
@@ -24,7 +24,7 @@
       {
         "name": "app",
         "type": "query",
-        "query": "label_values(dhruva_enterprise_requests_total{customer=~\"$customer\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}, app)",
+        "query": "label_values(telemetry_obsv_requests_total{customer=~\"$customer\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}, app)",
         "refresh": 1,
         "includeAll": true,
         "multi": true,
@@ -49,7 +49,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum(dhruva_enterprise_requests_total{customer=~\"$customer\", app=~\"$app\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"})",
+          "expr": "sum(telemetry_obsv_requests_total{customer=~\"$customer\", app=~\"$app\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"})",
           "legendFormat": "Total Requests",
           "refId": "A"
         }
@@ -78,7 +78,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum(rate(dhruva_enterprise_requests_total{customer=~\"$customer\", app=~\"$app\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[5m])) * 60",
+          "expr": "sum(rate(telemetry_obsv_requests_total{customer=~\"$customer\", app=~\"$app\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[5m])) * 60",
           "legendFormat": "Requests/min",
           "refId": "A"
         }
@@ -107,7 +107,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "avg(dhruva_enterprise_sla_compliance_percent{customer=~\"$customer\", app=~\"$app\", sla_type=\"availability\"})",
+          "expr": "avg(telemetry_obsv_sla_compliance_percent{customer=~\"$customer\", app=~\"$app\", sla_type=\"availability\"})",
           "legendFormat": "Availability %",
           "refId": "A"
         }
@@ -137,7 +137,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum(dhruva_enterprise_errors_total{customer=~\"$customer\", app=~\"$app\"})",
+          "expr": "sum(telemetry_obsv_errors_total{customer=~\"$customer\", app=~\"$app\"})",
           "legendFormat": "Total Errors",
           "refId": "A"
         }
@@ -174,7 +174,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (service_type) (dhruva_enterprise_service_requests_total{customer=~\"$customer\", app=~\"$app\"})",
+          "expr": "sum by (service_type) (telemetry_obsv_service_requests_total{customer=~\"$customer\", app=~\"$app\"})",
           "legendFormat": "{{service_type}}",
           "refId": "A"
         }
@@ -201,7 +201,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (service_type) (rate(dhruva_enterprise_service_requests_total{customer=~\"$customer\", app=~\"$app\"}[5m]))",
+          "expr": "sum by (service_type) (rate(telemetry_obsv_service_requests_total{customer=~\"$customer\", app=~\"$app\"}[5m]))",
           "legendFormat": "{{service_type}}",
           "refId": "A"
         }
@@ -227,17 +227,17 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum(rate(dhruva_enterprise_request_duration_seconds_sum{customer=~\"$customer\", app=~\"$app\"}[5m])) / sum(rate(dhruva_enterprise_request_duration_seconds_count{customer=~\"$customer\", app=~\"$app\"}[5m]))",
+          "expr": "sum(rate(telemetry_obsv_request_duration_seconds_sum{customer=~\"$customer\", app=~\"$app\"}[5m])) / sum(rate(telemetry_obsv_request_duration_seconds_count{customer=~\"$customer\", app=~\"$app\"}[5m]))",
           "legendFormat": "Average Response Time",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(dhruva_enterprise_request_duration_seconds_bucket{customer=~\"$customer\", app=~\"$app\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(telemetry_obsv_request_duration_seconds_bucket{customer=~\"$customer\", app=~\"$app\"}[5m])) by (le))",
           "legendFormat": "95th Percentile",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(dhruva_enterprise_request_duration_seconds_bucket{customer=~\"$customer\", app=~\"$app\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.99, sum(rate(telemetry_obsv_request_duration_seconds_bucket{customer=~\"$customer\", app=~\"$app\"}[5m])) by (le))",
           "legendFormat": "99th Percentile",
           "refId": "C"
         }
@@ -271,7 +271,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (endpoint) (rate(dhruva_enterprise_errors_total{customer=~\"$customer\", app=~\"$app\"}[5m])) / sum by (endpoint) (rate(dhruva_enterprise_requests_total{customer=~\"$customer\", app=~\"$app\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[5m])) * 100",
+          "expr": "sum by (endpoint) (rate(telemetry_obsv_errors_total{customer=~\"$customer\", app=~\"$app\"}[5m])) / sum by (endpoint) (rate(telemetry_obsv_requests_total{customer=~\"$customer\", app=~\"$app\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[5m])) * 100",
           "legendFormat": "{{endpoint}}",
           "refId": "A"
         }
@@ -313,7 +313,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (customer, model) (dhruva_enterprise_llm_tokens_processed_total{customer=~\"$customer\", app=~\"$app\"})",
+          "expr": "sum by (customer, model) (telemetry_obsv_llm_tokens_processed_total{customer=~\"$customer\", app=~\"$app\"})",
           "legendFormat": "{{customer}} - {{model}}",
           "refId": "A"
         }
@@ -335,7 +335,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (customer, language) (dhruva_enterprise_tts_characters_synthesized_total{customer=~\"$customer\", app=~\"$app\"})",
+          "expr": "sum by (customer, language) (telemetry_obsv_tts_characters_synthesized_total{customer=~\"$customer\", app=~\"$app\"})",
           "legendFormat": "{{customer}} - {{language}}",
           "refId": "A"
         }
@@ -357,7 +357,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (customer, source_language, target_language) (dhruva_enterprise_nmt_characters_translated_total{customer=~\"$customer\", app=~\"$app\"})",
+          "expr": "sum by (customer, source_language, target_language) (telemetry_obsv_nmt_characters_translated_total{customer=~\"$customer\", app=~\"$app\"})",
           "legendFormat": "{{customer}} ({{source_language}}→{{target_language}})",
           "refId": "A"
         }
@@ -379,7 +379,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (customer) (dhruva_enterprise_llm_tokens_processed_total{customer=~\"$customer\"}) / dhruva_enterprise_customer_llm_quota_per_month * 100",
+          "expr": "sum by (customer) (telemetry_obsv_llm_tokens_processed_total{customer=~\"$customer\"}) / telemetry_obsv_customer_llm_quota_per_month * 100",
           "legendFormat": "{{customer}}",
           "refId": "A"
         }
@@ -409,7 +409,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (customer) (dhruva_enterprise_tts_characters_synthesized_total{customer=~\"$customer\"}) / dhruva_enterprise_customer_tts_quota_per_month * 100",
+          "expr": "sum by (customer) (telemetry_obsv_tts_characters_synthesized_total{customer=~\"$customer\"}) / telemetry_obsv_customer_tts_quota_per_month * 100",
           "legendFormat": "{{customer}}",
           "refId": "A"
         }
@@ -439,7 +439,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (customer) (dhruva_enterprise_nmt_characters_translated_total{customer=~\"$customer\"}) / dhruva_enterprise_customer_nmt_quota_per_month * 100",
+          "expr": "sum by (customer) (telemetry_obsv_nmt_characters_translated_total{customer=~\"$customer\"}) / telemetry_obsv_customer_nmt_quota_per_month * 100",
           "legendFormat": "{{customer}}",
           "refId": "A"
         }
@@ -477,7 +477,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "dhruva_enterprise_system_cpu_percent",
+          "expr": "telemetry_obsv_system_cpu_percent",
           "legendFormat": "CPU %",
           "refId": "A"
         }
@@ -507,7 +507,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "dhruva_enterprise_system_memory_percent",
+          "expr": "telemetry_obsv_system_memory_percent",
           "legendFormat": "Memory %",
           "refId": "A"
         }
@@ -537,7 +537,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "dhruva_enterprise_system_peak_throughput_rpm",
+          "expr": "telemetry_obsv_system_peak_throughput_rpm",
           "legendFormat": "Peak RPM",
           "refId": "A"
         }
@@ -566,7 +566,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "dhruva_enterprise_system_service_count",
+          "expr": "telemetry_obsv_system_service_count",
           "legendFormat": "Services",
           "refId": "A"
         }
@@ -595,7 +595,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (le, component) (rate(dhruva_enterprise_component_latency_seconds_bucket{customer=~\"$customer\", app=~\"$app\"}[5m]))",
+          "expr": "sum by (le, component) (rate(telemetry_obsv_component_latency_seconds_bucket{customer=~\"$customer\", app=~\"$app\"}[5m]))",
           "legendFormat": "{{component}}",
           "refId": "A",
           "format": "heatmap"
@@ -631,7 +631,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "avg by (customer, sla_type) (dhruva_enterprise_sla_compliance_percent{customer=~\"$customer\", app=~\"$app\"})",
+          "expr": "avg by (customer, sla_type) (telemetry_obsv_sla_compliance_percent{customer=~\"$customer\", app=~\"$app\"})",
           "legendFormat": "{{customer}} - {{sla_type}}",
           "refId": "A"
         }
@@ -667,7 +667,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "avg by (customer) (dhruva_enterprise_sla_availability_percent{customer=~\"$customer\", app=~\"$app\"})",
+          "expr": "avg by (customer) (telemetry_obsv_sla_availability_percent{customer=~\"$customer\", app=~\"$app\"})",
           "legendFormat": "{{customer}}",
           "refId": "A"
         }
@@ -696,7 +696,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "avg by (customer) (dhruva_enterprise_sla_response_time_seconds{customer=~\"$customer\", app=~\"$app\"})",
+          "expr": "avg by (customer) (telemetry_obsv_sla_response_time_seconds{customer=~\"$customer\", app=~\"$app\"})",
           "legendFormat": "{{customer}}",
           "refId": "A"
         }
@@ -734,7 +734,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (service_type) (rate(dhruva_enterprise_service_requests_total{customer=~\"$customer\", app=~\"$app\"}[1h])) * 3600",
+          "expr": "sum by (service_type) (rate(telemetry_obsv_service_requests_total{customer=~\"$customer\", app=~\"$app\"}[1h])) * 3600",
           "legendFormat": "{{service_type}} req/hour",
           "refId": "A"
         }
@@ -781,7 +781,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "(\n  avg(dhruva_enterprise_sla_compliance_percent{customer=~\"$customer\", app=~\"$app\", sla_type=\"availability\"}) * 0.6 +\n  (100 - (avg(rate(dhruva_enterprise_errors_total{customer=~\"$customer\", app=~\"$app\"}[1h])) / avg(rate(dhruva_enterprise_requests_total{customer=~\"$customer\", app=~\"$app\"}[1h])) * 100)) * 0.4\n)",
+          "expr": "(\n  avg(telemetry_obsv_sla_compliance_percent{customer=~\"$customer\", app=~\"$app\", sla_type=\"availability\"}) * 0.6 +\n  (100 - (avg(rate(telemetry_obsv_errors_total{customer=~\"$customer\", app=~\"$app\"}[1h])) / avg(rate(telemetry_obsv_requests_total{customer=~\"$customer\", app=~\"$app\"}[1h])) * 100)) * 0.4\n)",
           "legendFormat": "Customer Satisfaction",
           "refId": "A"
         }
@@ -818,7 +818,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "(\n  sum(rate(dhruva_enterprise_requests_total{customer=~\"$customer\", app=~\"$app\"}[24h])) * 86400 -\n  sum(rate(dhruva_enterprise_requests_total{customer=~\"$customer\", app=~\"$app\"}[24h] offset 24h)) * 86400\n) / \nsum(rate(dhruva_enterprise_requests_total{customer=~\"$customer\", app=~\"$app\"}[24h] offset 24h)) * 86400 * 100",
+          "expr": "(\n  sum(rate(telemetry_obsv_requests_total{customer=~\"$customer\", app=~\"$app\"}[24h])) * 86400 -\n  sum(rate(telemetry_obsv_requests_total{customer=~\"$customer\", app=~\"$app\"}[24h] offset 24h)) * 86400\n) / \nsum(rate(telemetry_obsv_requests_total{customer=~\"$customer\", app=~\"$app\"}[24h] offset 24h)) * 86400 * 100",
           "legendFormat": "Daily Growth %",
           "refId": "A"
         }
@@ -855,19 +855,19 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (service_type) (dhruva_enterprise_service_requests_total{customer=~\"$customer\", app=~\"$app\"})",
+          "expr": "sum by (service_type) (telemetry_obsv_service_requests_total{customer=~\"$customer\", app=~\"$app\"})",
           "legendFormat": "Total Requests",
           "refId": "A",
           "format": "table"
         },
         {
-          "expr": "avg by (service_type) (rate(dhruva_enterprise_request_duration_seconds_sum{customer=~\"$customer\", app=~\"$app\"}[5m]) / rate(dhruva_enterprise_request_duration_seconds_count{customer=~\"$customer\", app=~\"$app\"}[5m]))",
+          "expr": "avg by (service_type) (rate(telemetry_obsv_request_duration_seconds_sum{customer=~\"$customer\", app=~\"$app\"}[5m]) / rate(telemetry_obsv_request_duration_seconds_count{customer=~\"$customer\", app=~\"$app\"}[5m]))",
           "legendFormat": "Avg Response Time",
           "refId": "B",
           "format": "table"
         },
         {
-          "expr": "(sum by (service_type) (rate(dhruva_enterprise_errors_total{customer=~\"$customer\", app=~\"$app\"}[5m])) / sum by (service_type) (rate(dhruva_enterprise_requests_total{customer=~\"$customer\", app=~\"$app\"}[5m]))) * 100",
+          "expr": "(sum by (service_type) (rate(telemetry_obsv_errors_total{customer=~\"$customer\", app=~\"$app\"}[5m])) / sum by (service_type) (rate(telemetry_obsv_requests_total{customer=~\"$customer\", app=~\"$app\"}[5m]))) * 100",
           "legendFormat": "Error Rate %",
           "refId": "C",
           "format": "table"
@@ -932,7 +932,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (customer, service_type) (rate(dhruva_enterprise_service_requests_total{customer=~\"$customer\", app=~\"$app\"}[5m]))",
+          "expr": "sum by (customer, service_type) (rate(telemetry_obsv_service_requests_total{customer=~\"$customer\", app=~\"$app\"}[5m]))",
           "legendFormat": "{{customer}}-{{service_type}}",
           "refId": "A",
           "format": "heatmap"
@@ -967,17 +967,17 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum(rate(dhruva_enterprise_requests_total{customer=~\"$customer\", app=~\"$app\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[1m])) * 60",
+          "expr": "sum(rate(telemetry_obsv_requests_total{customer=~\"$customer\", app=~\"$app\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[1m])) * 60",
           "legendFormat": "Requests/min",
           "refId": "A"
         },
         {
-          "expr": "avg(dhruva_enterprise_system_cpu_percent)",
+          "expr": "avg(telemetry_obsv_system_cpu_percent)",
           "legendFormat": "CPU Usage %",
           "refId": "B"
         },
         {
-          "expr": "avg(dhruva_enterprise_system_memory_percent)",
+          "expr": "avg(telemetry_obsv_system_memory_percent)",
           "legendFormat": "Memory Usage %",
           "refId": "C"
         }
@@ -1039,7 +1039,7 @@
           "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
           "targets": [
             {
-              "expr": "sum by (data_type) (rate(dhruva_enterprise_data_processed_total{customer=~\"$customer\", app=~\"$app\"}[5m]))",
+              "expr": "sum by (data_type) (rate(telemetry_obsv_data_processed_total{customer=~\"$customer\", app=~\"$app\"}[5m]))",
               "legendFormat": "{{data_type}}/sec",
               "refId": "A"
             }
@@ -1076,7 +1076,7 @@
           "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
           "targets": [
             {
-              "expr": "sum by (error_type) (dhruva_enterprise_errors_total{customer=~\"$customer\", app=~\"$app\"})",
+              "expr": "sum by (error_type) (telemetry_obsv_errors_total{customer=~\"$customer\", app=~\"$app\"})",
               "legendFormat": "{{error_type}}",
               "refId": "A"
             }
@@ -1103,7 +1103,7 @@
           "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
           "targets": [
             {
-              "expr": "sum by (status_code) (dhruva_enterprise_requests_total{customer=~\"$customer\", app=~\"$app\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"})",
+              "expr": "sum by (status_code) (telemetry_obsv_requests_total{customer=~\"$customer\", app=~\"$app\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"})",
               "legendFormat": "HTTP {{status_code}}",
               "refId": "A"
             }
@@ -1155,17 +1155,17 @@
           "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
           "targets": [
             {
-              "expr": "histogram_quantile(0.50, sum by (le, component) (rate(dhruva_enterprise_component_latency_seconds_bucket{customer=~\"$customer\", app=~\"$app\"}[5m])))",
+              "expr": "histogram_quantile(0.50, sum by (le, component) (rate(telemetry_obsv_component_latency_seconds_bucket{customer=~\"$customer\", app=~\"$app\"}[5m])))",
               "legendFormat": "{{component}} - p50",
               "refId": "A"
             },
             {
-              "expr": "histogram_quantile(0.95, sum by (le, component) (rate(dhruva_enterprise_component_latency_seconds_bucket{customer=~\"$customer\", app=~\"$app\"}[5m])))",
+              "expr": "histogram_quantile(0.95, sum by (le, component) (rate(telemetry_obsv_component_latency_seconds_bucket{customer=~\"$customer\", app=~\"$app\"}[5m])))",
               "legendFormat": "{{component}} - p95",
               "refId": "B"
             },
             {
-              "expr": "histogram_quantile(0.99, sum by (le, component) (rate(dhruva_enterprise_component_latency_seconds_bucket{customer=~\"$customer\", app=~\"$app\"}[5m])))",
+              "expr": "histogram_quantile(0.99, sum by (le, component) (rate(telemetry_obsv_component_latency_seconds_bucket{customer=~\"$customer\", app=~\"$app\"}[5m])))",
               "legendFormat": "{{component}} - p99",
               "refId": "C"
             }
@@ -1222,17 +1222,17 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (customer) (rate(dhruva_enterprise_llm_tokens_processed_total{customer=~\"$customer\", app=~\"$app\"}[1h])) * 3600",
+          "expr": "sum by (customer) (rate(telemetry_obsv_llm_tokens_processed_total{customer=~\"$customer\", app=~\"$app\"}[1h])) * 3600",
           "legendFormat": "{{customer}} - LLM tokens/hour",
           "refId": "A"
         },
         {
-          "expr": "sum by (customer) (rate(dhruva_enterprise_tts_characters_synthesized_total{customer=~\"$customer\", app=~\"$app\"}[1h])) * 3600",
+          "expr": "sum by (customer) (rate(telemetry_obsv_tts_characters_synthesized_total{customer=~\"$customer\", app=~\"$app\"}[1h])) * 3600",
           "legendFormat": "{{customer}} - TTS chars/hour",
           "refId": "B"
         },
         {
-          "expr": "sum by (customer) (rate(dhruva_enterprise_nmt_characters_translated_total{customer=~\"$customer\", app=~\"$app\"}[1h])) * 3600",
+          "expr": "sum by (customer) (rate(telemetry_obsv_nmt_characters_translated_total{customer=~\"$customer\", app=~\"$app\"}[1h])) * 3600",
           "legendFormat": "{{customer}} - NMT chars/hour",
           "refId": "C"
         }
@@ -1270,12 +1270,12 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "avg(dhruva_enterprise_sla_compliance_percent{customer=~\"$customer\", app=~\"$app\", sla_type=\"availability\"})",
+          "expr": "avg(telemetry_obsv_sla_compliance_percent{customer=~\"$customer\", app=~\"$app\", sla_type=\"availability\"})",
           "legendFormat": "Availability SLA",
           "refId": "A"
         },
         {
-          "expr": "avg(dhruva_enterprise_sla_compliance_percent{customer=~\"$customer\", app=~\"$app\", sla_type=\"response_time\"})",
+          "expr": "avg(telemetry_obsv_sla_compliance_percent{customer=~\"$customer\", app=~\"$app\", sla_type=\"response_time\"})",
           "legendFormat": "Response Time SLA",
           "refId": "B"
         }
@@ -1313,7 +1313,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (customer) (rate(dhruva_enterprise_requests_total{customer=~\"$customer\", app=~\"$app\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[5m])) * 60",
+          "expr": "sum by (customer) (rate(telemetry_obsv_requests_total{customer=~\"$customer\", app=~\"$app\", endpoint!~\"/metrics.*|/enterprise/metrics.*|/health.*|/enterprise/health.*\"}[5m])) * 60",
           "legendFormat": "{{customer}}",
           "refId": "A"
         }
@@ -1372,7 +1372,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "(dhruva_enterprise_system_cpu_percent + dhruva_enterprise_system_memory_percent) / 2 / sum(rate(dhruva_enterprise_requests_total{customer=~\"$customer\", app=~\"$app\"}[5m]))",
+          "expr": "(telemetry_obsv_system_cpu_percent + telemetry_obsv_system_memory_percent) / 2 / sum(rate(telemetry_obsv_requests_total{customer=~\"$customer\", app=~\"$app\"}[5m]))",
           "legendFormat": "Resource Cost per Request",
           "refId": "A"
         }
@@ -1407,7 +1407,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "(\n  (100 - avg(dhruva_enterprise_system_cpu_percent)) * 0.3 +\n  (100 - avg(dhruva_enterprise_system_memory_percent)) * 0.3 +\n  avg(dhruva_enterprise_sla_compliance_percent{sla_type=\"availability\"}) * 0.4\n)",
+          "expr": "(\n  (100 - avg(telemetry_obsv_system_cpu_percent)) * 0.3 +\n  (100 - avg(telemetry_obsv_system_memory_percent)) * 0.3 +\n  avg(telemetry_obsv_sla_compliance_percent{sla_type=\"availability\"}) * 0.4\n)",
           "legendFormat": "Efficiency Score",
           "refId": "A"
         }
@@ -1437,12 +1437,12 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "dhruva_enterprise_system_peak_throughput_rpm - sum(rate(dhruva_enterprise_requests_total{customer=~\"$customer\", app=~\"$app\"}[5m])) * 60",
+          "expr": "telemetry_obsv_system_peak_throughput_rpm - sum(rate(telemetry_obsv_requests_total{customer=~\"$customer\", app=~\"$app\"}[5m])) * 60",
           "legendFormat": "Available Capacity",
           "refId": "A"
         },
         {
-          "expr": "(dhruva_enterprise_system_peak_throughput_rpm - sum(rate(dhruva_enterprise_requests_total{customer=~\"$customer\", app=~\"$app\"}[5m])) * 60) / dhruva_enterprise_system_peak_throughput_rpm * 100",
+          "expr": "(telemetry_obsv_system_peak_throughput_rpm - sum(rate(telemetry_obsv_requests_total{customer=~\"$customer\", app=~\"$app\"}[5m])) * 60) / telemetry_obsv_system_peak_throughput_rpm * 100",
           "legendFormat": "Capacity Reserve %",
           "refId": "B"
         }
@@ -1491,19 +1491,19 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "avg by (service_type) (rate(dhruva_enterprise_request_duration_seconds_sum{customer=~\"$customer\", app=~\"$app\"}[5m]) / rate(dhruva_enterprise_request_duration_seconds_count{customer=~\"$customer\", app=~\"$app\"}[5m])) * 1000",
+          "expr": "avg by (service_type) (rate(telemetry_obsv_request_duration_seconds_sum{customer=~\"$customer\", app=~\"$app\"}[5m]) / rate(telemetry_obsv_request_duration_seconds_count{customer=~\"$customer\", app=~\"$app\"}[5m])) * 1000",
           "legendFormat": "Avg Latency (ms)",
           "refId": "A",
           "format": "table"
         },
         {
-          "expr": "sum by (service_type) (rate(dhruva_enterprise_service_requests_total{customer=~\"$customer\", app=~\"$app\"}[5m])) * 60",
+          "expr": "sum by (service_type) (rate(telemetry_obsv_service_requests_total{customer=~\"$customer\", app=~\"$app\"}[5m])) * 60",
           "legendFormat": "Throughput (req/min)",
           "refId": "B",
           "format": "table"
         },
         {
-          "expr": "(1 - (sum by (service_type) (rate(dhruva_enterprise_errors_total{customer=~\"$customer\", app=~\"$app\"}[5m])) / sum by (service_type) (rate(dhruva_enterprise_requests_total{customer=~\"$customer\", app=~\"$app\"}[5m])))) * 100",
+          "expr": "(1 - (sum by (service_type) (rate(telemetry_obsv_errors_total{customer=~\"$customer\", app=~\"$app\"}[5m])) / sum by (service_type) (rate(telemetry_obsv_requests_total{customer=~\"$customer\", app=~\"$app\"}[5m])))) * 100",
           "legendFormat": "Success Rate (%)",
           "refId": "C",
           "format": "table"

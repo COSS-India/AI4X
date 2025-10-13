@@ -15,7 +15,7 @@
       {
         "name": "customer",
         "type": "query",
-        "query": "label_values(dhruva_enterprise_requests_total, customer)",
+        "query": "label_values(telemetry_obsv_requests_total, customer)",
         "refresh": 1,
         "includeAll": true,
         "multi": true,
@@ -24,7 +24,7 @@
       {
         "name": "app",
         "type": "query",
-        "query": "label_values(dhruva_enterprise_requests_total{customer=~\"$customer\"}, app)",
+        "query": "label_values(telemetry_obsv_requests_total{customer=~\"$customer\"}, app)",
         "refresh": 1,
         "includeAll": true,
         "multi": true,
@@ -49,7 +49,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "dhruva_enterprise_system_cpu_percent",
+          "expr": "telemetry_obsv_system_cpu_percent",
           "legendFormat": "CPU Usage %"
         }
       ],
@@ -76,7 +76,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "dhruva_enterprise_system_memory_percent",
+          "expr": "telemetry_obsv_system_memory_percent",
           "legendFormat": "Memory Usage %"
         }
       ],
@@ -103,7 +103,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "dhruva_enterprise_system_service_count",
+          "expr": "telemetry_obsv_system_service_count",
           "legendFormat": "Active Services"
         }
       ],
@@ -123,7 +123,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "dhruva_enterprise_system_peak_throughput_rpm",
+          "expr": "telemetry_obsv_system_peak_throughput_rpm",
           "legendFormat": "Peak RPM"
         }
       ],
@@ -151,7 +151,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (app)(rate(dhruva_enterprise_requests_total{customer=~\"$customer\", app=~\"$app\"}[5m]))",
+          "expr": "sum by (app)(rate(telemetry_obsv_requests_total{customer=~\"$customer\", app=~\"$app\"}[5m]))",
           "legendFormat": "{{app}}"
         }
       ],
@@ -176,11 +176,11 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum by (endpoint, le)(rate(dhruva_enterprise_request_duration_seconds_bucket{customer=~\"$customer\", app=~\"$app\"}[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (endpoint, le)(rate(telemetry_obsv_request_duration_seconds_bucket{customer=~\"$customer\", app=~\"$app\"}[5m])))",
           "legendFormat": "95th percentile - {{endpoint}}"
         },
         {
-          "expr": "histogram_quantile(0.50, sum by (endpoint, le)(rate(dhruva_enterprise_request_duration_seconds_bucket{customer=~\"$customer\", app=~\"$app\"}[5m])))",
+          "expr": "histogram_quantile(0.50, sum by (endpoint, le)(rate(telemetry_obsv_request_duration_seconds_bucket{customer=~\"$customer\", app=~\"$app\"}[5m])))",
           "legendFormat": "50th percentile - {{endpoint}}"
         }
       ],
@@ -211,7 +211,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (endpoint)(rate(dhruva_enterprise_errors_total{customer=~\"$customer\", app=~\"$app\"}[5m]))",
+          "expr": "sum by (endpoint)(rate(telemetry_obsv_errors_total{customer=~\"$customer\", app=~\"$app\"}[5m]))",
           "legendFormat": "Error Rate - {{endpoint}}"
         }
       ],
@@ -236,7 +236,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (status_code)(increase(dhruva_enterprise_errors_total{customer=~\"$customer\", app=~\"$app\"}[1h]))",
+          "expr": "sum by (status_code)(increase(telemetry_obsv_errors_total{customer=~\"$customer\", app=~\"$app\"}[1h]))",
           "legendFormat": "HTTP {{status_code}}"
         }
       ],
@@ -274,7 +274,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "avg by (customer)(dhruva_enterprise_sla_availability_percent{customer=~\"$customer\"})",
+          "expr": "avg by (customer)(telemetry_obsv_sla_availability_percent{customer=~\"$customer\"})",
           "legendFormat": "{{customer}}"
         }
       ],
@@ -303,7 +303,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "avg by (sla_type)(dhruva_enterprise_sla_compliance_percent{customer=~\"$customer\", app=~\"$app\"})",
+          "expr": "avg by (sla_type)(telemetry_obsv_sla_compliance_percent{customer=~\"$customer\", app=~\"$app\"})",
           "legendFormat": "{{sla_type}} Compliance"
         }
       ],
@@ -337,7 +337,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum by (component, le)(rate(dhruva_enterprise_component_latency_seconds_bucket{customer=~\"$customer\", app=~\"$app\"}[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (component, le)(rate(telemetry_obsv_component_latency_seconds_bucket{customer=~\"$customer\", app=~\"$app\"}[5m])))",
           "legendFormat": "{{component}} - 95th percentile"
         }
       ],
@@ -360,7 +360,7 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "sum by (data_type)(rate(dhruva_enterprise_data_processed_total{customer=~\"$customer\", app=~\"$app\"}[5m]))",
+          "expr": "sum by (data_type)(rate(telemetry_obsv_data_processed_total{customer=~\"$customer\", app=~\"$app\"}[5m]))",
           "legendFormat": "{{data_type}}"
         }
       ],
@@ -392,22 +392,22 @@
       "datasource": { "type": "prometheus", "uid": "kdjfS_R7c" },
       "targets": [
         {
-          "expr": "dhruva_enterprise_system_cpu_percent",
+          "expr": "telemetry_obsv_system_cpu_percent",
           "legendFormat": "CPU Usage (%)",
           "refId": "A"
         },
         {
-          "expr": "dhruva_enterprise_system_memory_percent",
+          "expr": "telemetry_obsv_system_memory_percent",
           "legendFormat": "Memory Usage (%)",
           "refId": "B"
         },
         {
-          "expr": "sum(rate(dhruva_enterprise_requests_total[5m])) * 60",
+          "expr": "sum(rate(telemetry_obsv_requests_total[5m])) * 60",
           "legendFormat": "Request Rate (RPM)",
           "refId": "C"
         },
         {
-          "expr": "sum(rate(dhruva_enterprise_errors_total[5m])) * 60",
+          "expr": "sum(rate(telemetry_obsv_errors_total[5m])) * 60",
           "legendFormat": "Error Rate (EPM)",
           "refId": "D"
         }

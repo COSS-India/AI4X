@@ -116,33 +116,33 @@ X-Tenant-ID: tenant1    → tenant="tenant1"
 
 ### **Request Metrics**
 
-* `dhruva_enterprise_requests_total` - Total requests by customer/app/endpoint
-* `dhruva_enterprise_request_duration_seconds` - Request latency distribution
-* `dhruva_enterprise_errors_total` - Error counts by type and component
+* `telemetry_obsv_requests_total` - Total requests by customer/app/endpoint
+* `telemetry_obsv_request_duration_seconds` - Request latency distribution
+* `telemetry_obsv_errors_total` - Error counts by type and component
 
 ### **Component Metrics**
 
-* `dhruva_enterprise_component_latency_seconds` - NMT, LLM, TTS, ASR processing times
-* `dhruva_enterprise_service_requests_total` - Service usage by customer/app
+* `telemetry_obsv_component_latency_seconds` - NMT, LLM, TTS, ASR processing times
+* `telemetry_obsv_service_requests_total` - Service usage by customer/app
 
 ### **Business Metrics**
 
-* `dhruva_enterprise_data_processed_total` - Translation, synthesis, transcription volume
-* `dhruva_enterprise_throughput_requests_per_second` - Requests per second per customer/app
+* `telemetry_obsv_data_processed_total` - Translation, synthesis, transcription volume
+* `telemetry_obsv_throughput_requests_per_second` - Requests per second per customer/app
 
 ### **System Metrics**
 
-* `dhruva_enterprise_system_cpu_usage_percent` - CPU utilization
-* `dhruva_enterprise_system_memory_usage_percent` - Memory usage
-* `dhruva_enterprise_gpu_usage_percent` - GPU utilization (if available)
-* `dhruva_enterprise_db_connections_active` - Database connections
+* `telemetry_obsv_system_cpu_usage_percent` - CPU utilization
+* `telemetry_obsv_system_memory_usage_percent` - Memory usage
+* `telemetry_obsv_gpu_usage_percent` - GPU utilization (if available)
+* `telemetry_obsv_db_connections_active` - Database connections
 
 ### **SLA & QoS Metrics**
 
-* `dhruva_enterprise_qos_availability_percent` - Service availability
-* `dhruva_enterprise_qos_performance_score` - Performance scores
-* `dhruva_enterprise_system_sla_compliance_percent` - SLA compliance
-* `dhruva_enterprise_system_uptime_percent` - System uptime
+* `telemetry_obsv_qos_availability_percent` - Service availability
+* `telemetry_obsv_qos_performance_score` - Performance scores
+* `telemetry_obsv_system_sla_compliance_percent` - SLA compliance
+* `telemetry_obsv_system_uptime_percent` - System uptime
 
 ## 🔧 Compatibility with Modified Dhruva
 

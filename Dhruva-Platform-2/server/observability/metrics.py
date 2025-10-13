@@ -29,14 +29,14 @@ class MetricsCollector:
         """Initialize Prometheus metrics."""
         # Request metrics
         self.enterprise_requests_total = Counter(
-            "dhruva_enterprise_requests_total",
+            "telemetry_obsv_requests_total",
             "Total enterprise requests",
             ["organization", "app", "method", "endpoint", "status_code"],
             registry=self.registry,
         )
 
         self.enterprise_request_duration = Histogram(
-            "dhruva_enterprise_request_duration_seconds",
+            "telemetry_obsv_request_duration_seconds",
             "Enterprise request duration",
             ["organization", "app", "method", "endpoint"],
             registry=self.registry,
@@ -44,7 +44,7 @@ class MetricsCollector:
 
         # Service metrics
         self.enterprise_service_requests = Counter(
-            "dhruva_enterprise_service_requests_total",
+            "telemetry_obsv_service_requests_total",
             "Service requests by type",
             ["organization", "app", "service_type"],
             registry=self.registry,
@@ -52,27 +52,27 @@ class MetricsCollector:
 
         # System metrics
         self.enterprise_system_cpu = Gauge(
-            "dhruva_enterprise_system_cpu_percent",
+            "telemetry_obsv_system_cpu_percent",
             "System CPU usage",
             registry=self.registry,
         )
 
         self.enterprise_system_memory = Gauge(
-            "dhruva_enterprise_system_memory_percent",
+            "telemetry_obsv_system_memory_percent",
             "System memory usage",
             registry=self.registry,
         )
 
         # SLA metrics
         self.enterprise_sla_availability = Gauge(
-            "dhruva_enterprise_sla_availability_percent",
+            "telemetry_obsv_sla_availability_percent",
             "Service availability percentage",
             ["organization", "app"],
             registry=self.registry,
         )
 
         self.enterprise_sla_response_time = Gauge(
-            "dhruva_enterprise_sla_response_time_seconds",
+            "telemetry_obsv_sla_response_time_seconds",
             "Average response time",
             ["organization", "app"],
             registry=self.registry,
@@ -80,7 +80,7 @@ class MetricsCollector:
 
         # Error tracking metrics
         self.enterprise_errors_total = Counter(
-            "dhruva_enterprise_errors_total",
+            "telemetry_obsv_errors_total",
             "Total errors by status code",
             ["organization", "app", "endpoint", "status_code", "error_type"],
             registry=self.registry,
@@ -88,7 +88,7 @@ class MetricsCollector:
 
         # Data processing metrics
         self.enterprise_data_processed_total = Counter(
-            "dhruva_enterprise_data_processed_total",
+            "telemetry_obsv_data_processed_total",
             "Total data processed",
             ["organization", "app", "data_type"],
             registry=self.registry,
@@ -96,7 +96,7 @@ class MetricsCollector:
 
         # LLM token tracking
         self.enterprise_llm_tokens_processed = Counter(
-            "dhruva_enterprise_llm_tokens_processed_total",
+            "telemetry_obsv_llm_tokens_processed_total",
             "Total LLM tokens processed",
             ["organization", "app", "model"],
             registry=self.registry,
@@ -104,7 +104,7 @@ class MetricsCollector:
 
         # TTS character tracking (Histogram for percentile calculations)
         self.enterprise_tts_characters_synthesized = Histogram(
-            "dhruva_enterprise_tts_characters_synthesized",
+            "telemetry_obsv_tts_characters_synthesized",
             "TTS characters synthesized per request",
             ["organization", "app", "language"],
             buckets=(10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, float("inf")),
@@ -113,7 +113,7 @@ class MetricsCollector:
 
         # NMT character tracking (Histogram for percentile calculations)
         self.enterprise_nmt_characters_translated = Histogram(
-            "dhruva_enterprise_nmt_characters_translated",
+            "telemetry_obsv_nmt_characters_translated",
             "NMT characters translated per request",
             ["organization", "app", "source_language", "target_language"],
             buckets=(10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, float("inf")),
@@ -122,7 +122,7 @@ class MetricsCollector:
 
         # ASR audio length tracking (Histogram for percentile calculations)
         self.enterprise_asr_audio_seconds_processed = Histogram(
-            "dhruva_enterprise_asr_audio_seconds_processed",
+            "telemetry_obsv_asr_audio_seconds_processed",
             "ASR audio seconds processed per request",
             ["organization", "app", "language"],
             buckets=(1, 5, 10, 30, 50, 60, 120, 300, 600, 1800, 3600, float("inf")),
@@ -131,7 +131,7 @@ class MetricsCollector:
 
         # SLA compliance tracking
         self.enterprise_sla_compliance = Gauge(
-            "dhruva_enterprise_sla_compliance_percent",
+            "telemetry_obsv_sla_compliance_percent",
             "SLA compliance percentage",
             ["organization", "app", "sla_type"],
             registry=self.registry,
@@ -139,7 +139,7 @@ class MetricsCollector:
 
         # Component latency tracking
         self.enterprise_component_latency = Histogram(
-            "dhruva_enterprise_component_latency_seconds",
+            "telemetry_obsv_component_latency_seconds",
             "Component latency",
             ["organization", "app", "component"],
             registry=self.registry,
@@ -147,28 +147,28 @@ class MetricsCollector:
 
         # Organization quota tracking
         self.enterprise_organization_llm_quota = Gauge(
-            "dhruva_enterprise_organization_llm_quota_per_month",
+            "telemetry_obsv_organization_llm_quota_per_month",
             "Organization LLM quota per month",
             ["organization"],
             registry=self.registry,
         )
 
         self.enterprise_organization_tts_quota = Gauge(
-            "dhruva_enterprise_organization_tts_quota_per_month",
+            "telemetry_obsv_organization_tts_quota_per_month",
             "Organization TTS quota per month",
             ["organization"],
             registry=self.registry,
         )
 
         self.enterprise_organization_nmt_quota = Gauge(
-            "dhruva_enterprise_organization_nmt_quota_per_month",
+            "telemetry_obsv_organization_nmt_quota_per_month",
             "Organization NMT quota per month",
             ["organization"],
             registry=self.registry,
         )
 
         self.enterprise_organization_asr_quota = Gauge(
-            "dhruva_enterprise_organization_asr_quota_per_month",
+            "telemetry_obsv_organization_asr_quota_per_month",
             "Organization ASR quota per month (in audio seconds)",
             ["organization"],
             registry=self.registry,
@@ -176,13 +176,13 @@ class MetricsCollector:
 
         # System metrics
         self.enterprise_system_peak_throughput = Gauge(
-            "dhruva_enterprise_system_peak_throughput_rpm",
+            "telemetry_obsv_system_peak_throughput_rpm",
             "Peak throughput requests per minute",
             registry=self.registry,
         )
 
         self.enterprise_system_service_count = Gauge(
-            "dhruva_enterprise_system_service_count",
+            "telemetry_obsv_system_service_count",
             "Total number of services",
             registry=self.registry,
         )
