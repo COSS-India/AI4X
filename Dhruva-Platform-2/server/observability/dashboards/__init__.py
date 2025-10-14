@@ -24,19 +24,3 @@ def list_available_dashboards() -> list:
     """List all available dashboard files."""
     dashboard_dir = PACKAGE_DIR
     return [f.stem for f in dashboard_dir.glob("*.json")]
-
-# Available dashboards
-AVAILABLE_DASHBOARDS = [
-    "dhruva_enterprise_observability",
-    "dhruva_enterprise_simple", 
-    "dhruva_business_dashboard",
-    "dhruva_DevOps_View",
-    "dhruva_ceo_executive_dashboard"
-]
-
-__all__ = [
-    "get_dashboard_path",
-    "get_dashboard_json", 
-    "list_available_dashboards",
-    "AVAILABLE_DASHBOARDS"
-]

@@ -76,10 +76,7 @@ def _get_organization_from_api_key(api_key: str) -> str:
 **⚠️ CRITICAL REQUIREMENT**: 
 - **Any API login/request MUST have an organization** that matches one of: `irctc`, `kisanmitra`, `bashadaan`, or `beml`
 - If using JWT tokens, ensure the `organization` field contains one of these values
-- If you add new organizations, update the list in:
-  1. `server/observability/middleware.py` (line 129)
-  2. Environment variable: `DHRUVA_ENTERPRISE_CUSTOMERS`
-  3. `docker-compose-app.yml` environment section
+- To add new organizations, update the hardcoded list in `observability/middleware.py` (line 129)
 
 ### System Requirements
 
@@ -145,29 +142,23 @@ The observability package currently supports these organizations:
 **Option A: Add to `.env` file** (Recommended)
 ```bash
 # Required - Observability Plugin
-DHRUVA_ENTERPRISE_ENABLED=true
-DHRUVA_ENTERPRISE_CUSTOMERS=irctc,kisanmitra,bashadaan,beml
+OBSERVE_UTIL_ENABLED=true
 
-# Optional - Apps and Paths
-DHRUVA_ENTERPRISE_APPS=app1,app2,default
-DHRUVA_ENTERPRISE_METRICS_PATH=/enterprise/metrics
-DHRUVA_ENTERPRISE_HEALTH_PATH=/enterprise/health
+# Optional - Paths
+OBSERVE_UTIL_METRICS_PATH=/enterprise/metrics
+OBSERVE_UTIL_HEALTH_PATH=/enterprise/health
 
 # Optional - Debug and Metrics Collection
-DHRUVA_ENTERPRISE_DEBUG=true
-DHRUVA_ENTERPRISE_COLLECT_SYSTEM_METRICS=true
-DHRUVA_ENTERPRISE_COLLECT_GPU_METRICS=true
-DHRUVA_ENTERPRISE_COLLECT_DB_METRICS=true
+OBSERVE_UTIL_DEBUG=true
+OBSERVE_UTIL_COLLECT_SYSTEM_METRICS=true
+OBSERVE_UTIL_COLLECT_GPU_METRICS=true
+OBSERVE_UTIL_COLLECT_DB_METRICS=true
 ```
 
-**Option B: Set in docker-compose-app.yml**
-
-These variables are already configured in `docker-compose-app.yml`. Update the values as needed for your deployment.
-
-**Option C: Export in shell**
+**Option B: Export in shell**
 ```bash
-export DHRUVA_ENTERPRISE_ENABLED=true
-export DHRUVA_ENTERPRISE_CUSTOMERS=org1,org2,org3
+export OBSERVE_UTIL_ENABLED=true
+export OBSERVE_UTIL_DEBUG=true
 # ... (add other variables as needed)
 ```
 
@@ -227,17 +218,13 @@ docker logs dhruva-platform-server | grep -i observability
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `DHRUVA_ENTERPRISE_ENABLED` | Yes | `false` | Enable/disable the plugin |
-| `DHRUVA_ENTERPRISE_CUSTOMERS` | Yes | - | Comma-separated list of organizations |
-| `DHRUVA_ENTERPRISE_APPS` | No | `default` | Comma-separated list of apps |
-| `DHRUVA_ENTERPRISE_DEBUG` | No | `false` | Enable debug logging |
-| `DHRUVA_ENTERPRISE_METRICS_PATH` | No | `/enterprise/metrics` | Metrics endpoint path |
-| `DHRUVA_ENTERPRISE_HEALTH_PATH` | No | `/enterprise/health` | Health check endpoint |
-| `DHRUVA_ENTERPRISE_COLLECT_SYSTEM_METRICS` | No | `true` | Collect system metrics (CPU, memory) |
-| `DHRUVA_ENTERPRISE_COLLECT_GPU_METRICS` | No | `true` | Collect GPU usage metrics |
-| `DHRUVA_ENTERPRISE_COLLECT_DB_METRICS` | No | `true` | Collect database connection metrics |
-| `DHRUVA_ENTERPRISE_DEFAULT_CUSTOMER` | No | `default` | Default organization name |
-| `DHRUVA_ENTERPRISE_DEFAULT_APP` | No | `default` | Default app name |
+| `OBSERVE_UTIL_ENABLED` | Yes | `false` | Enable/disable the plugin |
+| `OBSERVE_UTIL_DEBUG` | No | `false` | Enable debug logging |
+| `OBSERVE_UTIL_METRICS_PATH` | No | `/enterprise/metrics` | Metrics endpoint path |
+| `OBSERVE_UTIL_HEALTH_PATH` | No | `/enterprise/health` | Health check endpoint |
+| `OBSERVE_UTIL_COLLECT_SYSTEM_METRICS` | No | `true` | Collect system metrics (CPU, memory) |
+| `OBSERVE_UTIL_COLLECT_GPU_METRICS` | No | `true` | Collect GPU usage metrics |
+| `OBSERVE_UTIL_COLLECT_DB_METRICS` | No | `true` | Collect database connection metrics |
 
 ---
 
@@ -479,7 +466,7 @@ Dhruva-Platform-2/
 
 ### Getting Help
 
-1. **Enable debug mode**: `export DHRUVA_ENTERPRISE_DEBUG=true`
+1. **Enable debug mode**: `export OBSERVE_UTIL_DEBUG=true`
 2. **Check logs**: `docker logs dhruva-platform-server`
 3. **Refer to documentation**: See `OBSERVABILITY_COMPLETE_GUIDE.md`
 

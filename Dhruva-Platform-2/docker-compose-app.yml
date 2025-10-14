@@ -9,15 +9,13 @@ services:
       dockerfile: Dockerfile
     env_file: .env
     environment:
-      - DHRUVA_ENTERPRISE_ENABLED=true
-      - DHRUVA_ENTERPRISE_DEBUG=true
-      - DHRUVA_ENTERPRISE_CUSTOMERS=cust1,cust2,default
-      - DHRUVA_ENTERPRISE_APPS=app1,app2,default
-      - DHRUVA_ENTERPRISE_METRICS_PATH=/enterprise/metrics
-      - DHRUVA_ENTERPRISE_HEALTH_PATH=/enterprise/health
-      - DHRUVA_ENTERPRISE_COLLECT_SYSTEM_METRICS=true
-      - DHRUVA_ENTERPRISE_COLLECT_GPU_METRICS=true
-      - DHRUVA_ENTERPRISE_COLLECT_DB_METRICS=true
+      - OBSERVE_UTIL_ENABLED=true
+      - OBSERVE_UTIL_DEBUG=true
+      - OBSERVE_UTIL_METRICS_PATH=/enterprise/metrics
+      - OBSERVE_UTIL_HEALTH_PATH=/enterprise/health
+      - OBSERVE_UTIL_COLLECT_SYSTEM_METRICS=true
+      - OBSERVE_UTIL_COLLECT_GPU_METRICS=true
+      - OBSERVE_UTIL_COLLECT_DB_METRICS=true
     command: python3 -m uvicorn main:app --host 0.0.0.0 --port 8000
     depends_on:
       redis:
@@ -41,15 +39,13 @@ services:
       dockerfile: Dockerfile
     env_file: .env
     environment:
-      - DHRUVA_ENTERPRISE_ENABLED=true
-      - DHRUVA_ENTERPRISE_DEBUG=true
-      - DHRUVA_ENTERPRISE_CUSTOMERS=cust1,cust2,default
-      - DHRUVA_ENTERPRISE_APPS=app1,app2,default
-      - DHRUVA_ENTERPRISE_METRICS_PATH=/enterprise/metrics
-      - DHRUVA_ENTERPRISE_HEALTH_PATH=/enterprise/health
-      - DHRUVA_ENTERPRISE_COLLECT_SYSTEM_METRICS=true
-      - DHRUVA_ENTERPRISE_COLLECT_GPU_METRICS=true
-      - DHRUVA_ENTERPRISE_COLLECT_DB_METRICS=true
+      - OBSERVE_UTIL_ENABLED=true
+      - OBSERVE_UTIL_DEBUG=true
+      - OBSERVE_UTIL_METRICS_PATH=/enterprise/metrics
+      - OBSERVE_UTIL_HEALTH_PATH=/enterprise/health
+      - OBSERVE_UTIL_COLLECT_SYSTEM_METRICS=true
+      - OBSERVE_UTIL_COLLECT_GPU_METRICS=true
+      - OBSERVE_UTIL_COLLECT_DB_METRICS=true
     command: >
       celery -A celery_backend.celery_app worker --loglevel=info
     depends_on:
