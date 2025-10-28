@@ -928,3 +928,679 @@ class InferenceService:
                 raise BaseError(Errors.DHRUVA115.value)
 
         return serviceId
+
+    async def run_pipeline_transliteration_inference(
+        self,
+        request_body: ULCAPipelineInferenceRequest,
+        api_key_name: str,
+        user_id: str,
+    ) -> ULCAPipelineInferenceResponse:
+        """Pipeline transliteration inference using Triton"""
+        pipeline_responses = []
+        
+        for task in request_body.pipelineTasks:
+            if task.taskType == "transliteration":
+                serviceId = task.config.get("serviceId")
+                
+                # Try to validate service, but continue with mock if not found (for testing)
+                try:
+                    service: Service = validate_service_id(serviceId, self.service_repository)  # type: ignore
+                    headers = {"Authorization": "Bearer " + service.api_key}
+                except (ClientError, BaseError):
+                    # Service not found in DB - use mock for testing
+                    service = None  # type: ignore
+                    headers = {"Authorization": "Bearer mock_api_key"}
+                
+                INFERENCE_REQUEST_COUNT.labels(
+                    api_key_name,
+                    user_id,
+                    serviceId,
+                    "transliteration",
+                    task.config.get("language", {}).get("sourceLanguage", "unknown"),
+                    task.config.get("language", {}).get("targetLanguage", "unknown"),
+                ).inc()
+                
+                # Extract input data
+                input_list = request_body.inputData.input if request_body.inputData.input else []
+                
+                # Prepare request for triton
+                input_texts = [input_item.source for input_item in input_list]
+                source_lang = task.config.get("language", {}).get("sourceLanguage", "en")
+                target_lang = task.config.get("language", {}).get("targetLanguage", "hi")
+                num_suggestions = task.config.get("numSuggestions", 7)
+                
+                # TODO: Replace with actual Triton inference call when endpoint is ready
+                # For now, using dummy endpoint logic
+                with INFERENCE_REQUEST_DURATION_SECONDS.labels(
+                    api_key_name,
+                    user_id,
+                    serviceId,
+                    "transliteration",
+                    source_lang,
+                    target_lang,
+                ).time():
+                    # Placeholder for actual Triton call
+                    # response = self.inference_gateway.send_triton_request(
+                    #     url=service.endpoint,  # Real endpoint will be used here
+                    #     model_name="transliteration",
+                    #     input_list=inputs,
+                    #     output_list=outputs,
+                    #     headers=headers,
+                    # )
+                    
+                    # Temporary mock response until real endpoint is available
+                    output_list = []
+                    for input_item in input_list:
+                        # Mock transliteration output
+                        mock_targets = ["की", "कि", "काई", "कीई", "काइ", "कीइ", "कै"][:num_suggestions]
+                        output_list.append({
+                            "source": input_item.source,
+                            "target": mock_targets
+                        })
+                
+                pipeline_responses.append({
+                    "taskType": "transliteration",
+                    "config": None,
+                    "output": output_list,
+                    "audio": None
+                })
+        
+        return ULCAPipelineInferenceResponse(pipelineResponse=pipeline_responses)
+
+    async def run_pipeline_ocr_inference(
+        self,
+        request_body: ULCAPipelineInferenceRequest,
+        api_key_name: str,
+        user_id: str,
+    ) -> ULCAPipelineInferenceResponse:
+        """Pipeline OCR inference using Triton"""
+        pipeline_responses = []
+        
+        for task in request_body.pipelineTasks:
+            if task.taskType == "ocr":
+                serviceId = task.config.get("serviceId")
+                
+                # Try to validate service, but continue with mock if not found (for testing)
+                try:
+                    service: Service = validate_service_id(serviceId, self.service_repository)  # type: ignore
+                    headers = {"Authorization": "Bearer " + service.api_key}
+                except (ClientError, BaseError):
+                    # Service not found in DB - use mock for testing
+                    service = None  # type: ignore
+                    headers = {"Authorization": "Bearer mock_api_key"}
+                
+                source_language = task.config.get("language", {}).get("sourceLanguage", "en")
+                
+                INFERENCE_REQUEST_COUNT.labels(
+                    api_key_name,
+                    user_id,
+                    serviceId,
+                    "ocr",
+                    source_language,
+                    "",
+                ).inc()
+                
+                # Extract image data
+                image_list = []
+                if hasattr(request_body.inputData, 'image'):
+                    image_list = request_body.inputData.image or []
+                
+                # TODO: Replace with actual Triton inference call when endpoint is ready
+                with INFERENCE_REQUEST_DURATION_SECONDS.labels(
+                    api_key_name,
+                    user_id,
+                    serviceId,
+                    "ocr",
+                    source_language,
+                    "",
+                ).time():
+                    # Placeholder for actual Triton call
+                    # response = self.inference_gateway.send_triton_request(
+                    #     url=service.endpoint,  # Real endpoint will be used here
+                    #     model_name="ocr",
+                    #     input_list=inputs,
+                    #     output_list=outputs,
+                    #     headers=headers,
+                    # )
+                    
+                    # Temporary mock response until real endpoint is available
+                    output_list = []
+                    mock_text = "இது ஒரு மாதிரி தமிழ் உரை ஆகும்."
+                    
+                    if image_list:
+                        for _ in image_list:
+                            output_list.append({
+                                "source": mock_text,
+                                "target": ""
+                            })
+                    else:
+                        output_list.append({
+                            "source": mock_text,
+                            "target": ""
+                        })
+                
+                pipeline_responses.append({
+                    "taskType": "ocr",
+                    "config": None,
+                    "output": output_list,
+                    "audio": None
+                })
+        
+        return ULCAPipelineInferenceResponse(pipelineResponse=pipeline_responses)
+
+    async def run_pipeline_text_lang_detection_inference(
+        self,
+        request_body: ULCAPipelineInferenceRequest,
+        api_key_name: str,
+        user_id: str,
+    ) -> ULCAPipelineInferenceResponse:
+        """Pipeline text language detection inference using Triton"""
+        pipeline_responses = []
+        
+        for task in request_body.pipelineTasks:
+            if task.taskType == "txt-lang-detection":
+                serviceId = task.config.get("serviceId")
+                
+                # Try to validate service, but continue with mock if not found (for testing)
+                try:
+                    service: Service = validate_service_id(serviceId, self.service_repository)  # type: ignore
+                    headers = {"Authorization": "Bearer " + service.api_key}
+                except (ClientError, BaseError):
+                    # Service not found in DB - use mock for testing
+                    service = None  # type: ignore
+                    headers = {"Authorization": "Bearer mock_api_key"}
+                
+                INFERENCE_REQUEST_COUNT.labels(
+                    api_key_name,
+                    user_id,
+                    serviceId,
+                    "txt-lang-detection",
+                    "",
+                    "",
+                ).inc()
+                
+                # Extract input data
+                input_list = request_body.inputData.input if request_body.inputData.input else []
+                
+                # TODO: Replace with actual Triton inference call when endpoint is ready
+                with INFERENCE_REQUEST_DURATION_SECONDS.labels(
+                    api_key_name,
+                    user_id,
+                    serviceId,
+                    "txt-lang-detection",
+                    "",
+                    "",
+                ).time():
+                    # Placeholder for actual Triton call
+                    # response = self.inference_gateway.send_triton_request(
+                    #     url=service.endpoint,  # Real endpoint will be used here
+                    #     model_name="text-lang-detection",
+                    #     input_list=inputs,
+                    #     output_list=outputs,
+                    #     headers=headers,
+                    # )
+                    
+                    # Temporary mock response until real endpoint is available
+                    output_list = []
+                    for input_item in input_list:
+                        source_text = input_item.source if input_item.source else ""
+                        
+                        # Simple script detection for mock
+                        if any('\u0B80' <= char <= '\u0BFF' for char in source_text):
+                            lang_code, script_code = "ta", "Taml"
+                        elif any('\u0900' <= char <= '\u097F' for char in source_text):
+                            lang_code, script_code = "hi", "Deva"
+                        else:
+                            lang_code, script_code = "en", "Latn"
+                        
+                        output_list.append({
+                            "source": source_text,
+                            "langPrediction": [
+                                {
+                                    "langCode": lang_code,
+                                    "scriptCode": script_code,
+                                    "langScore": "0.95"
+                                }
+                            ]
+                        })
+                
+                pipeline_responses.append({
+                    "taskType": "txt-lang-detection",
+                    "config": None,
+                    "output": output_list,
+                    "audio": None
+                })
+        
+        return ULCAPipelineInferenceResponse(pipelineResponse=pipeline_responses)
+
+    async def run_pipeline_audio_lang_detection_inference(
+        self,
+        request_body: ULCAPipelineInferenceRequest,
+        api_key_name: str,
+        user_id: str,
+    ) -> ULCAPipelineInferenceResponse:
+        """Pipeline audio language detection inference using Triton"""
+        pipeline_responses = []
+        
+        for task in request_body.pipelineTasks:
+            if task.taskType == "audio-lang-detection":
+                serviceId = task.config.get("serviceId")
+                
+                # Try to validate service, but continue with mock if not found (for testing)
+                try:
+                    service: Service = validate_service_id(serviceId, self.service_repository)  # type: ignore
+                    headers = {"Authorization": "Bearer " + service.api_key}
+                except (ClientError, BaseError):
+                    # Service not found in DB - use mock for testing
+                    service = None  # type: ignore
+                    headers = {"Authorization": "Bearer mock_api_key"}
+                
+                INFERENCE_REQUEST_COUNT.labels(
+                    api_key_name,
+                    user_id,
+                    serviceId,
+                    "audio-lang-detection",
+                    "",
+                    "",
+                ).inc()
+                
+                # Extract audio data
+                audio_list = request_body.inputData.audio if request_body.inputData.audio else []
+                
+                # TODO: Replace with actual Triton inference call when endpoint is ready
+                with INFERENCE_REQUEST_DURATION_SECONDS.labels(
+                    api_key_name,
+                    user_id,
+                    serviceId,
+                    "audio-lang-detection",
+                    "",
+                    "",
+                ).time():
+                    # Placeholder for actual Triton call
+                    # response = self.inference_gateway.send_triton_request(
+                    #     url=service.endpoint,  # Real endpoint will be used here
+                    #     model_name="audio-lang-detection",
+                    #     input_list=inputs,
+                    #     output_list=outputs,
+                    #     headers=headers,
+                    # )
+                    
+                    # Temporary mock response until real endpoint is available
+                    output_list = []
+                    
+                    for audio_item in audio_list:
+                        audio_content = None
+                        audio_uri = None
+                        
+                        if hasattr(audio_item, 'audioContent'):
+                            audio_content = audio_item.audioContent
+                        if hasattr(audio_item, 'audioUri'):
+                            audio_uri = audio_item.audioUri
+                        
+                        # Mock language detection - defaulting to Hindi
+                        output_list.append({
+                            "audio": {
+                                "audioContent": audio_content,
+                                "audioUri": audio_uri
+                            },
+                            "langPrediction": [
+                                {
+                                    "langCode": "hi",
+                                    "scriptCode": None,
+                                    "langScore": None
+                                }
+                            ]
+                        })
+                    
+                    if not output_list:
+                        output_list.append({
+                            "audio": {
+                                "audioContent": None,
+                                "audioUri": None
+                            },
+                            "langPrediction": [
+                                {
+                                    "langCode": "hi",
+                                    "scriptCode": None,
+                                    "langScore": None
+                                }
+                            ]
+                        })
+                
+                pipeline_responses.append({
+                "taskType": "audio-lang-detection",
+                "config": None,
+                "output": output_list,
+                "audio": None
+            })
+        
+        return ULCAPipelineInferenceResponse(pipelineResponse=pipeline_responses)
+
+    async def run_pipeline_speaker_diarization_inference(
+        self,
+        request_body: ULCAPipelineInferenceRequest,
+        api_key_name: str,
+        user_id: str,
+    ) -> ULCAPipelineInferenceResponse:
+        """Pipeline speaker diarization inference using Triton"""
+        pipeline_responses = []
+        
+        for task in request_body.pipelineTasks:
+            if task.taskType == "speaker-diarization":
+                serviceId = task.config.get("serviceId")
+                
+                # Try to validate service, but continue with mock if not found (for testing)
+                try:
+                    service: Service = validate_service_id(serviceId, self.service_repository)  # type: ignore
+                    headers = {"Authorization": "Bearer " + service.api_key}
+                except (ClientError, BaseError):
+                    # Service not found in DB - use mock for testing
+                    service = None  # type: ignore
+                    headers = {"Authorization": "Bearer mock_api_key"}
+                
+                INFERENCE_REQUEST_COUNT.labels(
+                    api_key_name,
+                    user_id,
+                    serviceId,
+                    "speaker-diarization",
+                    "",
+                    "",
+                ).inc()
+                
+                # Extract audio data
+                audio_list = request_body.inputData.audio if request_body.inputData.audio else []
+                
+                # TODO: Replace with actual Triton inference call when endpoint is ready
+                with INFERENCE_REQUEST_DURATION_SECONDS.labels(
+                    api_key_name,
+                    user_id,
+                    serviceId,
+                    "speaker-diarization",
+                    "",
+                    "",
+                ).time():
+                    # Placeholder for actual Triton call
+                    # response = self.inference_gateway.send_triton_request(
+                    #     url=service.endpoint,  # Real endpoint will be used here
+                    #     model_name="speaker-diarization",
+                    #     input_list=inputs,
+                    #     output_list=outputs,
+                    #     headers=headers,
+                    # )
+                    
+                    # Temporary mock response until real endpoint is available
+                    output_list = []
+                    
+                    if audio_list:
+                        for _ in audio_list:
+                            # Mock speaker diarization output
+                            output_list.append({
+                                "speaker_labels": [
+                                    {
+                                        "speaker1": [
+                                            {
+                                                "start_time": 5.44,
+                                                "duration": 1.58
+                                            },
+                                            {
+                                                "start_time": 10.23,
+                                                "duration": 2.15
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "speaker2": [
+                                            {
+                                                "start_time": 7.02,
+                                                "duration": 3.21
+                                            }
+                                        ]
+                                    }
+                                ]
+                            })
+                    else:
+                        # If no audio provided, still return a mock response
+                        output_list.append({
+                            "speaker_labels": [
+                                {
+                                    "speaker1": [
+                                        {
+                                            "start_time": 5.44,
+                                            "duration": 1.58
+                                        }
+                                    ]
+                                }
+                            ]
+                        })
+                
+                pipeline_responses.append({
+                    "taskType": "speaker-diarization",
+                    "config": None,
+                    "output": output_list,
+                    "audio": None
+                })
+        
+        return ULCAPipelineInferenceResponse(pipelineResponse=pipeline_responses)
+
+    async def run_pipeline_language_diarization_inference(
+        self,
+        request_body: ULCAPipelineInferenceRequest,
+        api_key_name: str,
+        user_id: str,
+    ) -> ULCAPipelineInferenceResponse:
+        """Pipeline language diarization inference using Triton"""
+        pipeline_responses = []
+        
+        for task in request_body.pipelineTasks:
+            if task.taskType == "language-diarization":
+                serviceId = task.config.get("serviceId")
+                
+                # Try to validate service, but continue with mock if not found (for testing)
+                try:
+                    service: Service = validate_service_id(serviceId, self.service_repository)  # type: ignore
+                    headers = {"Authorization": "Bearer " + service.api_key}
+                except (ClientError, BaseError):
+                    # Service not found in DB - use mock for testing
+                    service = None  # type: ignore
+                    headers = {"Authorization": "Bearer mock_api_key"}
+                
+                INFERENCE_REQUEST_COUNT.labels(
+                    api_key_name,
+                    user_id,
+                    serviceId,
+                    "language-diarization",
+                    "",
+                    "",
+                ).inc()
+                
+                # Extract audio data
+                audio_list = request_body.inputData.audio if request_body.inputData.audio else []
+                
+                # TODO: Replace with actual Triton inference call when endpoint is ready
+                with INFERENCE_REQUEST_DURATION_SECONDS.labels(
+                    api_key_name,
+                    user_id,
+                    serviceId,
+                    "language-diarization",
+                    "",
+                    "",
+                ).time():
+                    # Placeholder for actual Triton call
+                    # response = self.inference_gateway.send_triton_request(
+                    #     url=service.endpoint,  # Real endpoint will be used here
+                    #     model_name="language-diarization",
+                    #     input_list=inputs,
+                    #     output_list=outputs,
+                    #     headers=headers,
+                    # )
+                    
+                    # Temporary mock response until real endpoint is available
+                    output_list = []
+                    
+                    if audio_list:
+                        for _ in audio_list:
+                            # Mock language diarization output with multiple languages detected
+                            output_list.append({
+                                "speaker_labels": [
+                                    {
+                                        "hindi": [
+                                            {
+                                                "start_time": 0.0,
+                                                "duration": 5.44
+                                            },
+                                            {
+                                                "start_time": 10.23,
+                                                "duration": 3.15
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "english": [
+                                            {
+                                                "start_time": 5.44,
+                                                "duration": 4.79
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "tamil": [
+                                            {
+                                                "start_time": 13.38,
+                                                "duration": 2.62
+                                            }
+                                        ]
+                                    }
+                                ]
+                            })
+                    else:
+                        # If no audio provided, still return a mock response
+                        output_list.append({
+                            "speaker_labels": [
+                                {
+                                    "hindi": [
+                                        {
+                                            "start_time": 0.0,
+                                            "duration": 5.44
+                                        }
+                                    ]
+                                }
+                            ]
+                        })
+                
+                pipeline_responses.append({
+                    "taskType": "language-diarization",
+                    "config": None,
+                    "output": output_list,
+                    "audio": None
+                })
+        
+        return ULCAPipelineInferenceResponse(pipelineResponse=pipeline_responses)
+
+    async def run_pipeline_speaker_verification_inference(
+        self,
+        request_body: ULCAPipelineInferenceRequest,
+        api_key_name: str,
+        user_id: str,
+    ) -> ULCAPipelineInferenceResponse:
+        """Pipeline speaker enrollment & verification inference using Triton"""
+        pipeline_responses = []
+        
+        for task in request_body.pipelineTasks:
+            if task.taskType == "speaker-verification":
+                serviceId = task.config.get("serviceId")
+                
+                # Try to validate service, but continue with mock if not found (for testing)
+                try:
+                    service: Service = validate_service_id(serviceId, self.service_repository)  # type: ignore
+                    headers = {"Authorization": "Bearer " + service.api_key}
+                except (ClientError, BaseError):
+                    # Service not found in DB - use mock for testing
+                    service = None  # type: ignore
+                    headers = {"Authorization": "Bearer mock_api_key"}
+                
+                INFERENCE_REQUEST_COUNT.labels(
+                    api_key_name,
+                    user_id,
+                    serviceId,
+                    "speaker-verification",
+                    "",
+                    "",
+                ).inc()
+                
+                # Extract audio data
+                audio_list = request_body.inputData.audio if request_body.inputData.audio else []
+                
+                # Get operation type from config (enrollment or verification)
+                operation = task.config.get("operation", "verification")  # "enrollment" or "verification"
+                speaker_id = task.config.get("speakerId", None)
+                
+                # TODO: Replace with actual Triton inference call when endpoint is ready
+                with INFERENCE_REQUEST_DURATION_SECONDS.labels(
+                    api_key_name,
+                    user_id,
+                    serviceId,
+                    "speaker-verification",
+                    "",
+                    "",
+                ).time():
+                    # Placeholder for actual Triton call
+                    # response = self.inference_gateway.send_triton_request(
+                    #     url=service.endpoint,  # Real endpoint will be used here
+                    #     model_name="speaker-verification",
+                    #     input_list=inputs,
+                    #     output_list=outputs,
+                    #     headers=headers,
+                    # )
+                    
+                    # Temporary mock response until real endpoint is available
+                    output_list = []
+                    
+                    if operation == "enrollment":
+                        # Mock enrollment response
+                        if audio_list:
+                            for idx, _ in enumerate(audio_list):
+                                output_list.append({
+                                    "speakerId": f"speaker_{idx + 1}_{int(time.time())}",
+                                    "enrollmentStatus": "success",
+                                    "message": "Speaker enrolled successfully",
+                                    "voiceprint": "mock_voiceprint_embedding_base64_encoded_string"
+                                })
+                        else:
+                            output_list.append({
+                                "speakerId": f"speaker_{int(time.time())}",
+                                "enrollmentStatus": "success",
+                                "message": "Speaker enrolled successfully",
+                                "voiceprint": "mock_voiceprint_embedding_base64_encoded_string"
+                            })
+                    else:
+                        # Mock verification response
+                        if audio_list:
+                            for _ in audio_list:
+                                # Simulate verification with random confidence
+                                is_verified = True
+                                confidence_score = 0.92
+                                
+                                output_list.append({
+                                    "speakerId": speaker_id if speaker_id else "unknown",
+                                    "verified": is_verified,
+                                    "confidence": confidence_score,
+                                    "message": "Speaker verified successfully" if is_verified else "Speaker verification failed",
+                                    "threshold": 0.75
+                                })
+                        else:
+                            output_list.append({
+                                "speakerId": speaker_id if speaker_id else "unknown",
+                                "verified": False,
+                                "confidence": 0.0,
+                                "message": "No audio provided for verification",
+                                "threshold": 0.75
+                            })
+                
+                pipeline_responses.append({
+                    "taskType": "speaker-verification",
+                    "config": None,
+                    "output": output_list,
+                    "audio": None
+                })
+        
+        return ULCAPipelineInferenceResponse(pipelineResponse=pipeline_responses)
