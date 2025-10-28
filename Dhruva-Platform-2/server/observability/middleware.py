@@ -15,6 +15,7 @@ from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from .config import PluginConfig
 from .metrics import MetricsCollector
+import httpx
 
 
 class ObservabilityMiddleware(BaseHTTPMiddleware):
@@ -489,6 +490,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
             # OCR uses pipeline format: {"inputData": {"image": [...]}, ...}
             if 'inputData' in request_data and 'image' in request_data['inputData']:
                 for image_item in request_data['inputData']['image']:
+                    # Handle imageContent (base64 encoded image)
                     if 'imageContent' in image_item:
                         content = image_item['imageContent']
                         # Estimate characters: each base64 char represents ~0.75 bytes of actual data
@@ -496,8 +498,28 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                         estimated_chars = len(content) // 200  # Conservative estimate
                         total_characters += estimated_chars
                         if self.config.debug:
-                            print(f"🔍 OCR image content length: {len(content)}, estimated chars: {estimated_chars}")
-            
+                            print(f"🔍 OCR imageContent length: {len(content)}, estimated chars: {estimated_chars}")
+                    # Handle imageUri (URL to image)
+                    elif 'imageUri' in image_item:
+                        image_uri = image_item['imageUri']
+                        try:
+                            # Download image from URL to estimate size
+                            response = httpx.get(image_uri, timeout=5.0, follow_redirects=True)
+                            if response.status_code == 200:
+                                image_data = response.content
+                                # Estimate characters based on image size
+                                # Rough estimate: ~1000 bytes per character for typical images
+                                estimated_chars = len(image_data) // 1000
+                                total_characters += estimated_chars
+                                if self.config.debug:
+                                    print(f"🔍 OCR imageUri downloaded: {len(image_data)} bytes, estimated chars: {estimated_chars}")
+                            else:
+                                if self.config.debug:
+                                    print(f"⚠️ Failed to download image from URI: {response.status_code}")
+                        except Exception as e:
+                            if self.config.debug:
+                                print(f"⚠️ Error downloading image from URI: {e}")
+                        
             return total_characters
             
         except Exception as e:
