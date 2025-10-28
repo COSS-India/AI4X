@@ -226,7 +226,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         if organization is None:
             organization = "unknown"
             if self.config.debug:
-                print(f"⚠️ No organization found, using: {organization}")
+                print(f"⚠️ No organization found,  using: {organization}")
         
         # Get app from header or use "unknown"
         app = request.headers.get("X-App-ID")
