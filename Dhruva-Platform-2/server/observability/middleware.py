@@ -15,6 +15,7 @@ from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from .config import PluginConfig
 from .metrics import MetricsCollector
+import httpx
 
 
 class ObservabilityMiddleware(BaseHTTPMiddleware):
@@ -45,12 +46,20 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         # Detect service type
         service_type = self._detect_service_type(path)
         
-        # Extract real character count for TTS, translation, and ASR requests
+        # Extract real character count for TTS, translation, ASR, OCR, Transliteration, NER, Audio Language Detection, Text Language Detection, and Speaker Verification
         # IMPORTANT: We need to read and restore the body to avoid consuming the stream
         tts_characters = 0
         translation_characters = 0
         asr_audio_length = 0
-        if method == "POST" and service_type in ["tts", "translation", "asr"]:
+        ocr_characters = 0
+        transliteration_characters = 0
+        language_detection_characters = 0
+        audio_lang_detection_length = 0
+        ner_characters = 0
+        speaker_verification_length = 0
+        speaker_diarization_length = 0
+        language_diarization_length = 0
+        if method == "POST" and service_type in ["tts", "translation", "asr", "ocr", "transliteration", "ner", "language_detection", "audio_lang_detection", "speaker_verification", "speaker_diarization", "language_diarization"]:
             body_bytes = await request.body()
             # Restore the body for downstream handlers
             async def receive():
@@ -64,6 +73,22 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                 translation_characters = self._extract_translation_characters_from_body(body_bytes)
             elif service_type == "asr":
                 asr_audio_length = self._extract_asr_audio_length_from_body(body_bytes)
+            elif service_type == "ocr":
+                ocr_characters = self._extract_ocr_characters_from_body(body_bytes)
+            elif service_type == "transliteration":
+                transliteration_characters = self._extract_transliteration_characters_from_body(body_bytes)
+            elif service_type == "language_detection":
+                language_detection_characters = self._extract_language_detection_characters_from_body(body_bytes)
+            elif service_type == "audio_lang_detection":
+                audio_lang_detection_length = self._extract_asr_audio_length_from_body(body_bytes)
+            elif service_type == "speaker_verification":
+                speaker_verification_length = self._extract_asr_audio_length_from_body(body_bytes)
+            elif service_type == "speaker_diarization":
+                speaker_diarization_length = self._extract_asr_audio_length_from_body(body_bytes)
+            elif service_type == "language_diarization":
+                language_diarization_length = self._extract_asr_audio_length_from_body(body_bytes)
+            elif service_type == "ner":
+                ner_characters = self._extract_ner_characters_from_body(body_bytes)
         
         # Debug logging
         if self.config.debug:
@@ -74,6 +99,22 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                 print(f"📝 Translation Characters detected: {translation_characters}")
             if asr_audio_length > 0:
                 print(f"🎵 ASR Audio length detected: {asr_audio_length:.2f} seconds")
+            if ocr_characters > 0:
+                print(f"📝 OCR Characters detected: {ocr_characters}")
+            if transliteration_characters > 0:
+                print(f"📝 Transliteration Characters detected: {transliteration_characters}")
+            if language_detection_characters > 0:
+                print(f"📝 Language Detection Characters detected: {language_detection_characters}")
+            if audio_lang_detection_length > 0:
+                print(f"🎵 Audio Language Detection Audio length detected: {audio_lang_detection_length:.2f} seconds")
+            if ner_characters > 0:
+                print(f"📝 NER Characters detected: {ner_characters}")
+            if speaker_verification_length > 0:
+                print(f"🎵 Speaker Verification Audio length detected: {speaker_verification_length:.2f} seconds")
+            if speaker_diarization_length > 0:
+                print(f"🎵 Speaker Diarization Audio length detected: {speaker_diarization_length:.2f} seconds")
+            if language_diarization_length > 0:
+                print(f"🎵 Language Diarization Audio length detected: {language_diarization_length:.2f} seconds")
         
         # Process request
         response = await call_next(request)
@@ -94,7 +135,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
             )
             
             # Track additional metrics based on service type
-            self._track_additional_metrics(organization, app, service_type, path, duration, tts_characters, translation_characters, asr_audio_length)
+            self._track_additional_metrics(organization, app, service_type, path, duration, tts_characters, translation_characters, asr_audio_length, ocr_characters, transliteration_characters, language_detection_characters, audio_lang_detection_length, ner_characters, speaker_verification_length, speaker_diarization_length, language_diarization_length)
             
         except Exception as e:
             # Don't let metrics collection break the request
@@ -185,7 +226,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         if organization is None:
             organization = "unknown"
             if self.config.debug:
-                print(f"⚠️ No organization found, using: {organization}")
+                print(f"⚠️ No organization found,  using: {organization}")
         
         # Get app from header or use "unknown"
         app = request.headers.get("X-App-ID")
@@ -205,10 +246,22 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
             return "asr"
         elif any(pattern in path_lower for pattern in ["/tts", "/synthesize", "/speak"]):
             return "tts"
-        elif any(pattern in path_lower for pattern in ["/ner", "/entity", "/entities"]):
-            return "ner"
+        elif any(pattern in path_lower for pattern in ["/ocr", "/text-recognition"]):
+            return "ocr"
         elif any(pattern in path_lower for pattern in ["/transliteration", "/xlit", "/transliterate"]):
             return "transliteration"
+        elif any(pattern in path_lower for pattern in ["/audio-lang-detection", "/audio-language-detection", "/audio-detect"]):
+            return "audio_lang_detection"
+        elif any(pattern in path_lower for pattern in ["/language-detection", "/lang-detect", "/detect-language"]):
+            return "language_detection"
+        elif any(pattern in path_lower for pattern in ["/ner", "/entity", "/entities"]):
+            return "ner"
+        elif any(pattern in path_lower for pattern in ["/speaker", "/speaker-enrollment", "/speaker-verification"]):
+            return "speaker_verification"
+        elif any(pattern in path_lower for pattern in ["/speaker-diarization", "/speaker-diarization-compute-call"]):
+            return "speaker_diarization"
+        elif any(pattern in path_lower for pattern in ["/language-diarization", "/language-diarization-compute-call"]):
+            return "language_diarization"
         elif any(pattern in path_lower for pattern in ["/llm", "/generate", "/chat", "/completion"]):
             return "llm"
         elif any(pattern in path_lower for pattern in ["/enterprise", "/health", "/metrics", "/config"]):
@@ -218,7 +271,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         else:
             return "unknown"
     
-    def _track_additional_metrics(self, organization: str, app: str, service_type: str, path: str, duration: float, tts_characters: int = 0, translation_characters: int = 0, asr_audio_length: float = 0):
+    def _track_additional_metrics(self, organization: str, app: str, service_type: str, path: str, duration: float, tts_characters: int = 0, translation_characters: int = 0, asr_audio_length: float = 0, ocr_characters: int = 0, transliteration_characters: int = 0, language_detection_characters: int = 0, audio_lang_detection_length: float = 0, ner_characters: int = 0, speaker_verification_length: float = 0, speaker_diarization_length: float = 0, language_diarization_length: float = 0):
         """Track additional metrics based on service type."""
         try:
             # Track component latency
@@ -273,6 +326,88 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                     )
                     if self.config.debug:
                         print(f"📊 Tracked real ASR audio length: {asr_audio_length:.2f} seconds")
+            elif service_type == "ocr":
+                # Track real OCR character count
+                if ocr_characters > 0:
+                    self.metrics_collector.track_ocr_characters(
+                        organization=organization,
+                        app=app,
+                        characters=ocr_characters
+                    )
+                    if self.config.debug:
+                        print(f"📊 Tracked real OCR characters: {ocr_characters}")
+            elif service_type == "transliteration":
+                # Track real transliteration character count
+                if transliteration_characters > 0:
+                    self.metrics_collector.track_transliteration_characters(
+                        organization=organization,
+                        app=app,
+                        source_lang="en",  # Default source language
+                        target_lang="hi",  # Default target language
+                        characters=transliteration_characters
+                    )
+                    if self.config.debug:
+                        print(f"📊 Tracked real transliteration characters: {transliteration_characters}")
+            elif service_type == "language_detection":
+                # Track real language detection character count
+                if language_detection_characters > 0:
+                    self.metrics_collector.track_language_detection_characters(
+                        organization=organization,
+                        app=app,
+                        characters=language_detection_characters
+                    )
+                    if self.config.debug:
+                        print(f"📊 Tracked real language detection characters: {language_detection_characters}")
+            elif service_type == "audio_lang_detection":
+                # Track real audio language detection audio length
+                if audio_lang_detection_length > 0:
+                    self.metrics_collector.track_audio_lang_detection_length(
+                        organization=organization,
+                        app=app,
+                        audio_seconds=audio_lang_detection_length
+                    )
+                    if self.config.debug:
+                        print(f"📊 Tracked real audio language detection audio length: {audio_lang_detection_length:.2f} seconds")
+            elif service_type == "ner":
+                # Track real NER character count
+                if ner_characters > 0:
+                    self.metrics_collector.track_ner_characters(
+                        organization=organization,
+                        app=app,
+                        characters=ner_characters
+                    )
+                    if self.config.debug:
+                        print(f"📊 Tracked real NER characters: {ner_characters}")
+            elif service_type == "speaker_verification":
+                # Track real speaker verification audio length
+                if speaker_verification_length > 0:
+                    self.metrics_collector.track_speaker_verification_length(
+                        organization=organization,
+                        app=app,
+                        audio_seconds=speaker_verification_length
+                    )
+                    if self.config.debug:
+                        print(f"📊 Tracked real speaker verification audio length: {speaker_verification_length:.2f} seconds")
+            elif service_type == "speaker_diarization":
+                # Track real speaker diarization audio length
+                if speaker_diarization_length > 0:
+                    self.metrics_collector.track_speaker_diarization_length(
+                        organization=organization,
+                        app=app,
+                        audio_seconds=speaker_diarization_length
+                    )
+                    if self.config.debug:
+                        print(f"📊 Tracked real speaker diarization audio length: {speaker_diarization_length:.2f} seconds")
+            elif service_type == "language_diarization":
+                # Track real language diarization audio length
+                if language_diarization_length > 0:
+                    self.metrics_collector.track_language_diarization_length(
+                        organization=organization,
+                        app=app,
+                        audio_seconds=language_diarization_length
+                    )
+                    if self.config.debug:
+                        print(f"📊 Tracked real language diarization audio length: {language_diarization_length:.2f} seconds")
             
             # Update SLA compliance (mock calculation)
             compliance = self._calculate_sla_compliance(service_type, duration)
@@ -338,6 +473,127 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         except Exception as e:
             if self.config.debug:
                 print(f"⚠️ Failed to extract translation characters: {e}")
+            return 0
+    
+    def _extract_ocr_characters_from_body(self, body_bytes: bytes) -> int:
+        """Extract real character count from OCR request body (from image text)."""
+        try:
+            if not body_bytes:
+                return 0
+            
+            # Parse JSON request
+            request_data = json.loads(body_bytes.decode('utf-8'))
+            
+            # Extract character count from OCR input (assuming image base64 data)
+            total_characters = 0
+            
+            # OCR uses pipeline format: {"inputData": {"image": [...]}, ...}
+            if 'inputData' in request_data and 'image' in request_data['inputData']:
+                for image_item in request_data['inputData']['image']:
+                    # Handle imageContent (base64 encoded image)
+                    if 'imageContent' in image_item:
+                        content = image_item['imageContent']
+                        # Estimate characters: each base64 char represents ~0.75 bytes of actual data
+                        # OCR typically extracts 5-10% of image data as text
+                        estimated_chars = len(content) // 200  # Conservative estimate
+                        total_characters += estimated_chars
+                        if self.config.debug:
+                            print(f"🔍 OCR imageContent length: {len(content)}, estimated chars: {estimated_chars}")
+                    # Handle imageUri (URL to image)
+                    elif 'imageUri' in image_item:
+                        image_uri = image_item['imageUri']
+                        try:
+                            # Download image from URL to estimate size
+                            response = httpx.get(image_uri, timeout=5.0, follow_redirects=True)
+                            if response.status_code == 200:
+                                image_data = response.content
+                                # Estimate characters based on image size
+                                # Rough estimate: ~1000 bytes per character for typical images
+                                estimated_chars = len(image_data) // 1000
+                                total_characters += estimated_chars
+                                if self.config.debug:
+                                    print(f"🔍 OCR imageUri downloaded: {len(image_data)} bytes, estimated chars: {estimated_chars}")
+                            else:
+                                if self.config.debug:
+                                    print(f"⚠️ Failed to download image from URI: {response.status_code}")
+                        except Exception as e:
+                            if self.config.debug:
+                                print(f"⚠️ Error downloading image from URI: {e}")
+                        
+            return total_characters
+            
+        except Exception as e:
+            if self.config.debug:
+                print(f"⚠️ Failed to extract OCR characters: {e}")
+            return 0
+    
+    def _extract_transliteration_characters_from_body(self, body_bytes: bytes) -> int:
+        """Extract real character count from transliteration request body."""
+        try:
+            if not body_bytes:
+                return 0
+            
+            # Parse JSON request
+            request_data = json.loads(body_bytes.decode('utf-8'))
+            
+            # Extract character count from transliteration input
+            total_characters = 0
+            if 'input' in request_data:
+                for input_item in request_data['input']:
+                    if 'source' in input_item:
+                        total_characters += len(input_item['source'])
+            
+            return total_characters
+            
+        except Exception as e:
+            if self.config.debug:
+                print(f"⚠️ Failed to extract transliteration characters: {e}")
+            return 0
+    
+    def _extract_language_detection_characters_from_body(self, body_bytes: bytes) -> int:
+        """Extract real character count from language detection request body."""
+        try:
+            if not body_bytes:
+                return 0
+            
+            # Parse JSON request
+            request_data = json.loads(body_bytes.decode('utf-8'))
+            
+            # Extract character count from language detection input
+            total_characters = 0
+            if 'input' in request_data:
+                for input_item in request_data['input']:
+                    if 'source' in input_item:
+                        total_characters += len(input_item['source'])
+            
+            return total_characters
+            
+        except Exception as e:
+            if self.config.debug:
+                print(f"⚠️ Failed to extract language detection characters: {e}")
+            return 0
+    
+    def _extract_ner_characters_from_body(self, body_bytes: bytes) -> int:
+        """Extract real character count from NER request body."""
+        try:
+            if not body_bytes:
+                return 0
+            
+            # Parse JSON request
+            request_data = json.loads(body_bytes.decode('utf-8'))
+            
+            # Extract character count from NER input
+            total_characters = 0
+            if 'input' in request_data:
+                for input_item in request_data['input']:
+                    if 'source' in input_item:
+                        total_characters += len(input_item['source'])
+            
+            return total_characters
+            
+        except Exception as e:
+            if self.config.debug:
+                print(f"⚠️ Failed to extract NER characters: {e}")
             return 0
     
     def _extract_asr_audio_length_from_body(self, body_bytes: bytes) -> float:
@@ -427,5 +683,23 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
             return 99.8 if duration < 1.0 else 97.0
         elif service_type == "translation":
             return 99.9 if duration < 0.5 else 98.0
+        elif service_type == "asr":
+            return 99.7 if duration < 1.5 else 96.0
+        elif service_type == "ocr":
+            return 99.8 if duration < 1.0 else 97.0
+        elif service_type == "transliteration":
+            return 99.9 if duration < 0.5 else 98.0
+        elif service_type == "language_detection":
+            return 99.9 if duration < 0.3 else 98.5
+        elif service_type == "audio_lang_detection":
+            return 99.7 if duration < 1.5 else 96.0
+        elif service_type == "ner":
+            return 99.8 if duration < 0.8 else 97.5
+        elif service_type == "speaker_verification":
+            return 99.6 if duration < 2.0 else 95.5
+        elif service_type == "speaker_diarization":
+            return 99.5 if duration < 3.0 else 95.0
+        elif service_type == "language_diarization":
+            return 99.6 if duration < 2.5 else 95.5
         else:
             return 99.0
