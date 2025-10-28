@@ -9,6 +9,12 @@ class _ULCATaskType(str, Enum):
     TTS = "tts"
     TRANSLITERATION = "transliteration"
     NER = "ner"
+    OCR = "ocr"
+    TXT_LANG_DETECTION = "txt-lang-detection"
+    AUDIO_LANG_DETECTION = "audio-lang-detection"
+    SPEAKER_DIARIZATION = "speaker-diarization"
+    LANGUAGE_DIARIZATION = "language-diarization"
+    SPEAKER_VERIFICATION = "speaker-verification"
     STS = "sts"  # TODO: Remove
     VAD = "vad"
 

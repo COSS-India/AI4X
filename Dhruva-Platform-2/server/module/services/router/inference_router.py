@@ -299,3 +299,109 @@ async def _run_inference_pipeline(
     inference_service: InferenceService = Depends(InferenceService),
 ):
     return await inference_service.run_pipeline_inference(request, request_state)
+
+
+@router.post("/pipeline/transliteration", response_model=ULCAPipelineInferenceResponse)
+async def _run_pipeline_transliteration(
+    request: ULCAPipelineInferenceRequest,
+    request_state: Request,
+    inference_service: InferenceService = Depends(InferenceService),
+):
+    """
+    Pipeline transliteration endpoint.
+    Calls Triton inference service (currently with mock response until real endpoint is available).
+    """
+    return await inference_service.run_pipeline_transliteration_inference(
+        request, request_state.state.api_key_name, request_state.state.user_id
+    )
+
+
+@router.post("/pipeline/ocr", response_model=ULCAPipelineInferenceResponse)
+async def _run_pipeline_ocr(
+    request: ULCAPipelineInferenceRequest,
+    request_state: Request,
+    inference_service: InferenceService = Depends(InferenceService),
+):
+    """
+    Pipeline OCR endpoint.
+    Calls Triton inference service (currently with mock response until real endpoint is available).
+    """
+    return await inference_service.run_pipeline_ocr_inference(
+        request, request_state.state.api_key_name, request_state.state.user_id
+    )
+
+
+@router.post("/pipeline/txt-lang-detection", response_model=ULCAPipelineInferenceResponse)
+async def _run_pipeline_text_lang_detection(
+    request: ULCAPipelineInferenceRequest,
+    request_state: Request,
+    inference_service: InferenceService = Depends(InferenceService),
+):
+    """
+    Pipeline text language detection endpoint.
+    Calls Triton inference service (currently with mock response until real endpoint is available).
+    """
+    return await inference_service.run_pipeline_text_lang_detection_inference(
+        request, request_state.state.api_key_name, request_state.state.user_id
+    )
+
+
+@router.post("/pipeline/audio-lang-detection", response_model=ULCAPipelineInferenceResponse)
+async def _run_pipeline_audio_lang_detection(
+    request: ULCAPipelineInferenceRequest,
+    request_state: Request,
+    inference_service: InferenceService = Depends(InferenceService),
+):
+    """
+    Pipeline audio language detection endpoint.
+    Calls Triton inference service (currently with mock response until real endpoint is available).
+    """
+    return await inference_service.run_pipeline_audio_lang_detection_inference(
+        request, request_state.state.api_key_name, request_state.state.user_id
+    )
+
+
+@router.post("/pipeline/speaker-diarization", response_model=ULCAPipelineInferenceResponse)
+async def _run_pipeline_speaker_diarization(
+    request: ULCAPipelineInferenceRequest,
+    request_state: Request,
+    inference_service: InferenceService = Depends(InferenceService),
+):
+    """
+    Pipeline speaker diarization endpoint.
+    Calls Triton inference service (currently with mock response until real endpoint is available).
+    """
+    return await inference_service.run_pipeline_speaker_diarization_inference(
+        request, request_state.state.api_key_name, request_state.state.user_id
+    )
+
+
+@router.post("/pipeline/language-diarization", response_model=ULCAPipelineInferenceResponse)
+async def _run_pipeline_language_diarization(
+    request: ULCAPipelineInferenceRequest,
+    request_state: Request,
+    inference_service: InferenceService = Depends(InferenceService),
+):
+    """
+    Pipeline language diarization endpoint.
+    Calls Triton inference service (currently with mock response until real endpoint is available).
+    """
+    return await inference_service.run_pipeline_language_diarization_inference(
+        request, request_state.state.api_key_name, request_state.state.user_id
+    )
+
+
+@router.post("/pipeline/speaker-verification", response_model=ULCAPipelineInferenceResponse)
+async def _run_pipeline_speaker_verification(
+    request: ULCAPipelineInferenceRequest,
+    request_state: Request,
+    inference_service: InferenceService = Depends(InferenceService),
+):
+    """
+    Pipeline speaker enrollment & verification endpoint.
+    Calls Triton inference service (currently with mock response until real endpoint is available).
+    Supports both enrollment and verification operations.
+    """
+    return await inference_service.run_pipeline_speaker_verification_inference(
+        request, request_state.state.api_key_name, request_state.state.user_id
+    )
