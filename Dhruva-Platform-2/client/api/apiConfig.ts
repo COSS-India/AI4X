@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const dhruvaRootURL: string = "http://localhost:8000";
+const dhruvaRootURL: string = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8000";
 
 const dhruvaAPI: { [key: string]: string } = {
   listServices: `${dhruvaRootURL}/services/details/list_services`,
