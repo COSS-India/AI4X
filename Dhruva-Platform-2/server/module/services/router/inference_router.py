@@ -13,6 +13,7 @@ from schema.auth.common import ApiKeyType
 from schema.services.request import (
     ULCAAsrInferenceRequest,
     ULCAInferenceQuery,
+    ULCALLMInferenceRequest,
     ULCANerInferenceRequest,
     ULCAPipelineInferenceRequest,
     ULCAS2SInferenceRequest,
@@ -23,6 +24,7 @@ from schema.services.request import (
 )
 from schema.services.response import (
     ULCAAsrInferenceResponse,
+    ULCALLMInferenceResponse,
     ULCANerInferenceResponse,
     ULCAPipelineInferenceResponse,
     ULCAS2SInferenceResponse,
@@ -299,6 +301,19 @@ async def _run_inference_pipeline(
     inference_service: InferenceService = Depends(InferenceService),
 ):
     return await inference_service.run_pipeline_inference(request, request_state)
+
+
+@router.post("/llm", response_model=ULCALLMInferenceResponse)
+async def _run_inference_llm(
+    request: ULCALLMInferenceRequest,
+    request_state: Request,
+    inference_service: InferenceService = Depends(InferenceService),
+):
+    return await inference_service.run_llm_inference(
+        request,
+        request_state.state.api_key_name,
+        request_state.state.user_id,
+    )
 
 
 @router.post("/pipeline/transliteration", response_model=ULCAPipelineInferenceResponse)

@@ -29,6 +29,7 @@ from schema.services.request import (
     ULCAAsrInferenceRequest,
     ULCAGenericInferenceRequest,
     ULCAInferenceRequest,
+    ULCALLMInferenceRequest,
     ULCANerInferenceRequest,
     ULCAPipelineInferenceRequest,
     ULCATranslationInferenceRequest,
@@ -43,6 +44,7 @@ from schema.services.request.ulca_vad_inference_request import (
 from schema.services.response import (
     ULCAAsrInferenceResponse,
     ULCAInferenceResponse,
+    ULCALLMInferenceResponse,
     ULCANerInferenceResponse,
     ULCAPipelineInferenceResponse,
     ULCATranslationInferenceResponse,
@@ -158,6 +160,11 @@ class InferenceService:
             case _ULCATaskType.NER:
                 request_obj = ULCANerInferenceRequest(**request_body)
                 return await self.run_ner_triton_inference(
+                    request_obj, api_key_name, user_id
+                )
+            case _ULCATaskType.TEXT_GENERATION:
+                request_obj = ULCALLMInferenceRequest(**request_body)
+                return await self.run_llm_inference(
                     request_obj, api_key_name, user_id
                 )
             case _:
@@ -1604,3 +1611,94 @@ class InferenceService:
                 })
         
         return ULCAPipelineInferenceResponse(pipelineResponse=pipeline_responses)
+
+    async def run_llm_inference(
+        self, request_body: ULCALLMInferenceRequest, api_key_name: str, user_id: str
+    ) -> ULCALLMInferenceResponse:
+        INFERENCE_REQUEST_COUNT.labels(
+            api_key_name=api_key_name,
+            user_id=user_id,
+            inference_service=request_body.config.serviceId,
+            task_type="text-generation",
+            source_language="en",
+            target_language="en",
+        ).inc()
+
+        start_time = time.time()
+
+        try:
+            # Get the service and model
+            service = self.service_repository.get_by_service_id(request_body.config.serviceId)
+            model = self.model_repository.get_by_id(service.modelId)
+
+            # Prepare the request for the external LLM service
+            from pydantic import BaseModel
+            
+            class LLMRequest(BaseModel):
+                pipeline_tasks: List[dict]
+                input_data: dict
+                
+            llm_request = LLMRequest(
+                pipeline_tasks=[{
+                    "task_type": "text-generation",
+                    "config": {
+                        "model_parameters": request_body.config.model_parameters or {}
+                    }
+                }],
+                input_data=request_body.input_data
+            )
+
+            # Call the external LLM service
+            response = self.inference_gateway.send_inference_request(
+                llm_request, service
+            )
+
+            # Process the response
+            output = []
+            if isinstance(response, dict) and "results" in response:
+                # Handle pipeline response format
+                results = response.get("results", [])
+                if results and len(results) > 0:
+                    result = results[0]  # Get first result
+                    if "output" in result and isinstance(result["output"], list):
+                        # Convert target to source format for consistency
+                        output = [{"source": item.get("target", "")} for item in result["output"]]
+                    else:
+                        output = [{"source": str(result)}]
+                else:
+                    output = [{"source": "No results returned"}]
+            elif isinstance(response, dict) and "output" in response:
+                if isinstance(response["output"], list):
+                    output = response["output"]
+                else:
+                    output = [{"source": response["output"]}]
+            else:
+                output = [{"source": str(response)}]
+
+            duration = time.time() - start_time
+            INFERENCE_REQUEST_DURATION_SECONDS.labels(
+                api_key_name=api_key_name,
+                user_id=user_id,
+                inference_service=request_body.config.serviceId,
+                task_type="text-generation",
+                source_language="en",
+                target_language="en",
+            ).observe(duration)
+
+            return ULCALLMInferenceResponse(
+                config=request_body.config,
+                output=output,
+                pipelineResponse=None
+            )
+
+        except Exception as e:
+            duration = time.time() - start_time
+            INFERENCE_REQUEST_DURATION_SECONDS.labels(
+                api_key_name=api_key_name,
+                user_id=user_id,
+                inference_service=request_body.config.serviceId,
+                task_type="text-generation",
+                source_language="en",
+                target_language="en",
+            ).observe(duration)
+            raise BaseError(Errors.DHRUVA101.value, traceback.format_exc())

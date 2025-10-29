@@ -30,6 +30,7 @@ from .ulca_tts_inference_request import (
     _ULCATtsInferenceRequestConfig,
 )
 from .ulca_vad_inference_request import ULCAVadInferenceRequest
+from .ulca_llm_inference_request import ULCALLMInferenceRequest
 
 ULCAInferenceRequest = Union[
     ULCAGenericInferenceRequest,
@@ -39,4 +40,5 @@ ULCAInferenceRequest = Union[
     ULCATtsInferenceRequest,
     ULCANerInferenceRequest,
     ULCAVadInferenceRequest,
+    ULCALLMInferenceRequest,
 ]

@@ -17,6 +17,7 @@ class _ULCATaskType(str, Enum):
     SPEAKER_VERIFICATION = "speaker-verification"
     STS = "sts"  # TODO: Remove
     VAD = "vad"
+    TEXT_GENERATION = "text-generation"
 
 
 # TODO: Depreciate soon
