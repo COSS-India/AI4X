@@ -405,3 +405,19 @@ async def _run_pipeline_speaker_verification(
     return await inference_service.run_pipeline_speaker_verification_inference(
         request, request_state.state.api_key_name, request_state.state.user_id
     )
+
+
+@router.post("/llm", response_model=ULCAPipelineInferenceResponse)
+async def _run_pipeline_text_generation(
+    request: ULCAPipelineInferenceRequest,
+    request_state: Request,
+    inference_service: InferenceService = Depends(InferenceService),
+):
+    """
+    LLM text generation endpoint (open source model, no API key required for external service).
+    Calls Triton inference service for LLM text generation.
+    Currently returns mock response until real endpoint is available.
+    """
+    return await inference_service.run_pipeline_text_generation_inference(
+        request, request_state.state.api_key_name, request_state.state.user_id
+    )
