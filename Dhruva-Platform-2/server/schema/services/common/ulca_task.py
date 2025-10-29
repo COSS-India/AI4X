@@ -15,6 +15,7 @@ class _ULCATaskType(str, Enum):
     SPEAKER_DIARIZATION = "speaker-diarization"
     LANGUAGE_DIARIZATION = "language-diarization"
     SPEAKER_VERIFICATION = "speaker-verification"
+    TEXT_GENERATION = "text-generation"
     STS = "sts"  # TODO: Remove
     VAD = "vad"
 
