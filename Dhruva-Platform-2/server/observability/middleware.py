@@ -61,11 +61,26 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         language_diarization_length = 0
         if method == "POST" and service_type in ["tts", "translation", "asr", "ocr", "transliteration", "ner", "language_detection", "audio_lang_detection", "speaker_verification", "speaker_diarization", "language_diarization"]:
             body_bytes = await request.body()
-            # Restore the body for downstream handlers
-            async def receive():
-                return {"type": "http.request", "body": body_bytes}
+            # Restore the body for downstream handlers by providing a receive
+            # callable that yields the body once and then an empty message.
+            # This follows ASGI expected behaviour and avoids EndOfStream errors
+            # when downstream consumers call receive().
+            body_sent = False
+
+            async def receive() -> dict:
+                nonlocal body_sent
+                if not body_sent:
+                    body_sent = True
+                    return {"type": "http.request", "body": body_bytes, "more_body": False}
+                # After the body has been sent, indicate end of stream
+                return {"type": "http.request", "body": b"", "more_body": False}
+
+            # Attach the receive coroutine to the request so downstream can
+            # await request._receive() as expected by Starlette/FastAPI internals.
             request._receive = receive
             
+            print("The service type",service_type )
+
             # Extract metrics from the body
             if service_type == "tts":
                 tts_characters = self._extract_tts_characters_from_body(body_bytes)
@@ -89,6 +104,11 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                 language_diarization_length = self._extract_asr_audio_length_from_body(body_bytes)
             elif service_type == "ner":
                 ner_characters = self._extract_ner_characters_from_body(body_bytes)
+
+            # Always log extracted language detection characters to ensure tracking is visible in logs
+            if language_detection_characters > 0:
+                # Unconditional print so it appears in container logs even if debug flag is misconfigured
+                print(f"LANG_DET_CHARS_EXTRACTED={language_detection_characters}")
         
         # Debug logging
         if self.config.debug:
@@ -240,6 +260,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         path_lower = path.lower()
         
         # Check for specific service patterns
+        # Include pipeline endpoints under /services/inference/pipeline/
         if any(pattern in path_lower for pattern in ["/translation", "/nmt", "/translate"]):
             return "translation"
         elif any(pattern in path_lower for pattern in ["/asr", "/transcribe", "/speech"]):
@@ -248,19 +269,40 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
             return "tts"
         elif any(pattern in path_lower for pattern in ["/ocr", "/text-recognition"]):
             return "ocr"
+        # Pipeline OCR endpoint
+        elif any(pattern in path_lower for pattern in ["/services/inference/pipeline/ocr", "/pipeline/ocr"]):
+            return "ocr"
         elif any(pattern in path_lower for pattern in ["/transliteration", "/xlit", "/transliterate"]):
+            return "transliteration"
+        # Pipeline Transliteration endpoint
+        elif any(pattern in path_lower for pattern in ["/services/inference/pipeline/transliteration", "/services/inference/pipeline/translation/transliteration", "/pipeline/transliteration", "/pipeline/translation/transliteration"]):
             return "transliteration"
         elif any(pattern in path_lower for pattern in ["/audio-lang-detection", "/audio-language-detection", "/audio-detect"]):
             return "audio_lang_detection"
+        # Pipeline audio language detection endpoint
+        elif any(pattern in path_lower for pattern in ["/services/inference/pipeline/audio-lang-detection", "/services/inference/pipeline/audio-language-detection", "/pipeline/audio-lang-detection"]):
+            return "audio_lang_detection"
         elif any(pattern in path_lower for pattern in ["/language-detection", "/lang-detect", "/detect-language"]):
+            return "language_detection"
+        # Pipeline text language detection endpoint (txt-lang-detection)
+        elif any(pattern in path_lower for pattern in ["/services/inference/pipeline/txt-lang-detection", "/services/inference/pipeline/txt-language-detection", "/pipeline/txt-lang-detection"]):
             return "language_detection"
         elif any(pattern in path_lower for pattern in ["/ner", "/entity", "/entities"]):
             return "ner"
         elif any(pattern in path_lower for pattern in ["/speaker", "/speaker-enrollment", "/speaker-verification"]):
             return "speaker_verification"
+        # Pipeline speaker verification endpoint
+        elif any(pattern in path_lower for pattern in ["/services/inference/pipeline/speaker-verification", "/pipeline/speaker-verification"]):
+            return "speaker_verification"
         elif any(pattern in path_lower for pattern in ["/speaker-diarization", "/speaker-diarization-compute-call"]):
             return "speaker_diarization"
+        # Pipeline speaker diarization endpoint
+        elif any(pattern in path_lower for pattern in ["/services/inference/pipeline/speaker-diarization", "/pipeline/speaker-diarization"]):
+            return "speaker_diarization"
         elif any(pattern in path_lower for pattern in ["/language-diarization", "/language-diarization-compute-call"]):
+            return "language_diarization"
+        # Pipeline language diarization endpoint
+        elif any(pattern in path_lower for pattern in ["/services/inference/pipeline/language-diarization", "/pipeline/language-diarization"]):
             return "language_diarization"
         elif any(pattern in path_lower for pattern in ["/llm", "/generate", "/chat", "/completion"]):
             return "llm"
@@ -561,10 +603,18 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
             
             # Extract character count from language detection input
             total_characters = 0
+            # Support both direct `input` and pipeline `inputData.input` formats
             if 'input' in request_data:
                 for input_item in request_data['input']:
-                    if 'source' in input_item:
+                    if 'source' in input_item and isinstance(input_item['source'], str):
                         total_characters += len(input_item['source'])
+            elif 'inputData' in request_data and 'input' in request_data['inputData']:
+                for input_item in request_data['inputData']['input']:
+                    if 'source' in input_item and isinstance(input_item['source'], str):
+                        total_characters += len(input_item['source'])
+
+            if self.config.debug:
+                print(f"🔤 Language detection characters extracted: {total_characters}")
             
             return total_characters
             
