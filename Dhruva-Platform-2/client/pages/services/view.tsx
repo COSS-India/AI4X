@@ -37,6 +37,14 @@ import NMTTry from "../../components/TryOut/NMT";
 // import STSTry from "../../components/TryOut/STS";
 import TTSTry from "../../components/TryOut/TTS";
 import XLITTry from "../../components/TryOut/XLIT";
+import S2STry from "../../components/TryOut/S2S";
+import VADTry from "../../components/TryOut/VAD";
+import OCRTry from "../../components/TryOut/OCR";
+import TxtLangDetectTry from "../../components/TryOut/TxtLangDetect";
+import AudioLangDetectTry from "../../components/TryOut/AudioLangDetect";
+import SpeakerDiarizationTry from "../../components/TryOut/SpeakerDiarization";
+import LanguageDiarizationTry from "../../components/TryOut/LanguageDiarization";
+import SpeakerVerificationTry from "../../components/TryOut/SpeakerVerification";
 import useMediaQuery from "../../hooks/useMediaQuery";
 
 export default function ViewService() {
@@ -69,12 +77,28 @@ export default function ViewService() {
           return <TTSTry languages={languages} serviceId={serviceId} />;
         case "translation":
           return <NMTTry languages={languages} serviceId={serviceId} />;
+            case "s2s":
+              return <S2STry languages={languages} serviceId={serviceId} />;
+        case "txt-lang-detection":
+          return <TxtLangDetectTry languages={languages} serviceId={serviceId} />;
+        case "audio-lang-detection":
+          return <AudioLangDetectTry serviceId={serviceId} />;
+        case "speaker-diarization":
+          return <SpeakerDiarizationTry serviceId={serviceId} />;
+        case "language-diarization":
+          return <LanguageDiarizationTry serviceId={serviceId} />;
+        case "speaker-verification":
+          return <SpeakerVerificationTry serviceId={serviceId} />;
         // case "sts":
         //   return <STSTry languages={languages} serviceId={serviceId} />;
         case "ner":
           return <NERTry languages={languages} serviceId={serviceId} />;
         case "transliteration":
           return <XLITTry languages={languages} serviceId={serviceId} />;
+        case "ocr":
+          return <OCRTry languages={languages} serviceId={serviceId} />;
+            case "vad":
+              return <VADTry serviceId={serviceId} />;
       }
     }
   };
