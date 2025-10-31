@@ -307,10 +307,12 @@ async def _run_inference_pipeline(
 async def _run_inference_llm(
     request: ULCALLMInferenceRequest,
     request_state: Request,
+    params: ULCAInferenceQuery = Depends(),
     inference_service: InferenceService = Depends(InferenceService),
 ):
     return await inference_service.run_llm_inference(
         request,
+        params.serviceId,
         request_state.state.api_key_name,
         request_state.state.user_id,
     )

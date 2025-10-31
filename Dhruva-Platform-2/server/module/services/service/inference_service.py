@@ -4,7 +4,7 @@ import json
 import time
 import traceback
 from copy import deepcopy
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import soundfile as sf
@@ -1613,82 +1613,92 @@ class InferenceService:
         return ULCAPipelineInferenceResponse(pipelineResponse=pipeline_responses)
 
     async def run_llm_inference(
-        self, request_body: ULCALLMInferenceRequest, api_key_name: str, user_id: str
+        self, request_body: ULCALLMInferenceRequest, service_id: Optional[str], api_key_name: str, user_id: str
     ) -> ULCALLMInferenceResponse:
+        if not service_id:
+            raise ClientError(
+                status_code=status.HTTP_400_BAD_REQUEST, message="serviceId is required"
+            )
+
+        # Extract input values from the request
+        input_text = ""
+        input_language = "en"
+        output_language = "en"
+        
+        for input_item in request_body.inputs:
+            if input_item.name == "INPUT_TEXT" and input_item.data:
+                input_text = str(input_item.data[0]) if input_item.data else ""
+            elif input_item.name == "INPUT_LANGUAGE_ID" and input_item.data:
+                input_language = str(input_item.data[0]) if input_item.data else "en"
+            elif input_item.name == "OUTPUT_LANGUAGE_ID" and input_item.data:
+                output_language = str(input_item.data[0]) if input_item.data else "en"
+
         INFERENCE_REQUEST_COUNT.labels(
             api_key_name=api_key_name,
             user_id=user_id,
-            inference_service=request_body.config.serviceId,
+            inference_service=service_id,
             task_type="text-generation",
-            source_language="en",
-            target_language="en",
+            source_language=input_language,
+            target_language=output_language,
         ).inc()
 
         start_time = time.time()
 
         try:
-            # Get the service and model
-            service = self.service_repository.get_by_service_id(request_body.config.serviceId)
-            model = self.model_repository.get_by_id(service.modelId)
+            # Get the service
+            service = self.service_repository.get_by_service_id(service_id)
 
-            # Prepare the request for the external LLM service
-            from pydantic import BaseModel
-            
-            class LLMRequest(BaseModel):
-                pipeline_tasks: List[dict]
-                input_data: dict
-                
-            llm_request = LLMRequest(
-                pipeline_tasks=[{
-                    "task_type": "text-generation",
-                    "config": {
-                        "model_parameters": request_body.config.model_parameters or {}
-                    }
-                }],
-                input_data=request_body.input_data
-            )
+            # Prepare the request in the new format (pass through as-is)
+            llm_request = {
+                "inputs": [input_item.dict() for input_item in request_body.inputs],
+                "outputs": [output_item.dict() for output_item in request_body.outputs]
+            }
 
             # Call the external LLM service
-            response = self.inference_gateway.send_inference_request(
+            response = self.inference_gateway.send_inference_request_dict(
                 llm_request, service
             )
 
-            # Process the response
-            output = []
-            if isinstance(response, dict) and "results" in response:
-                # Handle pipeline response format
-                results = response.get("results", [])
-                if results and len(results) > 0:
-                    result = results[0]  # Get first result
-                    if "output" in result and isinstance(result["output"], list):
-                        # Convert target to source format for consistency
-                        output = [{"source": item.get("target", "")} for item in result["output"]]
-                    else:
-                        output = [{"source": str(result)}]
-                else:
-                    output = [{"source": "No results returned"}]
-            elif isinstance(response, dict) and "output" in response:
-                if isinstance(response["output"], list):
-                    output = response["output"]
-                else:
-                    output = [{"source": response["output"]}]
-            else:
-                output = [{"source": str(response)}]
+            # Process the response - it should already be in the correct format
+            if not isinstance(response, dict):
+                raise BaseError(Errors.DHRUVA101.value, "Invalid response format")
+
+            # Validate response structure
+            if "outputs" not in response:
+                raise BaseError(Errors.DHRUVA101.value, "Response missing outputs")
+
+            # Extract model_name and model_version from response or use defaults
+            model_name = response.get("model_name", "llm")
+            model_version = response.get("model_version", "1")
+            outputs = response.get("outputs", [])
 
             duration = time.time() - start_time
             INFERENCE_REQUEST_DURATION_SECONDS.labels(
                 api_key_name=api_key_name,
                 user_id=user_id,
-                inference_service=request_body.config.serviceId,
+                inference_service=service_id,
                 task_type="text-generation",
-                source_language="en",
-                target_language="en",
+                source_language=input_language,
+                target_language=output_language,
             ).observe(duration)
 
+            # Convert outputs to response format
+            from schema.services.response.ulca_llm_inference_response import LLMResponseOutput
+            
+            response_outputs = [
+                LLMResponseOutput(
+                    name=output.get("name", "OUTPUT_TEXT"),
+                    datatype=output.get("datatype", "BYTES"),
+                    shape=output.get("shape", [1, 1]),
+                    data=output.get("data", [])
+                )
+                for output in outputs
+            ]
+
             return ULCALLMInferenceResponse(
-                config=request_body.config,
-                output=output,
-                pipelineResponse=None
+                model_name=model_name,
+                model_version=model_version,
+                outputs=response_outputs
             )
 
         except Exception as e:
@@ -1696,9 +1706,9 @@ class InferenceService:
             INFERENCE_REQUEST_DURATION_SECONDS.labels(
                 api_key_name=api_key_name,
                 user_id=user_id,
-                inference_service=request_body.config.serviceId,
+                inference_service=service_id,
                 task_type="text-generation",
-                source_language="en",
-                target_language="en",
+                source_language=input_language,
+                target_language=output_language,
             ).observe(duration)
             raise BaseError(Errors.DHRUVA101.value, traceback.format_exc())

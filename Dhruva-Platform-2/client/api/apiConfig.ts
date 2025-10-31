@@ -16,6 +16,7 @@ const dhruvaAPI: { [key: string]: string } = {
   nerInference: `${dhruvaRootURL}/services/inference/ner`,
   pipelineInference: `${dhruvaRootURL}/services/inference/pipeline`,
   xlitInference: `${dhruvaRootURL}/services/inference/transliteration`,
+  llmInference: `${dhruvaRootURL}/services/inference/llm`,
 };
 
 let isRefreshing = false;

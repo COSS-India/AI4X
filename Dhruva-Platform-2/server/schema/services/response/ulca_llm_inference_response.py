@@ -1,15 +1,16 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel
 
-from ..common.ulca_base_inference_request_config import _ULCABaseInferenceRequestConfig
 
-
-class _ULCALLMInferenceResponseConfig(_ULCABaseInferenceRequestConfig):
-    pass
+class LLMResponseOutput(BaseModel):
+    name: str
+    datatype: str
+    shape: List[int]
+    data: List[Union[str, int, float]]
 
 
 class ULCALLMInferenceResponse(BaseModel):
-    config: _ULCALLMInferenceResponseConfig
-    output: List[Dict[str, Any]]
-    pipelineResponse: Optional[List[Dict[str, Any]]] = None
+    model_name: str
+    model_version: str
+    outputs: List[LLMResponseOutput]

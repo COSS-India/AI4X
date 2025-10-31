@@ -37,6 +37,7 @@ import NMTTry from "../../components/TryOut/NMT";
 // import STSTry from "../../components/TryOut/STS";
 import TTSTry from "../../components/TryOut/TTS";
 import XLITTry from "../../components/TryOut/XLIT";
+import LLMTry from "../../components/TryOut/LLM";
 import useMediaQuery from "../../hooks/useMediaQuery";
 
 export default function ViewService() {
@@ -75,6 +76,8 @@ export default function ViewService() {
           return <NERTry languages={languages} serviceId={serviceId} />;
         case "transliteration":
           return <XLITTry languages={languages} serviceId={serviceId} />;
+        case "text-generation":
+          return <LLMTry languages={languages} serviceId={serviceId} />;
       }
     }
   };

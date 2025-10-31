@@ -35,6 +35,21 @@ class InferenceGateway:
 
         return response.json()
 
+    def send_inference_request_dict(
+        self,
+        request_body: dict,
+        service: Service,
+    ) -> dict:
+        try:
+            response = requests.post(service.endpoint, json=request_body)
+        except:
+            raise BaseError(Errors.DHRUVA101.value, traceback.format_exc())
+
+        if response.status_code >= 400:
+            raise BaseError(Errors.DHRUVA102.value)
+
+        return response.json()
+
     def send_triton_request(
         self,
         url: str,
