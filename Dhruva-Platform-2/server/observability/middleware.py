@@ -580,10 +580,18 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
             
             # Extract character count from transliteration input
             total_characters = 0
+            # Support both direct `input` and pipeline `inputData.input` formats
             if 'input' in request_data:
                 for input_item in request_data['input']:
-                    if 'source' in input_item:
+                    if 'source' in input_item and isinstance(input_item['source'], str):
                         total_characters += len(input_item['source'])
+            elif 'inputData' in request_data and 'input' in request_data['inputData']:
+                for input_item in request_data['inputData']['input']:
+                    if 'source' in input_item and isinstance(input_item['source'], str):
+                        total_characters += len(input_item['source'])
+
+            if self.config.debug and total_characters > 0:
+                print(f"🔤 Transliteration characters extracted: {total_characters}")
             
             return total_characters
             
@@ -669,6 +677,11 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                         audio_items_found += 1
                         if self.config.debug:
                             print(f"🎵 ASR audio item {audio_items_found}: {audio_length:.2f} seconds")
+                    elif 'audioUri' in audio_item:
+                        # audioUri requires downloading the file to calculate length,
+                        # which is not practical in middleware. Skip for now.
+                        if self.config.debug:
+                            print(f"⚠️ audioUri detected but audio length cannot be calculated from URI without downloading file")
             # Also check for pipeline format: {"inputData": {"audio": [...]}, ...}
             elif 'inputData' in request_data and 'audio' in request_data['inputData']:
                 for audio_item in request_data['inputData']['audio']:
@@ -679,6 +692,11 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                         audio_items_found += 1
                         if self.config.debug:
                             print(f"🎵 ASR audio item {audio_items_found}: {audio_length:.2f} seconds")
+                    elif 'audioUri' in audio_item:
+                        # audioUri requires downloading the file to calculate length,
+                        # which is not practical in middleware. Skip for now.
+                        if self.config.debug:
+                            print(f"⚠️ audioUri detected but audio length cannot be calculated from URI without downloading file")
             else:
                 if self.config.debug:
                     print(f"⚠️ ASR request structure not recognized. Keys: {list(request_data.keys())}")
