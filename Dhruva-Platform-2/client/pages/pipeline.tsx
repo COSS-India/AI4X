@@ -159,6 +159,12 @@ function PipelineInterface() {
   }, [sourceLanguage, targetLanguage]);
 
   const startRecording = () => {
+    // Check if we're in a browser environment and mediaDevices API is available
+    if (typeof window === 'undefined' || !navigator?.mediaDevices?.getUserMedia) {
+      console.error('Microphone access not available. Please use HTTPS or grant permissions.');
+      return;
+    }
+
     setRecording(!recording);
     setFetched(false);
     setFetching(true);

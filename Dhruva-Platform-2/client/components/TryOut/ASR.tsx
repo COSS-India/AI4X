@@ -198,6 +198,19 @@ const ASRTry: React.FC<Props> = (props) => {
   };
 
   const startRecording = () => {
+    // Check if audioStream is available
+    if (!audioStream) {
+      console.error('Audio stream not available. Please grant microphone permissions.');
+      setPermission(false);
+      return;
+    }
+
+    // Check if we're in a browser environment
+    if (typeof window === 'undefined') {
+      console.error('Window object not available.');
+      return;
+    }
+
     var AudioContext = window.AudioContext;
     var audioContext = new AudioContext();
     var input = audioContext.createMediaStreamSource(audioStream);
@@ -224,17 +237,49 @@ const ASRTry: React.FC<Props> = (props) => {
   const stopRecording = () => {
     console.log("Recording Stopped");
     setRecording(false);
-    audioStream.getAudioTracks()[0].stop();
-    recorder.exportWAV(handleRecording, "audio/wav", 16000);
-    recorder.stop();
+    if (audioStream) {
+      audioStream.getAudioTracks()[0].stop();
+    }
+    if (recorder) {
+      recorder.exportWAV(handleRecording, "audio/wav", 16000);
+      recorder.stop();
+    }
     setPlaceHolder("Start Recording for ASR Inference...");
     setFetching(false);
     setFetched(true);
     // Clear the timer interval
-    clearInterval(timerInterval);
+    if (timerInterval) {
+      clearInterval(timerInterval);
+    }
   };
 
   useEffect(() => {
+    // Check if we're in a browser environment and mediaDevices API is available
+    if (typeof window === 'undefined' || !navigator?.mediaDevices?.getUserMedia) {
+      setPermission(false);
+      setModal(
+        <Box
+          mt="1rem"
+          width={"100%"}
+          minH={"3rem"}
+          border={"1px"}
+          borderColor={"gray.300"}
+          background={"red.50"}
+        >
+          <HStack ml="1rem" mr="1rem" mt="0.6rem">
+            <Text color={"red.600"}>Microphone access not available. Please use HTTPS or grant permissions.</Text>
+            <Spacer />
+            <CloseIcon
+              onClick={() => setModal(<></>)}
+              color={"red.600"}
+              fontSize={"xs"}
+            />
+          </HStack>
+        </Box>
+      );
+      return;
+    }
+
     navigator.mediaDevices
       .getUserMedia({ audio: true })
       .then((stream) => {
