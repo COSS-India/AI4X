@@ -581,21 +581,45 @@ class InferenceService:
 
         service: Service = validate_service_id(serviceId, self.service_repository)  # type: ignore
         headers = {"Authorization": "Bearer " + service.api_key}
+        language = request_body.config.language.sourceLanguage
+        input_texts = [
+            input.source.replace("\n", " ").strip() if input.source else " "
+            for input in request_body.input
+        ]
+        inputs, outputs = self.triton_utils_service.get_ner_io_for_triton(
+            input_texts, language, model_name
+        )
 
-        # TODO: Replace with real deployments
-        with INFERENCE_REQUEST_DURATION_SECONDS.labels(
-            api_key_name,
-            user_id,
-            request_body.config.serviceId,
-            "ner",
-            request_body.config.language.sourceLanguage,
-            None,
-        ).time():
-            res = self.inference_gateway.send_inference_request(
-                request_body=request_body, service=service
-            )
+        # # TODO: Replace with real deployments
+        # with INFERENCE_REQUEST_DURATION_SECONDS.labels(
+        #     api_key_name,
+        #     user_id,
+        #     request_body.config.serviceId,
+        #     "ner",
+        #     request_body.config.language.sourceLanguage,
+        #     None,
+        # ).time():
+        #     res = self.inference_gateway.send_inference_request(
+        #         request_body=request_body, service=service
+        #     )
+        response = self.inference_gateway.send_triton_request(
+            url=service.endpoint,
+            model_name="ner",
+            input_list=inputs,
+            output_list=outputs,
+            headers=headers,
+        )
+        encoded_result = response.as_numpy("OUTPUT_TEXT")
+        if encoded_result is None:
+            encoded_result = np.array([np.array([])])
+        encoded_result = encoded_result.tolist()
+        decoded_result = encoded_result.decode("utf-8")
+        decoded_json_data = json.loads(decoded_result)
 
-        return ULCANerInferenceResponse(**res)
+        final_result = [result["output"][0] for result in decoded_json_data]
+        final_service_result =  ULCANerInferenceResponse(output=final_result)
+
+        return final_service_result
 
     async def run_vad_triton_inference(
         self, request_body: ULCAVadInferenceRequest, api_key_name: str, user_id: str
