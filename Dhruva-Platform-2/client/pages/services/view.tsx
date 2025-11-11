@@ -38,6 +38,7 @@ import NMTTry from "../../components/TryOut/NMT";
 import TTSTry from "../../components/TryOut/TTS";
 import XLITTry from "../../components/TryOut/XLIT";
 import LLMTry from "../../components/TryOut/LLM";
+import TxtLangDetectTry from "../../components/TryOut/TxtLangDetect";
 import useMediaQuery from "../../hooks/useMediaQuery";
 
 export default function ViewService() {
@@ -61,8 +62,13 @@ export default function ViewService() {
   }, [serviceInfo]);
 
   const renderTryIt = (taskType: string) => {
+    const serviceId = router.query["serviceId"] as string;
+    // txt-lang-detection doesn't require languages, so handle it separately
+    if (taskType === "txt-lang-detection") {
+      return <TxtLangDetectTry languages={languages || []} serviceId={serviceId} />;
+    }
+    // Other services require languages
     if (languages) {
-      const serviceId = router.query["serviceId"] as string;
       switch (taskType) {
         case "asr":
           return <ASRTry languages={languages} serviceId={serviceId} />;
@@ -138,7 +144,7 @@ export default function ViewService() {
                     Try it out here!
                   </Heading>
                 </Box>
-                {languages && renderTryIt(serviceInfo["model"]["task"]["type"])}
+                {renderTryIt(serviceInfo["model"]["task"]["type"])}
               </Stack>
             </GridItem>
           </Grid>
@@ -188,7 +194,7 @@ export default function ViewService() {
                     Try it out here!
                   </Heading>
                 </Box>
-                {languages && renderTryIt(serviceInfo["model"]["task"]["type"])}
+                {renderTryIt(serviceInfo["model"]["task"]["type"])}
               </Stack>
             </GridItem>
           </Grid>

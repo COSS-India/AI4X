@@ -14,6 +14,7 @@ from exception.base_error import BaseError
 from exception.client_error import ClientError
 from exception.null_value_error import NullValueError
 from fastapi import Depends, Request, status
+from fastapi.logger import logger
 from pydub import AudioSegment
 from schema.services.common import (
     LANG_CODE_TO_SCRIPT_CODE,
@@ -671,6 +672,21 @@ class InferenceService:
     ) -> ULCAPipelineInferenceResponse:
         results = []
 
+        # Handle special pipeline tasks that have dedicated methods
+        # Check if this is a single txt-lang-detection task
+        if (
+            len(request_body.pipelineTasks) == 1
+            and (
+                request_body.pipelineTasks[0].taskType == _ULCATaskType.TXT_LANG_DETECTION
+                or request_body.pipelineTasks[0].taskType == "txt-lang-detection"
+            )
+        ):
+            return await self.run_pipeline_text_lang_detection_inference(
+                request_body,
+                request_state.state.api_key_name,
+                request_state.state.user_id,
+            )
+
         # Check if the pipeline construction is valid
         is_pipeline_valid = True
         for i in range(len(request_body.pipelineTasks) - 1):
@@ -931,6 +947,10 @@ class InferenceService:
                     serviceId = "ai4bharat/indic-tts-coqui-misc-gpu--t4"
                 else:
                     serviceId = "ai4bharat/indic-tts-coqui-indo_aryan-gpu--t4"
+            case _ULCATaskType.TXT_LANG_DETECTION:
+                # txt-lang-detection requires serviceId to be provided in config
+                # This should not be called if serviceId is provided
+                raise BaseError(Errors.DHRUVA115.value, "ServiceId must be provided for txt-lang-detection")
             case _:
                 raise BaseError(Errors.DHRUVA115.value)
 
@@ -1102,26 +1122,73 @@ class InferenceService:
         user_id: str,
     ) -> ULCAPipelineInferenceResponse:
         """Pipeline text language detection inference using Triton"""
+        # Mapping from IndicLID codes to full language names
+        INDICLID_TO_LANGUAGE = {
+            "asm_Beng": "Assamese (Bengali script)",
+            "asm_Latn": "Assamese (Latin script)",
+            "ben_Beng": "Bangla (Bengali script)",
+            "ben_Latn": "Bangla (Latin script)",
+            "brx_Deva": "Bodo (Devanagari script)",
+            "brx_Latn": "Bodo (Latin script)",
+            "doi_Deva": "Dogri (Devanagari script)",
+            "doi_Latn": "Dogri (Latin script)",
+            "eng_Latn": "English",
+            "guj_Gujr": "Gujarati (Gujarati script)",
+            "guj_Latn": "Gujarati (Latin script)",
+            "hin_Deva": "Hindi",
+            "hin_Latn": "Hindi (Latin script)",
+            "kan_Knda": "Kannada",
+            "kan_Latn": "Kannada (Latin script)",
+            "kas_Arab": "Kashmiri (Perso_Arabic script)",
+            "kas_Deva": "Kashmiri (Devanagari script)",
+            "kas_Latn": "Kashmiri (Latin script)",
+            "kok_Deva": "Konkani (Devanagari script)",
+            "kok_Latn": "Konkani (Latin script)",
+            "mai_Deva": "Maithili (Devanagari script)",
+            "mai_Latn": "Maithili (Latin script)",
+            "mal_Mlym": "Malayalam",
+            "mal_Latn": "Malayalam (Latin script)",
+            "mni_Beng": "Manipuri (Bengali script)",
+            "mni_Meti": "Manipuri (Meetei_Mayek script)",
+            "mni_Latn": "Manipuri (Latin script)",
+            "mar_Deva": "Marathi",
+            "mar_Latn": "Marathi (Latin script)",
+            "nep_Deva": "Nepali",
+            "nep_Latn": "Nepali (Latin script)",
+            "ori_Orya": "Oriya",
+            "ori_Latn": "Oriya (Latin script)",
+            "pan_Guru": "Punjabi",
+            "pan_Latn": "Punjabi (Latin script)",
+            "san_Deva": "Sanskrit (Devanagari script)",
+            "san_Latn": "Sanskrit (Latin script)",
+            "sat_Olch": "Santali (Ol_Chiki script)",
+            "snd_Arab": "Sindhi (Perso_Arabic script)",
+            "snd_Latn": "Sindhi (Latin script)",
+            "tam_Tamil": "Tamil",
+            "tam_Latn": "Tamil (Latin script)",
+            "tel_Telu": "Telugu",
+            "tel_Latn": "Telugu (Latin script)",
+            "urd_Arab": "Urdu",
+            "urd_Latn": "Urdu (Latin script)",
+            "other": "Other",
+        }
+        
         pipeline_responses = []
         
         for task in request_body.pipelineTasks:
             if task.taskType == "txt-lang-detection":
                 serviceId = task.config.get("serviceId")
                 
-                # Try to validate service, but continue with mock if not found (for testing)
-                try:
-                    service: Service = validate_service_id(serviceId, self.service_repository)  # type: ignore
-                    headers = {"Authorization": "Bearer " + service.api_key}
-                except (ClientError, BaseError):
-                    # Service not found in DB - use mock for testing
-                    service = None  # type: ignore
-                    headers = {"Authorization": "Bearer mock_api_key"}
+                # Validate service - must exist in DB to get endpoint URL
+                service: Service = validate_service_id(serviceId, self.service_repository)  # type: ignore
+                # Only Content-Type header required, no authorization needed
+                headers = {"Content-Type": "application/json"}
                 
                 INFERENCE_REQUEST_COUNT.labels(
                     api_key_name,
                     user_id,
                     serviceId,
-                    "txt-lang-detection",
+                    "indiclid",
                     "",
                     "",
                 ).inc()
@@ -1129,47 +1196,132 @@ class InferenceService:
                 # Extract input data
                 input_list = request_body.inputData.input if request_body.inputData.input else []
                 
-                # TODO: Replace with actual Triton inference call when endpoint is ready
-                with INFERENCE_REQUEST_DURATION_SECONDS.labels(
-                    api_key_name,
-                    user_id,
-                    serviceId,
-                    "txt-lang-detection",
-                    "",
-                    "",
-                ).time():
-                    # Placeholder for actual Triton call
-                    # response = self.inference_gateway.send_triton_request(
-                    #     url=service.endpoint,  # Real endpoint will be used here
-                    #     model_name="text-lang-detection",
-                    #     input_list=inputs,
-                    #     output_list=outputs,
-                    #     headers=headers,
-                    # )
-                    
-                    # Temporary mock response until real endpoint is available
+                if not input_list:
+                    # If no inputs, return empty response
                     output_list = []
-                    for input_item in input_list:
-                        source_text = input_item.source if input_item.source else ""
+                else:
+                    # Prepare input texts for Triton inference
+                    # Process all inputs, keeping track of valid (non-empty) indices
+                    input_texts = []
+                    valid_indices = []
+                    
+                    for i, input_item in enumerate(input_list):
+                        source_text = input_item.source.replace("\n", " ").strip() if input_item.source else ""
+                        if source_text:
+                            input_texts.append(source_text)
+                            valid_indices.append(i)
+                    
+                    if not input_texts:
+                        # All inputs are empty
+                        output_list = [
+                            {
+                                "source": input_item.source if input_item.source else "",
+                                "langPrediction": []
+                            }
+                            for input_item in input_list
+                        ]
+                    else:
+                        # Prepare inputs and outputs for Triton
+                        inputs, outputs = self.triton_utils_service.get_text_lang_detection_io_for_triton(
+                            input_texts
+                        )
                         
-                        # Simple script detection for mock
-                        if any('\u0B80' <= char <= '\u0BFF' for char in source_text):
-                            lang_code, script_code = "ta", "Taml"
-                        elif any('\u0900' <= char <= '\u097F' for char in source_text):
-                            lang_code, script_code = "hi", "Deva"
-                        else:
-                            lang_code, script_code = "en", "Latn"
+                        with INFERENCE_REQUEST_DURATION_SECONDS.labels(
+                            api_key_name,
+                            user_id,
+                            serviceId,
+                            "indiclid",
+                            "",
+                            "",
+                        ).time():
+                            # Call Triton inference with model name 'indiclid'
+                            response = self.inference_gateway.send_triton_request(
+                                url=service.endpoint,
+                                model_name="indiclid",
+                                input_list=inputs,
+                                output_list=outputs,
+                                headers=headers,
+                            )
                         
-                        output_list.append({
-                            "source": source_text,
-                            "langPrediction": [
-                                {
-                                    "langCode": lang_code,
-                                    "scriptCode": script_code,
-                                    "langScore": "0.95"
-                                }
-                            ]
-                        })
+                        # Parse Triton response
+                        # Response structure: {"outputs": [{"data": ["{...json string...}"]}]}
+                        encoded_result = response.as_numpy("OUTPUT_TEXT")
+                        if encoded_result is None:
+                            encoded_result = np.array([])
+                        
+                        # Parse JSON responses from Triton
+                        # Each result is a JSON string containing: input, langCode, confidence, model
+                        lang_detection_results = {}  # Map from valid index to detection result
+                        if encoded_result.size > 0:
+                            result_list = encoded_result.tolist()
+                            for idx, result_row in enumerate(result_list):
+                                if idx < len(valid_indices):
+                                    original_idx = valid_indices[idx]
+                                    if result_row and len(result_row) > 0:
+                                        # Extract JSON string from response
+                                        json_str = result_row[0].decode("utf-8") if isinstance(result_row[0], bytes) else str(result_row[0])
+                                        try:
+                                            # Parse JSON string
+                                            detection_data = json.loads(json_str)
+                                            lang_detection_results[original_idx] = {
+                                                "langCode": detection_data.get("langCode", ""),
+                                                "confidence": detection_data.get("confidence", 0.0),
+                                                "model": detection_data.get("model", "")
+                                            }
+                                        except (json.JSONDecodeError, KeyError) as e:
+                                            # If JSON parsing fails, skip this result
+                                            logger.error(f"Failed to parse language detection result: {e}")
+                                            lang_detection_results[original_idx] = {
+                                                "langCode": "en",
+                                                "confidence": 0.0,
+                                                "model": ""
+                                            }
+                                    else:
+                                        # Empty result row
+                                        lang_detection_results[original_idx] = {
+                                            "langCode": "en",
+                                            "confidence": 0.0,
+                                            "model": ""
+                                        }
+                        
+                        # Format output - split langCode into language and script if format is "lang_script"
+                        output_list = []
+                        for i, input_item in enumerate(input_list):
+                            source_text = input_item.source if input_item.source else ""
+                            
+                            if i in lang_detection_results:
+                                detection = lang_detection_results[i]
+                                lang_code_full = detection["langCode"]
+                                confidence = detection["confidence"]
+                                
+                                # Split langCode if it's in format "lang_script" (e.g., "eng_Latn")
+                                # Otherwise use langCode as-is for both language and script
+                                if "_" in lang_code_full:
+                                    lang_code, script_code = lang_code_full.split("_", 1)
+                                else:
+                                    lang_code = lang_code_full
+                                    script_code = lang_code_full  # Use same value if no script specified
+                                
+                                # Get full language name from mapping
+                                language_name = INDICLID_TO_LANGUAGE.get(lang_code_full, "Other")
+                                
+                                output_list.append({
+                                    "source": source_text,
+                                    "langPrediction": [
+                                        {
+                                            "langCode": lang_code,
+                                            "scriptCode": script_code,
+                                            "langScore": str(confidence),
+                                            "language": language_name
+                                        }
+                                    ]
+                                })
+                            else:
+                                # Empty or invalid input
+                                output_list.append({
+                                    "source": source_text,
+                                    "langPrediction": []
+                                })
                 
                 pipeline_responses.append({
                     "taskType": "txt-lang-detection",

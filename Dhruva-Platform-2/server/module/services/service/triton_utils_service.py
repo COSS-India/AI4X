@@ -138,6 +138,23 @@ class TritonUtilsService:
 
         return inputs, outputs
 
+    def get_text_lang_detection_io_for_triton(self, texts: list):
+        """
+        Prepare inputs and outputs for text language detection inference.
+        
+        Args:
+            texts: List of text strings to detect language for
+            
+        Returns:
+            tuple: (inputs, outputs) for Triton inference
+        """
+        # Format texts as nested list: [[text1], [text2], ...] for shape [batch_size, 1]
+        inputs = [
+            self.get_string_tensor([[text] for text in texts], "INPUT_TEXT")
+        ]
+        outputs = [http_client.InferRequestedOutput("OUTPUT_TEXT")]
+        return inputs, outputs
+
     def __pad_batch(self, batch_data: List):
         batch_data_lens = np.asarray([len(data) for data in batch_data], dtype=np.int32)
         max_length = max(batch_data_lens)

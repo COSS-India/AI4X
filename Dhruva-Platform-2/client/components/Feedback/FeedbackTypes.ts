@@ -15,6 +15,7 @@ export enum ULCATaskType {
   TRANSLITERATION = "transliteration",
   NER = "ner",
   TEXT_GENERATION = "text-generation",
+  TXT_LANG_DETECTION = "txt-lang-detection",
   // STS = "sts", // TODO: Remove
 }
 
