@@ -587,7 +587,7 @@ class InferenceService:
             for input in request_body.input
         ]
         inputs, outputs = self.triton_utils_service.get_ner_io_for_triton(
-            input_texts, language, model_name
+            input_texts, language
         )
 
         # # TODO: Replace with real deployments
@@ -612,12 +612,153 @@ class InferenceService:
         encoded_result = response.as_numpy("OUTPUT_TEXT")
         if encoded_result is None:
             encoded_result = np.array([np.array([])])
+        
+        # Decode bytes properly
         encoded_result = encoded_result.tolist()
-        decoded_result = encoded_result.decode("utf-8")
-        decoded_json_data = json.loads(decoded_result)
-
-        final_result = [result["output"][0] for result in decoded_json_data]
-        final_service_result =  ULCANerInferenceResponse(output=final_result)
+        raw_data = encoded_result[0] if isinstance(encoded_result, list) else encoded_result
+        
+        # Decode bytes to string
+        if isinstance(raw_data, bytes):
+            decoded_str = raw_data.decode("utf-8")
+        else:
+            decoded_str = str(raw_data)
+        
+        # Handle the case where Triton returns string like "[b'{...}']"
+        # Remove the [b' prefix and '] suffix if present
+        if decoded_str.startswith("[b'") and decoded_str.endswith("']"):
+            decoded_str = decoded_str[3:-2]
+        elif decoded_str.startswith("[b\"") and decoded_str.endswith("\"]"):
+            decoded_str = decoded_str[3:-2]
+        
+        # Decode escaped backslashes and unicode
+        decoded_str = decoded_str.replace('\\\\', '\\')
+        
+        # Parse the JSON from Triton
+        parsed_data = json.loads(decoded_str)
+        
+        # Handle different response structures
+        # If parsed_data has 'output' key, use it; otherwise, wrap parsed_data itself
+        if isinstance(parsed_data, dict) and "output" in parsed_data:
+            raw_output = parsed_data["output"]
+        elif isinstance(parsed_data, dict):
+            # If it's a dict with source and nerPrediction, wrap it in a list
+            raw_output = [parsed_data]
+        else:
+            # If it's already a list, use it directly
+            raw_output = parsed_data if isinstance(parsed_data, list) else [parsed_data]
+        
+        # Map Triton response to expected schema
+        final_result = []
+        for item in raw_output:
+            source_text = item.get("source", "")
+            ner_predictions_raw = item.get("nerPrediction", [])
+            
+            # Split source text into words
+            words = source_text.split()
+            word_positions = []
+            pos = 0
+            for word in words:
+                word_start = source_text.find(word, pos)
+                word_positions.append({
+                    "word": word,
+                    "start": word_start,
+                    "end": word_start + len(word)
+                })
+                pos = word_start + len(word)
+            
+            # Debug: Print raw predictions to console
+            print(f"=" * 80)
+            print(f"DEBUG NER - Source: {source_text}")
+            print(f"DEBUG NER - Raw predictions ({len(ner_predictions_raw)} items):")
+            for idx, pred in enumerate(ner_predictions_raw):
+                entity = pred.get("entity", "")
+                tag = pred.get("class", "")
+                print(f"  {idx}: entity='{entity}' (len={len(entity)}, first_char='{entity[0] if entity else ''}') tag={tag}")
+            
+            # Create merged prediction groups (merge subword tokens with ##)
+            prediction_groups = []
+            i = 0
+            while i < len(ner_predictions_raw):
+                pred = ner_predictions_raw[i]
+                entity = pred.get("entity", "")
+                tag = pred.get("class", "O")
+                
+                if not entity:
+                    i += 1
+                    continue
+                
+                # Build merged entity - just track the tag
+                j = i + 1
+                while j < len(ner_predictions_raw):
+                    next_entity = ner_predictions_raw[j].get("entity", "")
+                    if next_entity.startswith("##"):
+                        j += 1
+                    else:
+                        break
+                
+                prediction_groups.append({
+                    "tag": tag,
+                    "first_char": entity[0] if entity else ""
+                })
+                i = j
+            
+            print(f"DEBUG NER - Prediction groups ({len(prediction_groups)} groups):")
+            for idx, grp in enumerate(prediction_groups):
+                print(f"  {idx}: first_char='{grp['first_char']}' tag={grp['tag']}")
+            
+            print(f"DEBUG NER - Words:")
+            for idx, word_pos in enumerate(word_positions):
+                print(f"  {idx}: word='{word_pos['word']}' first_char='{word_pos['word'][0] if word_pos['word'] else ''}'")
+            print("=" * 80)
+            
+            # Map predictions to words with improved matching
+            # Create a mapping of which prediction goes to which word
+            word_to_pred = {}  # word_idx -> prediction_group
+            used_predictions = set()
+            
+            # For each prediction, find the best matching word
+            for pred_idx, pred_group in enumerate(prediction_groups):
+                pred_first_char = pred_group["first_char"]
+                
+                # Find the first unused word that starts with this character
+                for word_idx, word_info in enumerate(word_positions):
+                    word = word_info["word"]
+                    
+                    # Check if word matches and hasn't been assigned yet
+                    if (word_idx not in word_to_pred and 
+                        word and pred_first_char and 
+                        word[0] == pred_first_char and
+                        pred_idx not in used_predictions):
+                        
+                        word_to_pred[word_idx] = pred_group
+                        used_predictions.add(pred_idx)
+                        break
+            
+            # Build final predictions for all words
+            ner_predictions_mapped = []
+            for word_idx, word_info in enumerate(word_positions):
+                word = word_info["word"]
+                
+                # Check if this word has a prediction assigned
+                if word_idx in word_to_pred:
+                    assigned_tag = word_to_pred[word_idx]["tag"]
+                else:
+                    assigned_tag = "O"
+                
+                ner_predictions_mapped.append({
+                    "token": word,
+                    "tag": assigned_tag,
+                    "tokenIndex": word_idx,
+                    "tokenStartIndex": word_info["start"],
+                    "tokenEndIndex": word_info["end"]
+                })
+            
+            final_result.append({
+                "source": source_text,
+                "nerPrediction": ner_predictions_mapped
+            })
+        
+        final_service_result = ULCANerInferenceResponse(output=final_result)
 
         return final_service_result
 
