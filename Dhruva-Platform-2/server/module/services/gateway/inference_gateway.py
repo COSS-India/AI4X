@@ -1,6 +1,7 @@
 import traceback
 from typing import Any
 import os
+from urllib.parse import urlparse
 
 import gevent.ssl
 import requests
@@ -16,7 +17,9 @@ from ..model import Service
 class InferenceGateway:
     def __init__(self):
         # Get Triton endpoint from environment variable or use default
-        self.triton_endpoint = os.getenv("TRITON_ENDPOINT", "http://localhost:8000")
+        triton_endpoint_raw = os.getenv("TRITON_ENDPOINT", "http://localhost:8000")
+        # Store the raw endpoint for logging, but we'll parse it when needed
+        self.triton_endpoint = triton_endpoint_raw
         self.use_aws_triton = os.getenv("USE_AWS_TRITON", "false").lower() == "true"
         logger.info(f"Initialized InferenceGateway with Triton endpoint: {self.triton_endpoint}")
 
@@ -61,6 +64,22 @@ class InferenceGateway:
         try:
             # Use AWS Triton endpoint if configured
             endpoint = self.triton_endpoint if self.use_aws_triton else url
+            
+            # Triton client requires URL without scheme (e.g., "host:port" not "http://host:port")
+            # Parse and extract host:port if URL contains scheme
+            if endpoint.startswith(("http://", "https://")):
+                parsed = urlparse(endpoint)
+                if parsed.port:
+                    endpoint = f"{parsed.hostname}:{parsed.port}"
+                elif parsed.hostname:
+                    # Use hostname only if no port specified (Triton will use default)
+                    endpoint = parsed.hostname
+                else:
+                    endpoint = endpoint.split("://", 1)[1]  # Fallback: just remove scheme
+            elif "://" in endpoint:
+                # Handle other schemes by removing them
+                endpoint = endpoint.split("://", 1)[1]
+            
             logger.info(f"Using Triton endpoint: {endpoint} for model: {model_name}")
 
             triton_client = http_client.InferenceServerClient(

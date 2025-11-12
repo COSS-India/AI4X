@@ -14,6 +14,7 @@ from exception.base_error import BaseError
 from exception.client_error import ClientError
 from exception.null_value_error import NullValueError
 from fastapi import Depends, Request, status
+from fastapi.logger import logger
 from pydub import AudioSegment
 from schema.services.common import (
     LANG_CODE_TO_SCRIPT_CODE,
@@ -581,21 +582,186 @@ class InferenceService:
 
         service: Service = validate_service_id(serviceId, self.service_repository)  # type: ignore
         headers = {"Authorization": "Bearer " + service.api_key}
+        language = request_body.config.language.sourceLanguage
+        input_texts = [
+            input.source.replace("\n", " ").strip() if input.source else " "
+            for input in request_body.input
+        ]
+        inputs, outputs = self.triton_utils_service.get_ner_io_for_triton(
+            input_texts, language
+        )
 
-        # TODO: Replace with real deployments
-        with INFERENCE_REQUEST_DURATION_SECONDS.labels(
-            api_key_name,
-            user_id,
-            request_body.config.serviceId,
-            "ner",
-            request_body.config.language.sourceLanguage,
-            None,
-        ).time():
-            res = self.inference_gateway.send_inference_request(
-                request_body=request_body, service=service
-            )
+        # # TODO: Replace with real deployments
+        # with INFERENCE_REQUEST_DURATION_SECONDS.labels(
+        #     api_key_name,
+        #     user_id,
+        #     request_body.config.serviceId,
+        #     "ner",
+        #     request_body.config.language.sourceLanguage,
+        #     None,
+        # ).time():
+        #     res = self.inference_gateway.send_inference_request(
+        #         request_body=request_body, service=service
+        #     )
+        response = self.inference_gateway.send_triton_request(
+            url=service.endpoint,
+            model_name="ner",
+            input_list=inputs,
+            output_list=outputs,
+            headers=headers,
+        )
+        encoded_result = response.as_numpy("OUTPUT_TEXT")
+        if encoded_result is None:
+            encoded_result = np.array([np.array([])])
+        
+        # Decode bytes properly
+        encoded_result = encoded_result.tolist()
+        raw_data = encoded_result[0] if isinstance(encoded_result, list) else encoded_result
+        
+        # Decode bytes to string
+        if isinstance(raw_data, bytes):
+            decoded_str = raw_data.decode("utf-8")
+        else:
+            decoded_str = str(raw_data)
+        
+        # Handle the case where Triton returns string like "[b'{...}']"
+        # Remove the [b' prefix and '] suffix if present
+        if decoded_str.startswith("[b'") and decoded_str.endswith("']"):
+            decoded_str = decoded_str[3:-2]
+        elif decoded_str.startswith("[b\"") and decoded_str.endswith("\"]"):
+            decoded_str = decoded_str[3:-2]
+        
+        # Decode escaped backslashes and unicode
+        decoded_str = decoded_str.replace('\\\\', '\\')
+        
+        # Parse the JSON from Triton
+        parsed_data = json.loads(decoded_str)
+        
+        # Handle different response structures
+        # If parsed_data has 'output' key, use it; otherwise, wrap parsed_data itself
+        if isinstance(parsed_data, dict) and "output" in parsed_data:
+            raw_output = parsed_data["output"]
+        elif isinstance(parsed_data, dict):
+            # If it's a dict with source and nerPrediction, wrap it in a list
+            raw_output = [parsed_data]
+        else:
+            # If it's already a list, use it directly
+            raw_output = parsed_data if isinstance(parsed_data, list) else [parsed_data]
+        
+        # Map Triton response to expected schema
+        final_result = []
+        for item in raw_output:
+            source_text = item.get("source", "")
+            ner_predictions_raw = item.get("nerPrediction", [])
+            
+            # Split source text into words
+            words = source_text.split()
+            word_positions = []
+            pos = 0
+            for word in words:
+                word_start = source_text.find(word, pos)
+                word_positions.append({
+                    "word": word,
+                    "start": word_start,
+                    "end": word_start + len(word)
+                })
+                pos = word_start + len(word)
+            
+            # Debug: Print raw predictions to console
+            print(f"=" * 80)
+            print(f"DEBUG NER - Source: {source_text}")
+            print(f"DEBUG NER - Raw predictions ({len(ner_predictions_raw)} items):")
+            for idx, pred in enumerate(ner_predictions_raw):
+                entity = pred.get("entity", "")
+                tag = pred.get("class", "")
+                print(f"  {idx}: entity='{entity}' (len={len(entity)}, first_char='{entity[0] if entity else ''}') tag={tag}")
+            
+            # Create merged prediction groups (merge subword tokens with ##)
+            prediction_groups = []
+            i = 0
+            while i < len(ner_predictions_raw):
+                pred = ner_predictions_raw[i]
+                entity = pred.get("entity", "")
+                tag = pred.get("class", "O")
+                
+                if not entity:
+                    i += 1
+                    continue
+                
+                # Build merged entity - just track the tag
+                j = i + 1
+                while j < len(ner_predictions_raw):
+                    next_entity = ner_predictions_raw[j].get("entity", "")
+                    if next_entity.startswith("##"):
+                        j += 1
+                    else:
+                        break
+                
+                prediction_groups.append({
+                    "tag": tag,
+                    "first_char": entity[0] if entity else ""
+                })
+                i = j
+            
+            print(f"DEBUG NER - Prediction groups ({len(prediction_groups)} groups):")
+            for idx, grp in enumerate(prediction_groups):
+                print(f"  {idx}: first_char='{grp['first_char']}' tag={grp['tag']}")
+            
+            print(f"DEBUG NER - Words:")
+            for idx, word_pos in enumerate(word_positions):
+                print(f"  {idx}: word='{word_pos['word']}' first_char='{word_pos['word'][0] if word_pos['word'] else ''}'")
+            print("=" * 80)
+            
+            # Map predictions to words with improved matching
+            # Create a mapping of which prediction goes to which word
+            word_to_pred = {}  # word_idx -> prediction_group
+            used_predictions = set()
+            
+            # For each prediction, find the best matching word
+            for pred_idx, pred_group in enumerate(prediction_groups):
+                pred_first_char = pred_group["first_char"]
+                
+                # Find the first unused word that starts with this character
+                for word_idx, word_info in enumerate(word_positions):
+                    word = word_info["word"]
+                    
+                    # Check if word matches and hasn't been assigned yet
+                    if (word_idx not in word_to_pred and 
+                        word and pred_first_char and 
+                        word[0] == pred_first_char and
+                        pred_idx not in used_predictions):
+                        
+                        word_to_pred[word_idx] = pred_group
+                        used_predictions.add(pred_idx)
+                        break
+            
+            # Build final predictions for all words
+            ner_predictions_mapped = []
+            for word_idx, word_info in enumerate(word_positions):
+                word = word_info["word"]
+                
+                # Check if this word has a prediction assigned
+                if word_idx in word_to_pred:
+                    assigned_tag = word_to_pred[word_idx]["tag"]
+                else:
+                    assigned_tag = "O"
+                
+                ner_predictions_mapped.append({
+                    "token": word,
+                    "tag": assigned_tag,
+                    "tokenIndex": word_idx,
+                    "tokenStartIndex": word_info["start"],
+                    "tokenEndIndex": word_info["end"]
+                })
+            
+            final_result.append({
+                "source": source_text,
+                "nerPrediction": ner_predictions_mapped
+            })
+        
+        final_service_result = ULCANerInferenceResponse(output=final_result)
 
-        return ULCANerInferenceResponse(**res)
+        return final_service_result
 
     async def run_vad_triton_inference(
         self, request_body: ULCAVadInferenceRequest, api_key_name: str, user_id: str
@@ -670,6 +836,21 @@ class InferenceService:
         request_state: Request,  # for request state
     ) -> ULCAPipelineInferenceResponse:
         results = []
+
+        # Handle special pipeline tasks that have dedicated methods
+        # Check if this is a single txt-lang-detection task
+        if (
+            len(request_body.pipelineTasks) == 1
+            and (
+                request_body.pipelineTasks[0].taskType == _ULCATaskType.TXT_LANG_DETECTION
+                or request_body.pipelineTasks[0].taskType == "txt-lang-detection"
+            )
+        ):
+            return await self.run_pipeline_text_lang_detection_inference(
+                request_body,
+                request_state.state.api_key_name,
+                request_state.state.user_id,
+            )
 
         # Check if the pipeline construction is valid
         is_pipeline_valid = True
@@ -931,6 +1112,10 @@ class InferenceService:
                     serviceId = "ai4bharat/indic-tts-coqui-misc-gpu--t4"
                 else:
                     serviceId = "ai4bharat/indic-tts-coqui-indo_aryan-gpu--t4"
+            case _ULCATaskType.TXT_LANG_DETECTION:
+                # txt-lang-detection requires serviceId to be provided in config
+                # This should not be called if serviceId is provided
+                raise BaseError(Errors.DHRUVA115.value, "ServiceId must be provided for txt-lang-detection")
             case _:
                 raise BaseError(Errors.DHRUVA115.value)
 
@@ -1102,26 +1287,73 @@ class InferenceService:
         user_id: str,
     ) -> ULCAPipelineInferenceResponse:
         """Pipeline text language detection inference using Triton"""
+        # Mapping from IndicLID codes to full language names
+        INDICLID_TO_LANGUAGE = {
+            "asm_Beng": "Assamese (Bengali script)",
+            "asm_Latn": "Assamese (Latin script)",
+            "ben_Beng": "Bangla (Bengali script)",
+            "ben_Latn": "Bangla (Latin script)",
+            "brx_Deva": "Bodo (Devanagari script)",
+            "brx_Latn": "Bodo (Latin script)",
+            "doi_Deva": "Dogri (Devanagari script)",
+            "doi_Latn": "Dogri (Latin script)",
+            "eng_Latn": "English",
+            "guj_Gujr": "Gujarati (Gujarati script)",
+            "guj_Latn": "Gujarati (Latin script)",
+            "hin_Deva": "Hindi",
+            "hin_Latn": "Hindi (Latin script)",
+            "kan_Knda": "Kannada",
+            "kan_Latn": "Kannada (Latin script)",
+            "kas_Arab": "Kashmiri (Perso_Arabic script)",
+            "kas_Deva": "Kashmiri (Devanagari script)",
+            "kas_Latn": "Kashmiri (Latin script)",
+            "kok_Deva": "Konkani (Devanagari script)",
+            "kok_Latn": "Konkani (Latin script)",
+            "mai_Deva": "Maithili (Devanagari script)",
+            "mai_Latn": "Maithili (Latin script)",
+            "mal_Mlym": "Malayalam",
+            "mal_Latn": "Malayalam (Latin script)",
+            "mni_Beng": "Manipuri (Bengali script)",
+            "mni_Meti": "Manipuri (Meetei_Mayek script)",
+            "mni_Latn": "Manipuri (Latin script)",
+            "mar_Deva": "Marathi",
+            "mar_Latn": "Marathi (Latin script)",
+            "nep_Deva": "Nepali",
+            "nep_Latn": "Nepali (Latin script)",
+            "ori_Orya": "Oriya",
+            "ori_Latn": "Oriya (Latin script)",
+            "pan_Guru": "Punjabi",
+            "pan_Latn": "Punjabi (Latin script)",
+            "san_Deva": "Sanskrit (Devanagari script)",
+            "san_Latn": "Sanskrit (Latin script)",
+            "sat_Olch": "Santali (Ol_Chiki script)",
+            "snd_Arab": "Sindhi (Perso_Arabic script)",
+            "snd_Latn": "Sindhi (Latin script)",
+            "tam_Tamil": "Tamil",
+            "tam_Latn": "Tamil (Latin script)",
+            "tel_Telu": "Telugu",
+            "tel_Latn": "Telugu (Latin script)",
+            "urd_Arab": "Urdu",
+            "urd_Latn": "Urdu (Latin script)",
+            "other": "Other",
+        }
+        
         pipeline_responses = []
         
         for task in request_body.pipelineTasks:
             if task.taskType == "txt-lang-detection":
                 serviceId = task.config.get("serviceId")
                 
-                # Try to validate service, but continue with mock if not found (for testing)
-                try:
-                    service: Service = validate_service_id(serviceId, self.service_repository)  # type: ignore
-                    headers = {"Authorization": "Bearer " + service.api_key}
-                except (ClientError, BaseError):
-                    # Service not found in DB - use mock for testing
-                    service = None  # type: ignore
-                    headers = {"Authorization": "Bearer mock_api_key"}
+                # Validate service - must exist in DB to get endpoint URL
+                service: Service = validate_service_id(serviceId, self.service_repository)  # type: ignore
+                # Only Content-Type header required, no authorization needed
+                headers = {"Content-Type": "application/json"}
                 
                 INFERENCE_REQUEST_COUNT.labels(
                     api_key_name,
                     user_id,
                     serviceId,
-                    "txt-lang-detection",
+                    "indiclid",
                     "",
                     "",
                 ).inc()
@@ -1129,47 +1361,132 @@ class InferenceService:
                 # Extract input data
                 input_list = request_body.inputData.input if request_body.inputData.input else []
                 
-                # TODO: Replace with actual Triton inference call when endpoint is ready
-                with INFERENCE_REQUEST_DURATION_SECONDS.labels(
-                    api_key_name,
-                    user_id,
-                    serviceId,
-                    "txt-lang-detection",
-                    "",
-                    "",
-                ).time():
-                    # Placeholder for actual Triton call
-                    # response = self.inference_gateway.send_triton_request(
-                    #     url=service.endpoint,  # Real endpoint will be used here
-                    #     model_name="text-lang-detection",
-                    #     input_list=inputs,
-                    #     output_list=outputs,
-                    #     headers=headers,
-                    # )
-                    
-                    # Temporary mock response until real endpoint is available
+                if not input_list:
+                    # If no inputs, return empty response
                     output_list = []
-                    for input_item in input_list:
-                        source_text = input_item.source if input_item.source else ""
+                else:
+                    # Prepare input texts for Triton inference
+                    # Process all inputs, keeping track of valid (non-empty) indices
+                    input_texts = []
+                    valid_indices = []
+                    
+                    for i, input_item in enumerate(input_list):
+                        source_text = input_item.source.replace("\n", " ").strip() if input_item.source else ""
+                        if source_text:
+                            input_texts.append(source_text)
+                            valid_indices.append(i)
+                    
+                    if not input_texts:
+                        # All inputs are empty
+                        output_list = [
+                            {
+                                "source": input_item.source if input_item.source else "",
+                                "langPrediction": []
+                            }
+                            for input_item in input_list
+                        ]
+                    else:
+                        # Prepare inputs and outputs for Triton
+                        inputs, outputs = self.triton_utils_service.get_text_lang_detection_io_for_triton(
+                            input_texts
+                        )
                         
-                        # Simple script detection for mock
-                        if any('\u0B80' <= char <= '\u0BFF' for char in source_text):
-                            lang_code, script_code = "ta", "Taml"
-                        elif any('\u0900' <= char <= '\u097F' for char in source_text):
-                            lang_code, script_code = "hi", "Deva"
-                        else:
-                            lang_code, script_code = "en", "Latn"
+                        with INFERENCE_REQUEST_DURATION_SECONDS.labels(
+                            api_key_name,
+                            user_id,
+                            serviceId,
+                            "indiclid",
+                            "",
+                            "",
+                        ).time():
+                            # Call Triton inference with model name 'indiclid'
+                            response = self.inference_gateway.send_triton_request(
+                                url=service.endpoint,
+                                model_name="indiclid",
+                                input_list=inputs,
+                                output_list=outputs,
+                                headers=headers,
+                            )
                         
-                        output_list.append({
-                            "source": source_text,
-                            "langPrediction": [
-                                {
-                                    "langCode": lang_code,
-                                    "scriptCode": script_code,
-                                    "langScore": "0.95"
-                                }
-                            ]
-                        })
+                        # Parse Triton response
+                        # Response structure: {"outputs": [{"data": ["{...json string...}"]}]}
+                        encoded_result = response.as_numpy("OUTPUT_TEXT")
+                        if encoded_result is None:
+                            encoded_result = np.array([])
+                        
+                        # Parse JSON responses from Triton
+                        # Each result is a JSON string containing: input, langCode, confidence, model
+                        lang_detection_results = {}  # Map from valid index to detection result
+                        if encoded_result.size > 0:
+                            result_list = encoded_result.tolist()
+                            for idx, result_row in enumerate(result_list):
+                                if idx < len(valid_indices):
+                                    original_idx = valid_indices[idx]
+                                    if result_row and len(result_row) > 0:
+                                        # Extract JSON string from response
+                                        json_str = result_row[0].decode("utf-8") if isinstance(result_row[0], bytes) else str(result_row[0])
+                                        try:
+                                            # Parse JSON string
+                                            detection_data = json.loads(json_str)
+                                            lang_detection_results[original_idx] = {
+                                                "langCode": detection_data.get("langCode", ""),
+                                                "confidence": detection_data.get("confidence", 0.0),
+                                                "model": detection_data.get("model", "")
+                                            }
+                                        except (json.JSONDecodeError, KeyError) as e:
+                                            # If JSON parsing fails, skip this result
+                                            logger.error(f"Failed to parse language detection result: {e}")
+                                            lang_detection_results[original_idx] = {
+                                                "langCode": "en",
+                                                "confidence": 0.0,
+                                                "model": ""
+                                            }
+                                    else:
+                                        # Empty result row
+                                        lang_detection_results[original_idx] = {
+                                            "langCode": "en",
+                                            "confidence": 0.0,
+                                            "model": ""
+                                        }
+                        
+                        # Format output - split langCode into language and script if format is "lang_script"
+                        output_list = []
+                        for i, input_item in enumerate(input_list):
+                            source_text = input_item.source if input_item.source else ""
+                            
+                            if i in lang_detection_results:
+                                detection = lang_detection_results[i]
+                                lang_code_full = detection["langCode"]
+                                confidence = detection["confidence"]
+                                
+                                # Split langCode if it's in format "lang_script" (e.g., "eng_Latn")
+                                # Otherwise use langCode as-is for both language and script
+                                if "_" in lang_code_full:
+                                    lang_code, script_code = lang_code_full.split("_", 1)
+                                else:
+                                    lang_code = lang_code_full
+                                    script_code = lang_code_full  # Use same value if no script specified
+                                
+                                # Get full language name from mapping
+                                language_name = INDICLID_TO_LANGUAGE.get(lang_code_full, "Other")
+                                
+                                output_list.append({
+                                    "source": source_text,
+                                    "langPrediction": [
+                                        {
+                                            "langCode": lang_code,
+                                            "scriptCode": script_code,
+                                            "langScore": str(confidence),
+                                            "language": language_name
+                                        }
+                                    ]
+                                })
+                            else:
+                                # Empty or invalid input
+                                output_list.append({
+                                    "source": source_text,
+                                    "langPrediction": []
+                                })
                 
                 pipeline_responses.append({
                     "taskType": "txt-lang-detection",
@@ -1712,3 +2029,4 @@ class InferenceService:
                 target_language=output_language,
             ).observe(duration)
             raise BaseError(Errors.DHRUVA101.value, traceback.format_exc())
+
