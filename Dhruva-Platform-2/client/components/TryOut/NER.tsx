@@ -78,14 +78,17 @@ const NERTry: React.FC<Props> = (props) => {
       )
       .then((response) => {
         const tokens = response.data["output"][0]["nerPrediction"];
-        const tokenDictionary = {};
-        const currentTokens = tltText.split(" ");
-        currentTokens.forEach((token: any) => {
-          tokenDictionary[token] = "O";
-        });
+        
+        console.log("🔍 Backend NER Response:", tokens);
+        
+        // Backend already returns word-level tokens, just use them directly
+        const tokenDictionary: { [key: string]: string } = {};
         tokens.forEach((token: any) => {
           tokenDictionary[token["token"]] = token["tag"];
         });
+        
+        console.log("📝 Token Dictionary:", tokenDictionary);
+        
         setRequestTime(response.headers["request-duration"]);
         setNERTokens(tokenDictionary);
         setFetching(false);
@@ -183,12 +186,21 @@ const NERTry: React.FC<Props> = (props) => {
             minH={200}
           >
             {Object.entries(nerTokens).map(([token, tag], idx) => {
+              // Debug first
+              if (idx === 0) {
+                console.log("🎨 tag2Color object:", tag2Color);
+                console.log(`🔍 Looking for tag: "${tag}"`, `Found:`, tag2Color[tag]);
+              }
+              
+              // Fallback to "O" if tag is undefined or not in tag2Color
+              const safeTag = (tag && tag2Color[tag]) ? tag : "O";
+              
               return (
                 <span
                   key={idx}
                   style={{
                     padding: 3,
-                    backgroundColor: tag2Color[tag][0],
+                    backgroundColor: tag2Color[safeTag][0],
                     borderRadius: 15,
                     lineHeight: 1.8,
                     marginRight: 3,
@@ -198,12 +210,12 @@ const NERTry: React.FC<Props> = (props) => {
                   <span
                     style={{
                       padding: 3,
-                      backgroundColor: tag2Color[tag][1],
+                      backgroundColor: tag2Color[safeTag][1],
                       borderRadius: 15,
                       color: "white",
                     }}
                   >
-                    {tag}
+                    {safeTag}
                   </span>
                 </span>
               );

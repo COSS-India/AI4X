@@ -50,14 +50,19 @@ const dhruvaConfig: { [key: string]: string } = {
   nerInference: `${dhruvaRootURL}/services/inference/ner`,
 };
 
-const tag2Color = {
+
+
+const tag2Color: { [key: string]: [string, string] } = {
   "B-LOC": ["#ffcccc", "#ff0000"],
   "B-ORG": ["#cceeff", "#00aaff"],
   "B-PER": ["#d6f5d6", "#33cc33"],
   "I-LOC": ["#ffccdd", "#ff0055"],
   "I-ORG": ["#ffffcc", "#ffff00"],
   "I-PER": ["#e6ccff", "#8000ff"],
-  O: ["#ffe6cc", "#ff8000"],
+  "O": ["#ffe6cc", "#ff8000"],
+  "LOC": ["#ffcccc", "#ff0000"],
+  "ORG": ["#cceeff", "#00aaff"],
+  "PER": ["#d6f5d6", "#33cc33"],
 };
 
-export { lang2label, tag2Color,dhruvaConfig };
+export { lang2label, tag2Color, dhruvaConfig };
