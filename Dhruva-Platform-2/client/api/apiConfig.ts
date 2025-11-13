@@ -16,6 +16,7 @@ const dhruvaAPI: { [key: string]: string } = {
   nerInference: `${dhruvaRootURL}/services/inference/ner`,
   ocrInference: `${dhruvaRootURL}/services/inference/pipeline/ocr`,
   pipelineInference: `${dhruvaRootURL}/services/inference/pipeline`,
+  txtLangDetectionInference: `${dhruvaRootURL}/services/inference/pipeline/txt-lang-detection`,
   xlitInference: `${dhruvaRootURL}/services/inference/transliteration`,
   llmInference: `${dhruvaRootURL}/services/inference/llm`,
 };
