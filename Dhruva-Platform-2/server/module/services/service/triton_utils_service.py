@@ -165,6 +165,23 @@ class TritonUtilsService:
         outputs = [http_client.InferRequestedOutput("OUTPUT_TEXT")]
         return inputs, outputs
 
+    def get_ocr_io_for_triton(self, image_base64: str):
+        """
+        Prepare inputs and outputs for OCR inference with Surya.
+        
+        Args:
+            image_base64: Base64-encoded image string
+            
+        Returns:
+            tuple: (inputs, outputs) for Triton inference
+        """
+        # Shape needs to be [1, 1] for Triton (batch_size=1, num_elements=1)
+        inputs = [
+            self.get_string_tensor([[image_base64]], "IMAGE_DATA")
+        ]
+        outputs = [http_client.InferRequestedOutput("OUTPUT_TEXT")]
+        return inputs, outputs
+
     def __pad_batch(self, batch_data: List):
         batch_data_lens = np.asarray([len(data) for data in batch_data], dtype=np.int32)
         max_length = max(batch_data_lens)

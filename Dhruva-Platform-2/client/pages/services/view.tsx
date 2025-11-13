@@ -39,6 +39,7 @@ import TTSTry from "../../components/TryOut/TTS";
 import XLITTry from "../../components/TryOut/XLIT";
 import LLMTry from "../../components/TryOut/LLM";
 import TxtLangDetectTry from "../../components/TryOut/TxtLangDetect";
+import OCRTry from "../../components/TryOut/OCR";
 import useMediaQuery from "../../hooks/useMediaQuery";
 
 export default function ViewService() {
@@ -80,6 +81,8 @@ export default function ViewService() {
         //   return <STSTry languages={languages} serviceId={serviceId} />;
         case "ner":
           return <NERTry languages={languages} serviceId={serviceId} />;
+        case "ocr":
+          return <OCRTry serviceId={serviceId} />;
         case "transliteration":
           return <XLITTry languages={languages} serviceId={serviceId} />;
         case "text-generation":
