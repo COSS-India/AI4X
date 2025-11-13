@@ -15,6 +15,7 @@ from schema.services.request import (
     ULCAInferenceQuery,
     ULCALLMInferenceRequest,
     ULCANerInferenceRequest,
+    ULCAOCRInferenceRequest,
     ULCAPipelineInferenceRequest,
     ULCAS2SInferenceRequest,
     ULCATranslationInferenceRequest,
@@ -26,6 +27,7 @@ from schema.services.response import (
     ULCAAsrInferenceResponse,
     ULCALLMInferenceResponse,
     ULCANerInferenceResponse,
+    ULCAOCRInferenceResponse,
     ULCAPipelineInferenceResponse,
     ULCAS2SInferenceResponse,
     ULCATranslationInferenceResponse,
@@ -329,6 +331,25 @@ async def _run_pipeline_transliteration(
     Calls Triton inference service (currently with mock response until real endpoint is available).
     """
     return await inference_service.run_pipeline_transliteration_inference(
+        request, request_state.state.api_key_name, request_state.state.user_id
+    )
+
+
+@router.post("/ocr", response_model=ULCAOCRInferenceResponse)
+async def _run_inference_ocr(
+    request: ULCAOCRInferenceRequest,
+    request_state: Request,
+    params: ULCAInferenceQuery = Depends(),
+    inference_service: InferenceService = Depends(InferenceService),
+):
+    """
+    OCR endpoint with specific OCR request/response schema.
+    Extracts text from images using Surya OCR model via Triton.
+    """
+    if params.serviceId:
+        request.config.serviceId = params.serviceId
+
+    return await inference_service.run_ocr_triton_inference(
         request, request_state.state.api_key_name, request_state.state.user_id
     )
 

@@ -78,8 +78,30 @@ def log_data(
                 ).decode("utf-8")
         data_usage = req_body["audio"]
 
+    elif usage_type == "ocr":
+        # Extract image data from request
+        data_usage = req_body.get("image", [])
+        # If image data is not directly in request, check for nested structures
+        if not data_usage and req_body.get("inputData"):
+            data_usage = req_body["inputData"].get("image", [])
+        
+        # Download images from URIs if needed
+        for i, ele in enumerate(data_usage):
+            if ele.get("imageUri") and not ele.get("imageContent"):
+                try:
+                    data_usage[i]["imageContent"] = base64.b64encode(
+                        urlopen(ele["imageUri"]).read()
+                    ).decode("utf-8")
+                except Exception as e:
+                    logging.error(f"Failed to download image from URI: {e}")
+
+    elif usage_type == "ner":
+        data_usage = req_body["input"]
+
     else:
-        raise ValueError(f"Invalid task type: {usage_type}")
+        # Log warning but don't raise error for unsupported types
+        logging.warning(f"Unsupported task type for metering: {usage_type}")
+        data_usage = []
 
     if data_tracking_consent:
         log_to_storage(

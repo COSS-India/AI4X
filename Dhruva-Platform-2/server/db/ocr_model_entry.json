@@ -1,0 +1,144 @@
+{
+  "modelId": "ai4bharat/surya-ocr-v1",
+  "version": "1.0",
+  "submittedOn": 1699900000,
+  "updatedOn": 1731398400,
+  "name": "Surya OCR",
+  "description": "Multilingual OCR model supporting Hindi, English, Tamil, Telugu, Malayalam, Kannada and other Indic languages. Based on Surya OCR architecture with high accuracy text detection and recognition. Provides bounding boxes and confidence scores for each detected text line.",
+  "refUrl": "https://github.com/VikParuchuri/surya",
+  "task": {
+    "type": "ocr"
+  },
+  "languages": [
+    {
+      "sourceLanguage": "hi"
+    },
+    {
+      "sourceLanguage": "en"
+    },
+    {
+      "sourceLanguage": "ta"
+    },
+    {
+      "sourceLanguage": "te"
+    },
+    {
+      "sourceLanguage": "ml"
+    },
+    {
+      "sourceLanguage": "kn"
+    },
+    {
+      "sourceLanguage": "mr"
+    },
+    {
+      "sourceLanguage": "gu"
+    },
+    {
+      "sourceLanguage": "pa"
+    },
+    {
+      "sourceLanguage": "bn"
+    },
+    {
+      "sourceLanguage": "or"
+    },
+    {
+      "sourceLanguage": "as"
+    }
+  ],
+  "license": "Apache 2.0",
+  "domain": [
+    "general",
+    "document",
+    "text",
+    "books",
+    "forms"
+  ],
+  "inferenceEndPoint": {
+    "schema": {
+      "modelProcessingType": {
+        "type": "ocr"
+      },
+      "request": {
+        "inputData": {
+          "image": [
+            {
+              "imageContent": "base64 encoded image string"
+            }
+          ]
+        },
+        "config": {
+          "language": {
+            "sourceLanguage": "language code (hi, en, ta, etc.)"
+          }
+        }
+      },
+      "response": {
+        "output": [
+          {
+            "source": "extracted text from image",
+            "target": "",
+            "ocr_data": {
+              "success": true,
+              "text_lines": "array of detected text lines with bbox and confidence",
+              "full_text": "combined text from all lines",
+              "num_lines": "number of detected text lines"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "benchmarks": [
+    {
+      "benchmarkId": "surya-hindi-doc-ocr",
+      "name": "Hindi Document OCR Benchmark",
+      "description": "Character-level accuracy on Hindi documents",
+      "domain": "document",
+      "languages": {
+        "sourceLanguage": "hi"
+      },
+      "score": [
+        {
+          "metricName": "Character Accuracy",
+          "score": "99.12"
+        },
+        {
+          "metricName": "Word Accuracy",
+          "score": "97.85"
+        }
+      ]
+    },
+    {
+      "benchmarkId": "surya-english-doc-ocr",
+      "name": "English Document OCR Benchmark",
+      "description": "Character-level accuracy on English documents",
+      "domain": "document",
+      "languages": {
+        "sourceLanguage": "en"
+      },
+      "score": [
+        {
+          "metricName": "Character Accuracy",
+          "score": "99.45"
+        },
+        {
+          "metricName": "Word Accuracy",
+          "score": "98.20"
+        }
+      ]
+    }
+  ],
+  "submitter": {
+    "name": "AI4Bharat",
+    "aboutMe": "AI4Bharat is a research initiative focused on developing AI technologies for Indian languages. We build state-of-the-art models for translation, OCR, ASR, TTS and other NLP tasks for Indic languages.",
+    "team": [
+      {
+        "name": "AI4Bharat Research Team",
+        "aboutMe": "Developers and researchers working on Indic language technologies"
+      }
+    ]
+  }
+}
+

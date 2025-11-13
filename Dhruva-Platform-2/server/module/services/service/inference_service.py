@@ -32,6 +32,7 @@ from schema.services.request import (
     ULCAInferenceRequest,
     ULCALLMInferenceRequest,
     ULCANerInferenceRequest,
+    ULCAOCRInferenceRequest,
     ULCAPipelineInferenceRequest,
     ULCATranslationInferenceRequest,
     ULCATransliterationInferenceRequest,
@@ -47,6 +48,7 @@ from schema.services.response import (
     ULCAInferenceResponse,
     ULCALLMInferenceResponse,
     ULCANerInferenceResponse,
+    ULCAOCRInferenceResponse,
     ULCAPipelineInferenceResponse,
     ULCATranslationInferenceResponse,
     ULCATransliterationInferenceResponse,
@@ -1199,27 +1201,149 @@ class InferenceService:
         
         return ULCAPipelineInferenceResponse(pipelineResponse=pipeline_responses)
 
+    async def run_ocr_triton_inference(
+        self,
+        request_body: ULCAOCRInferenceRequest,
+        api_key_name: str,
+        user_id: str,
+    ) -> ULCAOCRInferenceResponse:
+        """
+        OCR inference using Triton (Surya OCR) with specific OCR schema.
+        """
+        serviceId = request_body.config.serviceId
+        source_language = request_body.config.language.sourceLanguage
+
+        # Validate service
+        service: Service = validate_service_id(serviceId, self.service_repository)  # type: ignore
+        headers = {"Authorization": "Bearer " + service.api_key}
+
+        INFERENCE_REQUEST_COUNT.labels(
+            api_key_name,
+            user_id,
+            serviceId,
+            "ocr",
+            source_language,
+            "",
+        ).inc()
+
+        output_list = []
+
+        with INFERENCE_REQUEST_DURATION_SECONDS.labels(
+            api_key_name,
+            user_id,
+            serviceId,
+            "ocr",
+            source_language,
+            "",
+        ).time():
+            for image_item in request_body.image:
+                # Get base64 image content
+                image_base64 = None
+
+                if image_item.imageContent:
+                    # Direct base64 content
+                    image_base64 = image_item.imageContent
+                elif image_item.imageUri:
+                    # Download from URL and convert to base64
+                    try:
+                        import requests as req
+                        response = req.get(str(image_item.imageUri), timeout=30)
+                        image_base64 = base64.b64encode(response.content).decode('utf-8')
+                    except Exception as e:
+                        logger.error(f"Failed to download image from URI: {str(e)}")
+                        output_list.append({
+                            "source": "",
+                            "target": ""
+                        })
+                        continue
+
+                if not image_base64:
+                    # Skip if no image data
+                    output_list.append({
+                        "source": "",
+                        "target": ""
+                    })
+                    continue
+
+                # Prepare Triton inputs/outputs
+                inputs, outputs = self.triton_utils_service.get_ocr_io_for_triton(
+                    image_base64
+                )
+
+                # Send to Triton (Surya OCR)
+                response = self.inference_gateway.send_triton_request(
+                    url=service.endpoint,
+                    model_name="surya_ocr",
+                    input_list=inputs,
+                    output_list=outputs,
+                    headers=headers,
+                )
+
+                # Parse response
+                result = response.as_numpy("OUTPUT_TEXT")
+                if result is None or len(result) == 0:
+                    output_list.append({
+                        "source": "",
+                        "target": ""
+                    })
+                    continue
+
+                # Decode the response - Surya returns JSON string in bytes
+                # Result shape is [1, 1], so access [0][0]
+                result_bytes = result[0][0]
+                if isinstance(result_bytes, bytes):
+                    result_str = result_bytes.decode('utf-8')
+                else:
+                    result_str = str(result_bytes)
+
+                # Debug logging
+                logger.info(f"OCR Response type: {type(result_bytes)}, Shape: {result.shape}")
+                logger.info(f"OCR Response string (first 200 chars): {result_str[:200]}")
+
+                # Parse JSON response from Surya
+                try:
+                    ocr_result = json.loads(result_str)
+
+                    if ocr_result.get('success', False):
+                        # Extract full text
+                        full_text = ocr_result.get('full_text', '')
+
+                        # Format output matching schema
+                        output_list.append({
+                            "source": full_text,
+                            "target": ""
+                        })
+                    else:
+                        # OCR failed
+                        output_list.append({
+                            "source": "",
+                            "target": ""
+                        })
+                except json.JSONDecodeError as e:
+                    logger.error(f"Failed to parse OCR response: {str(e)}")
+                    output_list.append({
+                        "source": "",
+                        "target": ""
+                    })
+
+        return ULCAOCRInferenceResponse(output=output_list)
+
     async def run_pipeline_ocr_inference(
         self,
         request_body: ULCAPipelineInferenceRequest,
         api_key_name: str,
         user_id: str,
     ) -> ULCAPipelineInferenceResponse:
-        """Pipeline OCR inference using Triton"""
+        """Pipeline OCR inference using Triton (Surya OCR)"""
         pipeline_responses = []
         
         for task in request_body.pipelineTasks:
             if task.taskType == "ocr":
                 serviceId = task.config.get("serviceId")
                 
-                # Try to validate service, but continue with mock if not found (for testing)
-                try:
-                    service: Service = validate_service_id(serviceId, self.service_repository)  # type: ignore
-                    headers = {"Authorization": "Bearer " + service.api_key}
-                except (ClientError, BaseError):
-                    # Service not found in DB - use mock for testing
-                    service = None  # type: ignore
-                    headers = {"Authorization": "Bearer mock_api_key"}
+                # Validate service
+                service: Service = validate_service_id(serviceId, self.service_repository)  # type: ignore
+                headers = {"Authorization": "Bearer " + service.api_key}
                 
                 source_language = task.config.get("language", {}).get("sourceLanguage", "en")
                 
@@ -1232,12 +1356,13 @@ class InferenceService:
                     "",
                 ).inc()
                 
-                # Extract image data
+                # Extract image data from request
                 image_list = []
                 if hasattr(request_body.inputData, 'image'):
                     image_list = request_body.inputData.image or []
                 
-                # TODO: Replace with actual Triton inference call when endpoint is ready
+                output_list = []
+                
                 with INFERENCE_REQUEST_DURATION_SECONDS.labels(
                     api_key_name,
                     user_id,
@@ -1246,30 +1371,91 @@ class InferenceService:
                     source_language,
                     "",
                 ).time():
-                    # Placeholder for actual Triton call
-                    # response = self.inference_gateway.send_triton_request(
-                    #     url=service.endpoint,  # Real endpoint will be used here
-                    #     model_name="ocr",
-                    #     input_list=inputs,
-                    #     output_list=outputs,
-                    #     headers=headers,
-                    # )
-                    
-                    # Temporary mock response until real endpoint is available
-                    output_list = []
-                    mock_text = "இது ஒரு மாதிரி தமிழ் உரை ஆகும்."
-                    
-                    if image_list:
-                        for _ in image_list:
+                    for image_item in image_list:
+                        # Get base64 image content
+                        image_base64 = None
+                        
+                        if 'imageContent' in image_item:
+                            # Direct base64 content
+                            image_base64 = image_item['imageContent']
+                        elif 'imageUri' in image_item:
+                            # Download from URL and convert to base64
+                            try:
+                                import requests as req
+                                response = req.get(image_item['imageUri'], timeout=30)
+                                image_base64 = base64.b64encode(response.content).decode('utf-8')
+                            except Exception as e:
+                                logger.error(f"Failed to download image from URI: {str(e)}")
+                                output_list.append({
+                                    "source": "",
+                                    "target": ""
+                                })
+                                continue
+                        
+                        if not image_base64:
+                            # Skip if no image data
                             output_list.append({
-                                "source": mock_text,
+                                "source": "",
                                 "target": ""
                             })
-                    else:
-                        output_list.append({
-                            "source": mock_text,
-                            "target": ""
-                        })
+                            continue
+                        
+                        # Prepare Triton inputs/outputs
+                        inputs, outputs = self.triton_utils_service.get_ocr_io_for_triton(
+                            image_base64
+                        )
+                        
+                        # Send to Triton (Surya OCR)
+                        response = self.inference_gateway.send_triton_request(
+                            url=service.endpoint,
+                            model_name="surya_ocr",
+                            input_list=inputs,
+                            output_list=outputs,
+                            headers=headers,
+                        )
+                        
+                        # Parse response
+                        result = response.as_numpy("OUTPUT_TEXT")
+                        if result is None or len(result) == 0:
+                            output_list.append({
+                                "source": "",
+                                "target": ""
+                            })
+                            continue
+                        
+                        # Decode the response - Surya returns JSON string in bytes
+                        # Result shape is [1, 1], so access [0][0]
+                        result_bytes = result[0][0]
+                        if isinstance(result_bytes, bytes):
+                            result_str = result_bytes.decode('utf-8')
+                        else:
+                            result_str = str(result_bytes)
+                        
+                        # Parse JSON response from Surya
+                        try:
+                            ocr_result = json.loads(result_str)
+                            
+                            if ocr_result.get('success', False):
+                                # Extract full text
+                                full_text = ocr_result.get('full_text', '')
+                                
+                                # Format output matching pipeline structure
+                                output_list.append({
+                                    "source": full_text,
+                                    "target": ""
+                                })
+                            else:
+                                # OCR failed
+                                output_list.append({
+                                    "source": "",
+                                    "target": ""
+                                })
+                        except json.JSONDecodeError as e:
+                            logger.error(f"Failed to parse OCR response: {str(e)}")
+                            output_list.append({
+                                "source": "",
+                                "target": ""
+                            })
                 
                 pipeline_responses.append({
                     "taskType": "ocr",
