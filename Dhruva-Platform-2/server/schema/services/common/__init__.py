@@ -17,3 +17,5 @@ from .ulca_text_pair import _ULCATextPair
 from .ulca_text_pair_multisuggestion import _ULCATextPairMultisuggestion
 from .ulca_translation_inference_config import _ULCATranslationInferenceConfig
 from .ulca_transliteration_inference_config import _ULCATransliterationInferenceConfig
+from .ulca_image import _ULCAImage
+from .ulca_ocr_inference_config import _ULCAOCRInferenceConfig

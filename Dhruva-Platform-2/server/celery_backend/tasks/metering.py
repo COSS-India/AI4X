@@ -21,6 +21,10 @@ from .constants import (
     NMT_GPU_MULTIPLIER,
     NMT_RAM_MULTIPLIER,
     NMT_TOKEN_CALCULATION_MULTIPLIER,
+    OCR_CPU_MULTIPLIER,
+    OCR_GPU_MULTIPLIER,
+    OCR_RAM_MULTIPLIER,
+    OCR_SIZE_CALCULATION_MULTIPLIER,
     TTS_CPU_MULTIPLIER,
     TTS_GPU_MULTIPLIER,
     TTS_RAM_MULTIPLIER,
@@ -104,6 +108,44 @@ def calculate_ner_usage(data: List) -> int:
     return total_usage
 
 
+def calculate_ocr_usage(data: List) -> int:
+    """
+    Calculate OCR usage based on image payload size.
+    Uses base64-encoded image size as a proxy for processing cost.
+    
+    Args:
+        data: List of image objects containing imageContent (base64) or imageUri
+        
+    Returns:
+        Total inference units calculated from image sizes
+    """
+    total_usage = 0
+    for d in data:
+        image_size_kb = 0
+        
+        if d.get("imageContent"):
+            # Calculate size of base64 string in KB
+            # Base64 encoding increases size by ~33%, so actual image size is ~3/4 of base64 size
+            image_size_kb = len(d["imageContent"]) / 1024
+        elif d.get("imageUri"):
+            # For URI, we'd need to fetch it - for now, use a default size
+            # In practice, this should be the actual fetched image size
+            # Default to 500KB as a reasonable estimate
+            image_size_kb = 500
+        
+        # Calculate usage: size in KB * multipliers
+        # Each KB of image data counts as one base unit
+        total_usage += math.ceil(
+            image_size_kb
+            * OCR_SIZE_CALCULATION_MULTIPLIER
+            * OCR_GPU_MULTIPLIER
+            * OCR_CPU_MULTIPLIER
+            * OCR_RAM_MULTIPLIER
+        )
+    
+    return total_usage
+
+
 def write_to_db(
     api_key_id: str, inference_units: int, service_id: str, usage_type: str
 ):
@@ -177,6 +219,10 @@ def meter_usage(
         inference_units = calculate_translation_usage(input_data)
     elif usage_type == "tts":
         inference_units = calculate_tts_usage(input_data)
+    elif usage_type == "ocr":
+        inference_units = calculate_ocr_usage(input_data)
+    elif usage_type == "ner":
+        inference_units = calculate_ner_usage(input_data)
 
     logging.info(f"inference units: {inference_units}")
     write_to_db(api_key_id, inference_units, service_id, usage_type)
