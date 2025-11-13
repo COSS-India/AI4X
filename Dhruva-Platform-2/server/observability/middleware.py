@@ -43,6 +43,30 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         # Extract organization and app (including from JWT token)
         organization, app = self._extract_customer_app(request)
         
+        # Initialize body_bytes variable for potential reuse
+        body_bytes = None
+        body_already_read = False
+        
+        # For generic /pipeline endpoint, we need to check the request body to determine the specific endpoint
+        # This is because the frontend calls /services/inference/pipeline instead of /services/inference/pipeline/txt-lang-detection
+        if method == "POST" and (path.endswith("/pipeline") or path == "/services/inference/pipeline") and "/pipeline/" not in path:
+            # Read body to detect task type (will be restored later)
+            body_bytes = await request.body()
+            body_already_read = True
+            try:
+                request_data = json.loads(body_bytes.decode('utf-8'))
+                # Check if this is a txt-lang-detection request
+                if 'pipelineTasks' in request_data and len(request_data.get('pipelineTasks', [])) > 0:
+                    task_type = request_data['pipelineTasks'][0].get('taskType', '')
+                    if task_type == 'txt-lang-detection':
+                        # Update path to specific endpoint for accurate metrics tracking
+                        path = path + '/txt-lang-detection'
+                        if self.config.debug:
+                            print(f"🔍 Detected txt-lang-detection in generic pipeline endpoint, updating path to: {path}")
+            except Exception as e:
+                if self.config.debug:
+                    print(f"⚠️ Failed to parse request body for pipeline detection: {e}")
+        
         # Detect service type
         service_type = self._detect_service_type(path)
         
@@ -59,8 +83,11 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         speaker_verification_length = 0
         speaker_diarization_length = 0
         language_diarization_length = 0
+        
         if method == "POST" and service_type in ["tts", "translation", "asr", "ocr", "transliteration", "ner", "language_detection", "audio_lang_detection", "speaker_verification", "speaker_diarization", "language_diarization"]:
-            body_bytes = await request.body()
+            if not body_already_read:
+                body_bytes = await request.body()
+            
             # Restore the body for downstream handlers by providing a receive
             # callable that yields the body once and then an empty message.
             # This follows ASGI expected behaviour and avoids EndOfStream errors
@@ -144,6 +171,10 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         
         # Track request
         try:
+            # Debug: Log the full path being used for metrics
+            if self.config.debug:
+                print(f"📊 Tracking metrics for endpoint: {path}, service_type: {service_type}")
+            
             self.metrics_collector.track_request(
                 organization=organization,
                 app=app,
@@ -259,9 +290,34 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         """Detect service type from URL path."""
         path_lower = path.lower()
         
-        # Check for specific service patterns
-        # Include pipeline endpoints under /services/inference/pipeline/
-        if any(pattern in path_lower for pattern in ["/translation", "/nmt", "/translate"]):
+        # IMPORTANT: Check specific pipeline patterns FIRST before generic patterns
+        # This ensures specific endpoints like /services/inference/pipeline/txt-lang-detection
+        # are matched correctly and the full path is preserved in metrics
+        
+        # Pipeline text language detection endpoint (txt-lang-detection) - check FIRST
+        if any(pattern in path_lower for pattern in ["/services/inference/pipeline/txt-lang-detection", "/services/inference/pipeline/txt-language-detection", "/pipeline/txt-lang-detection"]):
+            return "language_detection"
+        # Pipeline OCR endpoint
+        elif any(pattern in path_lower for pattern in ["/services/inference/pipeline/ocr", "/pipeline/ocr"]):
+            return "ocr"
+        # Pipeline Transliteration endpoint
+        elif any(pattern in path_lower for pattern in ["/services/inference/pipeline/transliteration", "/services/inference/pipeline/translation/transliteration", "/pipeline/transliteration", "/pipeline/translation/transliteration"]):
+            return "transliteration"
+        # Pipeline audio language detection endpoint
+        elif any(pattern in path_lower for pattern in ["/services/inference/pipeline/audio-lang-detection", "/services/inference/pipeline/audio-language-detection", "/pipeline/audio-lang-detection"]):
+            return "audio_lang_detection"
+        # Pipeline speaker verification endpoint
+        elif any(pattern in path_lower for pattern in ["/services/inference/pipeline/speaker-verification", "/pipeline/speaker-verification"]):
+            return "speaker_verification"
+        # Pipeline speaker diarization endpoint
+        elif any(pattern in path_lower for pattern in ["/services/inference/pipeline/speaker-diarization", "/pipeline/speaker-diarization"]):
+            return "speaker_diarization"
+        # Pipeline language diarization endpoint
+        elif any(pattern in path_lower for pattern in ["/services/inference/pipeline/language-diarization", "/pipeline/language-diarization"]):
+            return "language_diarization"
+        
+        # Then check for generic service patterns (non-pipeline endpoints)
+        elif any(pattern in path_lower for pattern in ["/translation", "/nmt", "/translate"]):
             return "translation"
         elif any(pattern in path_lower for pattern in ["/asr", "/transcribe", "/speech"]):
             return "asr"
@@ -269,40 +325,19 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
             return "tts"
         elif any(pattern in path_lower for pattern in ["/ocr", "/text-recognition"]):
             return "ocr"
-        # Pipeline OCR endpoint
-        elif any(pattern in path_lower for pattern in ["/services/inference/pipeline/ocr", "/pipeline/ocr"]):
-            return "ocr"
         elif any(pattern in path_lower for pattern in ["/transliteration", "/xlit", "/transliterate"]):
-            return "transliteration"
-        # Pipeline Transliteration endpoint
-        elif any(pattern in path_lower for pattern in ["/services/inference/pipeline/transliteration", "/services/inference/pipeline/translation/transliteration", "/pipeline/transliteration", "/pipeline/translation/transliteration"]):
             return "transliteration"
         elif any(pattern in path_lower for pattern in ["/audio-lang-detection", "/audio-language-detection", "/audio-detect"]):
             return "audio_lang_detection"
-        # Pipeline audio language detection endpoint
-        elif any(pattern in path_lower for pattern in ["/services/inference/pipeline/audio-lang-detection", "/services/inference/pipeline/audio-language-detection", "/pipeline/audio-lang-detection"]):
-            return "audio_lang_detection"
         elif any(pattern in path_lower for pattern in ["/language-detection", "/lang-detect", "/detect-language"]):
-            return "language_detection"
-        # Pipeline text language detection endpoint (txt-lang-detection)
-        elif any(pattern in path_lower for pattern in ["/services/inference/pipeline/txt-lang-detection", "/services/inference/pipeline/txt-language-detection", "/pipeline/txt-lang-detection"]):
             return "language_detection"
         elif any(pattern in path_lower for pattern in ["/ner", "/entity", "/entities"]):
             return "ner"
         elif any(pattern in path_lower for pattern in ["/speaker", "/speaker-enrollment", "/speaker-verification"]):
             return "speaker_verification"
-        # Pipeline speaker verification endpoint
-        elif any(pattern in path_lower for pattern in ["/services/inference/pipeline/speaker-verification", "/pipeline/speaker-verification"]):
-            return "speaker_verification"
         elif any(pattern in path_lower for pattern in ["/speaker-diarization", "/speaker-diarization-compute-call"]):
             return "speaker_diarization"
-        # Pipeline speaker diarization endpoint
-        elif any(pattern in path_lower for pattern in ["/services/inference/pipeline/speaker-diarization", "/pipeline/speaker-diarization"]):
-            return "speaker_diarization"
         elif any(pattern in path_lower for pattern in ["/language-diarization", "/language-diarization-compute-call"]):
-            return "language_diarization"
-        # Pipeline language diarization endpoint
-        elif any(pattern in path_lower for pattern in ["/services/inference/pipeline/language-diarization", "/pipeline/language-diarization"]):
             return "language_diarization"
         elif any(pattern in path_lower for pattern in ["/llm", "/generate", "/chat", "/completion"]):
             return "llm"

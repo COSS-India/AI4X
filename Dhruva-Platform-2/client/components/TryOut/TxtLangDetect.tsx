@@ -68,7 +68,7 @@ const TxtLangDetectTry: React.FC<Props> = (props) => {
 
     apiInstance
       .post(
-        dhruvaAPI.pipelineInference + `?serviceId=${props.serviceId}`,
+        dhruvaAPI.txtLangDetectionInference + `?serviceId=${props.serviceId}`,
         {
           pipelineTasks: [
             {
