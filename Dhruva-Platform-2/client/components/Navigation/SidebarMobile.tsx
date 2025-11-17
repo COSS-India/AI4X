@@ -62,7 +62,7 @@ const SidebarMobile: React.FC = () => {
       <Box borderRadius="xl">
         <Box h="4rem" justifyContent="flex-start">
           <HStack>
-            <Image alt="logo" src="/AI4Bharat.svg" height="50" width="50" />
+            {/* <Image alt="logo" src="/AI4Bharat.svg" height="50" width="50" /> */}
             <Spacer />
             <Text marginLeft={4} fontSize={"x-large"} fontWeight={"bold"}>
               Dhruva

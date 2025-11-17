@@ -123,7 +123,7 @@ export default function Login() {
         <Grid templateColumns="repeat(1, 1fr)">
           <GridItem className="centered-column" w="100%" h="100vh">
             <Stack spacing={5}>
-              <Image src="/a4b.svg" width={104} height={104} alt="a4b" />
+              {/* <Image src="/a4b.svg" width={104} height={104} alt="a4b" /> */}
               <Heading>Login into Dhruva</Heading>
               <Input
                 value={username}
@@ -170,7 +170,7 @@ export default function Login() {
           </GridItem>
           <GridItem className="centered-column" w="100%" h="100vh">
             <Stack spacing={5}>
-              <Image src="/a4b.svg" width={104} height={104} alt="a4b" />
+              {/* <Image src="/a4b.svg" width={104} height={104} alt="a4b" /> */}
               <Heading>Login into Dhruva</Heading>
               <Input
                 value={username}
