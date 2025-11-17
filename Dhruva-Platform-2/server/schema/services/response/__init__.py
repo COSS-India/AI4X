@@ -18,6 +18,7 @@ from .ulca_tts_inference_response import ULCATtsInferenceResponse
 from .ulca_vad_inference_response import ULCAVadInferenceResponse
 from .ulca_llm_inference_response import ULCALLMInferenceResponse
 from .ulca_ocr_inference_response import ULCAOCRInferenceResponse
+from .ulca_text_lang_detection_inference_response import ULCATextLangDetectionInferenceResponse
 
 ULCAInferenceResponse = Union[
     ULCAGenericInferenceResponse,
@@ -29,4 +30,5 @@ ULCAInferenceResponse = Union[
     ULCAVadInferenceResponse,
     ULCALLMInferenceResponse,
     ULCAOCRInferenceResponse,
+    ULCATextLangDetectionInferenceResponse,
 ]
