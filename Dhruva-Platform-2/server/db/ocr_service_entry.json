@@ -1,6 +1,6 @@
 {
   "serviceId": "ai4bharat/surya-ocr-v1--gpu--t4",
-  "name": "Surya OCR - GPU T4",
+  "name": "OCR - GPU T4",
   "serviceDescription": "OCR service for Indic and English languages running on NVIDIA T4 GPU. Provides high-accuracy text extraction from images with bounding boxes, confidence scores, and line-by-line results. Supports documents, books, forms, and general text images.",
   "hardwareDescription": "NVIDIA T4 GPU, 16GB RAM, Ubuntu 20.04, Triton Inference Server",
   "publishedOn": 1731398400,
