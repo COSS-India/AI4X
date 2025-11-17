@@ -3,7 +3,7 @@
   "version": "1.0",
   "submittedOn": 1699900000,
   "updatedOn": 1731398400,
-  "name": "Surya OCR",
+  "name": "OCR",
   "description": "Multilingual OCR model supporting Hindi, English, Tamil, Telugu, Malayalam, Kannada and other Indic languages. Based on Surya OCR architecture with high accuracy text detection and recognition. Provides bounding boxes and confidence scores for each detected text line.",
   "refUrl": "https://github.com/VikParuchuri/surya",
   "task": {

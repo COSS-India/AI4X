@@ -69,7 +69,7 @@ const Sidebar: React.FC = () => {
       <Box pt="1.5" borderRadius="xl">
         <Box h="4rem" mt={4} justifyContent="flex-start">
           <HStack>
-            <Image alt="logo" src="/AI4Bharat.svg" height="50" width="50" />
+            {/* <Image alt="logo" src="/AI4Bharat.svg" height="50" width="50" /> */}
             <Spacer />
             {isOpen ? (
               <Text marginLeft={4} fontSize={"x-large"} fontWeight={"bold"}>
