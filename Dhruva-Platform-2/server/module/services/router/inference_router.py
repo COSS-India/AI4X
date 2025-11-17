@@ -18,6 +18,7 @@ from schema.services.request import (
     ULCAOCRInferenceRequest,
     ULCAPipelineInferenceRequest,
     ULCAS2SInferenceRequest,
+    ULCATextLangDetectionInferenceRequest,
     ULCATranslationInferenceRequest,
     ULCATransliterationInferenceRequest,
     ULCATtsInferenceRequest,
@@ -30,6 +31,7 @@ from schema.services.response import (
     ULCAOCRInferenceResponse,
     ULCAPipelineInferenceResponse,
     ULCAS2SInferenceResponse,
+    ULCATextLangDetectionInferenceResponse,
     ULCATranslationInferenceResponse,
     ULCATransliterationInferenceResponse,
     ULCATtsInferenceResponse,
@@ -208,6 +210,21 @@ async def _run_inference_ner(
         request.set_service_id(params.serviceId)
 
     return await inference_service.run_ner_triton_inference(
+        request, request_state.state.api_key_name, request_state.state.user_id
+    )
+
+
+@router.post("/txt-lang-detection", response_model=ULCATextLangDetectionInferenceResponse)
+async def _run_inference_text_lang_detection(
+    request: ULCATextLangDetectionInferenceRequest,
+    request_state: Request,
+    params: ULCAInferenceQuery = Depends(),
+    inference_service: InferenceService = Depends(InferenceService),
+):
+    if params.serviceId:
+        request.set_service_id(params.serviceId)
+
+    return await inference_service.run_text_lang_detection_triton_inference(
         request, request_state.state.api_key_name, request_state.state.user_id
     )
 

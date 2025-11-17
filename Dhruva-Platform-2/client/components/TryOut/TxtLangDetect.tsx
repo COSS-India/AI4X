@@ -70,20 +70,13 @@ const TxtLangDetectTry: React.FC<Props> = (props) => {
       .post(
         dhruvaAPI.txtLangDetectionInference + `?serviceId=${props.serviceId}`,
         {
-          pipelineTasks: [
+          input: [
             {
-              taskType: "txt-lang-detection",
-              config: {
-                serviceId: props.serviceId,
-              },
+              source: source,
             },
           ],
-          inputData: {
-            input: [
-              {
-                source: source,
-              },
-            ],
+          config: {
+            serviceId: props.serviceId,
           },
           controlConfig: {
             dataTracking: true,
@@ -98,20 +91,17 @@ const TxtLangDetectTry: React.FC<Props> = (props) => {
         }
       )
       .then((response) => {
-        // Parse pipeline response
-        const pipelineResponse = response.data["pipelineResponse"];
-        if (
-          pipelineResponse &&
-          pipelineResponse.length > 0 &&
-          pipelineResponse[0]["output"] &&
-          pipelineResponse[0]["output"].length > 0
-        ) {
-          const output = pipelineResponse[0]["output"][0];
-          const langPrediction = output["langPrediction"];
+        // Parse dedicated text lang detection response
+        const output = response.data["output"];
+        if (output && output.length > 0) {
+          const firstOutput = output[0];
+          const langPrediction = firstOutput["langPrediction"];
 
           if (langPrediction && langPrediction.length > 0) {
             const prediction = langPrediction[0];
-            setDetectedLanguage(prediction["language"] || "");
+            // Use language field for full language name (e.g., "Sindhi (Latin script)")
+            // Fallback to langCode if language is not available
+            setDetectedLanguage(prediction["language"] || prediction["langCode"] || "");
           } else {
             // No prediction found
             setDetectedLanguage("");
@@ -142,7 +132,12 @@ const TxtLangDetectTry: React.FC<Props> = (props) => {
         });
 
         setPipelineOutput({
-          pipelineResponse: pipelineResponse || [],
+          pipelineResponse: [
+            {
+              taskType: ULCATaskType.TXT_LANG_DETECTION,
+              output: output || [],
+            },
+          ],
         });
 
         setRequestWordCount(getWordCount(inputText));

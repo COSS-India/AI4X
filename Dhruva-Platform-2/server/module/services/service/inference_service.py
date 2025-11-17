@@ -34,6 +34,7 @@ from schema.services.request import (
     ULCANerInferenceRequest,
     ULCAOCRInferenceRequest,
     ULCAPipelineInferenceRequest,
+    ULCATextLangDetectionInferenceRequest,
     ULCATranslationInferenceRequest,
     ULCATransliterationInferenceRequest,
     ULCATtsInferenceRequest,
@@ -50,6 +51,7 @@ from schema.services.response import (
     ULCANerInferenceResponse,
     ULCAOCRInferenceResponse,
     ULCAPipelineInferenceResponse,
+    ULCATextLangDetectionInferenceResponse,
     ULCATranslationInferenceResponse,
     ULCATransliterationInferenceResponse,
     ULCATtsInferenceResponse,
@@ -163,6 +165,11 @@ class InferenceService:
             case _ULCATaskType.NER:
                 request_obj = ULCANerInferenceRequest(**request_body)
                 return await self.run_ner_triton_inference(
+                    request_obj, api_key_name, user_id
+                )
+            case _ULCATaskType.TXT_LANG_DETECTION:
+                request_obj = ULCATextLangDetectionInferenceRequest(**request_body)
+                return await self.run_text_lang_detection_triton_inference(
                     request_obj, api_key_name, user_id
                 )
             case _ULCATaskType.TEXT_GENERATION:
@@ -765,6 +772,205 @@ class InferenceService:
 
         return final_service_result
 
+    async def run_text_lang_detection_triton_inference(
+        self,
+        request_body: ULCATextLangDetectionInferenceRequest,
+        api_key_name: str,
+        user_id: str,
+    ) -> ULCATextLangDetectionInferenceResponse:
+        INFERENCE_REQUEST_COUNT.labels(
+            api_key_name,
+            user_id,
+            request_body.config.serviceId,
+            "txt-lang-detection",
+            "",
+            "",
+        ).inc()
+
+        serviceId = request_body.config.serviceId
+
+        service: Service = validate_service_id(serviceId, self.service_repository)  # type: ignore
+        headers = {"Content-Type": "application/json"}
+
+        input_texts = [
+            input.source.replace("\n", " ").strip() if input.source else ""
+            for input in request_body.input
+        ]
+
+        # Filter out empty texts and keep track of valid indices
+        valid_inputs = []
+        valid_indices = []
+        for i, text in enumerate(input_texts):
+            if text:
+                valid_inputs.append(text)
+                valid_indices.append(i)
+
+        if not valid_inputs:
+            # All inputs are empty, return empty predictions
+            output_list = []
+            for input_item in request_body.input:
+                output_list.append(
+                    {
+                        "source": input_item.source if input_item.source else "",
+                        "langPrediction": [],
+                    }
+                )
+            return ULCATextLangDetectionInferenceResponse(output=output_list)
+
+        # Prepare inputs and outputs for Triton
+        inputs, outputs = self.triton_utils_service.get_text_lang_detection_io_for_triton(
+            valid_inputs
+        )
+
+        with INFERENCE_REQUEST_DURATION_SECONDS.labels(
+            api_key_name,
+            user_id,
+            request_body.config.serviceId,
+            "txt-lang-detection",
+            "",
+            "",
+        ).time():
+            response = self.inference_gateway.send_triton_request(
+                url=service.endpoint,
+                model_name="indiclid",
+                input_list=inputs,
+                output_list=outputs,
+                headers=headers,
+            )
+
+        # Parse Triton response
+        encoded_result = response.as_numpy("OUTPUT_TEXT")
+        if encoded_result is None:
+            encoded_result = np.array([])
+
+        # Parse JSON responses from Triton
+        # Each result is a JSON string containing: input, langCode, confidence, model
+        lang_detection_results = {}  # Map from valid index to detection result
+        if encoded_result.size > 0:
+            result_list = encoded_result.tolist()
+            for idx, result_row in enumerate(result_list):
+                if idx < len(valid_indices):
+                    original_idx = valid_indices[idx]
+                    if result_row and len(result_row) > 0:
+                        # Extract JSON string from response
+                        json_str = (
+                            result_row[0].decode("utf-8")
+                            if isinstance(result_row[0], bytes)
+                            else str(result_row[0])
+                        )
+                        try:
+                            # Parse JSON string
+                            detection_data = json.loads(json_str)
+                            lang_detection_results[original_idx] = {
+                                "langCode": detection_data.get("langCode", ""),
+                                "confidence": detection_data.get("confidence", 0.0),
+                                "model": detection_data.get("model", ""),
+                            }
+                        except (json.JSONDecodeError, KeyError) as e:
+                            # If JSON parsing fails, skip this result
+                            logger.error(f"Failed to parse language detection result: {e}")
+                            lang_detection_results[original_idx] = {
+                                "langCode": "",
+                                "confidence": 0.0,
+                                "model": "",
+                            }
+                    else:
+                        # Empty result row
+                        lang_detection_results[original_idx] = {
+                            "langCode": "",
+                            "confidence": 0.0,
+                            "model": "",
+                        }
+
+        # Mapping from IndicLID codes to full language names
+        INDICLID_TO_LANGUAGE = {
+            "asm_Beng": "Assamese (Bengali script)",
+            "asm_Latn": "Assamese (Latin script)",
+            "ben_Beng": "Bangla (Bengali script)",
+            "ben_Latn": "Bangla (Latin script)",
+            "brx_Deva": "Bodo (Devanagari script)",
+            "brx_Latn": "Bodo (Latin script)",
+            "doi_Deva": "Dogri (Devanagari script)",
+            "doi_Latn": "Dogri (Latin script)",
+            "eng_Latn": "English",
+            "guj_Gujr": "Gujarati (Gujarati script)",
+            "guj_Latn": "Gujarati (Latin script)",
+            "hin_Deva": "Hindi",
+            "hin_Latn": "Hindi (Latin script)",
+            "kan_Knda": "Kannada",
+            "kan_Latn": "Kannada (Latin script)",
+            "kas_Arab": "Kashmiri (Perso_Arabic script)",
+            "kas_Deva": "Kashmiri (Devanagari script)",
+            "kas_Latn": "Kashmiri (Latin script)",
+            "kok_Deva": "Konkani (Devanagari script)",
+            "kok_Latn": "Konkani (Latin script)",
+            "mai_Deva": "Maithili (Devanagari script)",
+            "mai_Latn": "Maithili (Latin script)",
+            "mal_Mlym": "Malayalam",
+            "mal_Latn": "Malayalam (Latin script)",
+            "mni_Beng": "Manipuri (Bengali script)",
+            "mni_Meti": "Manipuri (Meetei_Mayek script)",
+            "mni_Latn": "Manipuri (Latin script)",
+            "mar_Deva": "Marathi",
+            "mar_Latn": "Marathi (Latin script)",
+            "nep_Deva": "Nepali",
+            "nep_Latn": "Nepali (Latin script)",
+            "ori_Orya": "Oriya",
+            "ori_Latn": "Oriya (Latin script)",
+            "pan_Guru": "Punjabi",
+            "pan_Latn": "Punjabi (Latin script)",
+            "san_Deva": "Sanskrit (Devanagari script)",
+            "san_Latn": "Sanskrit (Latin script)",
+            "sat_Olch": "Santali (Ol_Chiki script)",
+            "snd_Arab": "Sindhi (Perso_Arabic script)",
+            "snd_Latn": "Sindhi (Latin script)",
+            "tam_Tamil": "Tamil",
+            "tam_Latn": "Tamil (Latin script)",
+            "tel_Telu": "Telugu",
+            "tel_Latn": "Telugu (Latin script)",
+            "urd_Arab": "Urdu",
+            "urd_Latn": "Urdu (Latin script)",
+            "other": "Other",
+        }
+
+        # Format output
+        output_list = []
+        for i, input_item in enumerate(request_body.input):
+            source_text = input_item.source if input_item.source else ""
+
+            if i in lang_detection_results:
+                detection = lang_detection_results[i]
+                lang_code_full = detection["langCode"]
+                confidence = detection["confidence"]
+                model = detection["model"]
+
+                # Get full language name from mapping
+                language_name = INDICLID_TO_LANGUAGE.get(lang_code_full, "Other")
+
+                output_list.append(
+                    {
+                        "source": source_text,
+                        "langPrediction": [
+                            {
+                                "langCode": lang_code_full,
+                                "confidence": confidence,
+                                "model": model if model else None,
+                                "language": language_name,
+                            }
+                        ],
+                    }
+                )
+            else:
+                # Empty or invalid input
+                output_list.append(
+                    {
+                        "source": source_text,
+                        "langPrediction": [],
+                    }
+                )
+
+        return ULCATextLangDetectionInferenceResponse(output=output_list)
+
     async def run_vad_triton_inference(
         self, request_body: ULCAVadInferenceRequest, api_key_name: str, user_id: str
     ):
@@ -841,18 +1047,18 @@ class InferenceService:
 
         # Handle special pipeline tasks that have dedicated methods
         # Check if this is a single txt-lang-detection task
-        if (
-            len(request_body.pipelineTasks) == 1
-            and (
-                request_body.pipelineTasks[0].taskType == _ULCATaskType.TXT_LANG_DETECTION
-                or request_body.pipelineTasks[0].taskType == "txt-lang-detection"
-            )
-        ):
-            return await self.run_pipeline_text_lang_detection_inference(
-                request_body,
-                request_state.state.api_key_name,
-                request_state.state.user_id,
-            )
+        # if (
+        #     len(request_body.pipelineTasks) == 1
+        #     and (
+        #         request_body.pipelineTasks[0].taskType == _ULCATaskType.TXT_LANG_DETECTION
+        #         or request_body.pipelineTasks[0].taskType == "txt-lang-detection"
+        #     )
+        # ):
+        #     return await self.run_pipeline_text_lang_detection_inference(
+        #         request_body,
+        #         request_state.state.api_key_name,
+        #         request_state.state.user_id,
+        #     )
 
         # Check if the pipeline construction is valid
         is_pipeline_valid = True
@@ -878,6 +1084,12 @@ class InferenceService:
                     and not request_body.pipelineTasks[i].config["isSentence"]
                 ):
                     # Word-level does not make sense in pipeline
+                    is_pipeline_valid = False
+                    break
+            elif current_task_type == _ULCATaskType.TXT_LANG_DETECTION:
+                # txt-lang-detection can be followed by translation or other text-based tasks
+                # For now, allow it to be followed by translation or transliteration
+                if next_task_type not in {_ULCATaskType.TRANSLATION, _ULCATaskType.TRANSLITERATION}:
                     is_pipeline_valid = False
                     break
             else:
@@ -983,6 +1195,11 @@ class InferenceService:
                             previous_output_json["input"][i]["target"][0]
                         )
                         del previous_output_json["input"][i]["target"]
+                elif pipeline_task.taskType == _ULCATaskType.TXT_LANG_DETECTION:
+                    # txt-lang-detection output already has source, just remove langPrediction
+                    for i in range(len(previous_output_json["input"])):
+                        if "langPrediction" in previous_output_json["input"][i]:
+                            del previous_output_json["input"][i]["langPrediction"]
             else:
                 # This will ideally happen only for TTS, which is the final task supported *as of now*
                 pass

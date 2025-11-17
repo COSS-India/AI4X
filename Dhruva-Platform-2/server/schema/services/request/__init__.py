@@ -32,6 +32,7 @@ from .ulca_tts_inference_request import (
 from .ulca_vad_inference_request import ULCAVadInferenceRequest
 from .ulca_llm_inference_request import ULCALLMInferenceRequest
 from .ulca_ocr_inference_request import ULCAOCRInferenceRequest
+from .ulca_text_lang_detection_inference_request import ULCATextLangDetectionInferenceRequest
 
 ULCAInferenceRequest = Union[
     ULCAGenericInferenceRequest,
@@ -43,4 +44,5 @@ ULCAInferenceRequest = Union[
     ULCAVadInferenceRequest,
     ULCALLMInferenceRequest,
     ULCAOCRInferenceRequest,
+    ULCATextLangDetectionInferenceRequest,
 ]
