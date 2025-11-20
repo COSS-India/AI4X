@@ -34,6 +34,9 @@ from schema.services.request import (
     ULCANerInferenceRequest,
     ULCAOCRInferenceRequest,
     ULCAPipelineInferenceRequest,
+    ULCASpeakerDiarizationInferenceRequest,
+    ULCALanguageDiarizationInferenceRequest,
+    ULCAAudioLangDetectionInferenceRequest,
     ULCATextLangDetectionInferenceRequest,
     ULCATranslationInferenceRequest,
     ULCATransliterationInferenceRequest,
@@ -51,11 +54,24 @@ from schema.services.response import (
     ULCANerInferenceResponse,
     ULCAOCRInferenceResponse,
     ULCAPipelineInferenceResponse,
+    ULCASpeakerDiarizationInferenceResponse,
+    ULCALanguageDiarizationInferenceResponse,
+    ULCAAudioLangDetectionInferenceResponse,
     ULCATextLangDetectionInferenceResponse,
     ULCATranslationInferenceResponse,
     ULCATransliterationInferenceResponse,
     ULCATtsInferenceResponse,
     ULCAVadInferenceResponse,
+)
+from schema.services.response.ulca_speaker_diarization_inference_response import (
+    _ULCASpeakerDiarizationInferenceResponseConfig,
+)
+from schema.services.response.ulca_language_diarization_inference_response import (
+    _ULCALanguageDiarizationInferenceResponseConfig,
+)
+from schema.services.response.ulca_audio_lang_detection_inference_response import (
+    _ULCAAudioLangDetectionInferenceResponseConfig,
+    _ULCAAudioLangDetectionAllScores,
 )
 from schema.services.response.ulca_vad_inference_response import _ULCATimestamps
 from scipy.io import wavfile
@@ -1544,6 +1560,499 @@ class InferenceService:
                     })
 
         return ULCAOCRInferenceResponse(output=output_list)
+
+    async def run_speaker_diarization_triton_inference(
+        self,
+        request_body: ULCASpeakerDiarizationInferenceRequest,
+        api_key_name: str,
+        user_id: str,
+    ) -> ULCASpeakerDiarizationInferenceResponse:
+        """
+        Speaker diarization inference using Triton with dedicated SD request/response format.
+        Identifies different speakers in audio and returns their segments.
+        """
+        serviceId = request_body.config.serviceId
+
+        # Validate service
+        service: Service = validate_service_id(serviceId, self.service_repository)  # type: ignore
+        headers = {"Authorization": "Bearer " + service.api_key}
+
+        INFERENCE_REQUEST_COUNT.labels(
+            api_key_name,
+            user_id,
+            serviceId,
+            "speaker-diarization",
+            "",
+            "",
+        ).inc()
+
+        output_list = []
+
+        with INFERENCE_REQUEST_DURATION_SECONDS.labels(
+            api_key_name,
+            user_id,
+            serviceId,
+            "speaker-diarization",
+            "",
+            "",
+        ).time():
+            for audio_item in request_body.audio:
+                # Get base64 audio content
+                audio_base64 = None
+
+                if audio_item.audioContent:
+                    # Direct base64 content
+                    audio_base64 = audio_item.audioContent
+                elif audio_item.audioUri:
+                    # Download from URL and convert to base64
+                    try:
+                        import requests as req
+                        response = req.get(str(audio_item.audioUri), timeout=300)
+                        audio_base64 = base64.b64encode(response.content).decode('utf-8')
+                    except Exception as e:
+                        logger.error(f"Failed to download audio from URI: {str(e)}")
+                        output_list.append({
+                            "total_segments": 0,
+                            "num_speakers": 0,
+                            "speakers": [],
+                            "segments": []
+                        })
+                        continue
+
+                if not audio_base64:
+                    # Skip if no audio data
+                    output_list.append({
+                        "total_segments": 0,
+                        "num_speakers": 0,
+                        "speakers": [],
+                        "segments": []
+                    })
+                    continue
+
+                # num_speakers will be auto-detected by the model if not provided (None)
+                num_speakers = None
+
+                # Prepare Triton inputs/outputs
+                inputs, outputs = self.triton_utils_service.get_speaker_diarization_io_for_triton(
+                    audio_base64, num_speakers
+                )
+
+                # Send to Triton (Speaker Diarization model)
+                try:
+                    response = self.inference_gateway.send_triton_request(
+                        url=service.endpoint,
+                        model_name="speaker_diarization",
+                        input_list=inputs,
+                        output_list=outputs,
+                        headers=headers,
+                    )
+
+                    # Parse response - DIARIZATION_RESULT is a JSON string in bytes
+                    result = response.as_numpy("DIARIZATION_RESULT")
+                    if result is None or len(result) == 0:
+                        output_list.append({
+                            "total_segments": 0,
+                            "num_speakers": 0,
+                            "speakers": [],
+                            "segments": []
+                        })
+                        continue
+
+                    # Decode the response - Result shape is [1, 1], so access [0][0]
+                    result_bytes = result[0][0]
+                    if isinstance(result_bytes, bytes):
+                        result_str = result_bytes.decode('utf-8')
+                    else:
+                        result_str = str(result_bytes)
+
+                    # Debug logging
+                    logger.info(f"Speaker Diarization Response type: {type(result_bytes)}, Shape: {result.shape}")
+                    logger.info(f"Speaker Diarization Response string (first 200 chars): {result_str[:200]}")
+
+                    # Parse JSON response from model
+                    try:
+                        diarization_data = json.loads(result_str)
+                        
+                        # Map the response to ULCA format
+                        output_list.append({
+                            "total_segments": diarization_data.get("total_segments", 0),
+                            "num_speakers": diarization_data.get("num_speakers", 0),
+                            "speakers": diarization_data.get("speakers", []),
+                            "segments": diarization_data.get("segments", [])
+                        })
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Failed to parse Speaker Diarization response: {str(e)}")
+                        output_list.append({
+                            "total_segments": 0,
+                            "num_speakers": 0,
+                            "speakers": [],
+                            "segments": []
+                        })
+                except Exception as e:
+                    logger.error(f"Error in speaker diarization inference: {str(e)}")
+                    output_list.append({
+                        "total_segments": 0,
+                        "num_speakers": 0,
+                        "speakers": [],
+                        "segments": []
+                    })
+
+        # Create response config
+        response_config = None
+        if serviceId:
+            response_config = _ULCASpeakerDiarizationInferenceResponseConfig(
+                serviceId=serviceId,
+                language=None
+            )
+
+        return ULCASpeakerDiarizationInferenceResponse(
+            output=output_list,
+            config=response_config
+        )
+
+    async def run_language_diarization_triton_inference(
+        self,
+        request_body: ULCALanguageDiarizationInferenceRequest,
+        api_key_name: str,
+        user_id: str,
+    ) -> ULCALanguageDiarizationInferenceResponse:
+        """
+        Language diarization inference using Triton with dedicated LD request/response format.
+        Identifies different languages in audio and returns their segments with confidence scores.
+        """
+        serviceId = request_body.config.serviceId
+
+        # Validate service
+        service: Service = validate_service_id(serviceId, self.service_repository)  # type: ignore
+        headers = {"Authorization": "Bearer " + service.api_key}
+
+        INFERENCE_REQUEST_COUNT.labels(
+            api_key_name,
+            user_id,
+            serviceId,
+            "language-diarization",
+            "",
+            "",
+        ).inc()
+
+        output_list = []
+
+        with INFERENCE_REQUEST_DURATION_SECONDS.labels(
+            api_key_name,
+            user_id,
+            serviceId,
+            "language-diarization",
+            "",
+            "",
+        ).time():
+            for audio_item in request_body.audio:
+                # Get base64 audio content
+                audio_base64 = None
+
+                if audio_item.audioContent:
+                    # Direct base64 content
+                    audio_base64 = audio_item.audioContent
+                    logger.info(f"Language Diarization: Using audioContent, length: {len(audio_base64) if audio_base64 else 0}")
+                elif audio_item.audioUri:
+                    # Download from URL and convert to base64
+                    try:
+                        import requests as req
+                        logger.info(f"Language Diarization: Downloading audio from URI: {audio_item.audioUri}")
+                        response = req.get(str(audio_item.audioUri), timeout=300)
+                        audio_base64 = base64.b64encode(response.content).decode('utf-8')
+                        logger.info(f"Language Diarization: Downloaded audio, base64 length: {len(audio_base64)}")
+                    except Exception as e:
+                        logger.error(f"Failed to download audio from URI: {str(e)}", exc_info=True)
+                        output_list.append({
+                            "total_segments": 0,
+                            "segments": [],
+                            "target_language": ""
+                        })
+                        continue
+
+                if not audio_base64:
+                    # Skip if no audio data
+                    logger.warning("Language Diarization: No audio content provided (both audioContent and audioUri are None/empty)")
+                    output_list.append({
+                        "total_segments": 0,
+                        "segments": [],
+                        "target_language": ""
+                    })
+                    continue
+
+                # target_language defaults to empty string for detecting all languages
+                target_language = ""
+
+                # Prepare Triton inputs/outputs
+                logger.info(f"Language Diarization: Preparing Triton I/O with target_language={target_language}")
+                inputs, outputs = self.triton_utils_service.get_language_diarization_io_for_triton(
+                    audio_base64, target_language
+                )
+
+                # Send to Triton (Language Diarization model)
+                try:
+                    logger.info(f"Language Diarization: Sending request to {service.endpoint}, model: lang_diarization")
+                    response = self.inference_gateway.send_triton_request(
+                        url=service.endpoint,
+                        model_name="lang_diarization",
+                        input_list=inputs,
+                        output_list=outputs,
+                        headers=headers,
+                    )
+                    logger.info(f"Language Diarization: Received response from Triton")
+
+                    # Parse response - DIARIZATION_RESULT is a JSON string in bytes
+                    result = response.as_numpy("DIARIZATION_RESULT")
+                    logger.info(f"Language Diarization: Parsed DIARIZATION_RESULT, result type: {type(result)}, is None: {result is None}")
+                    
+                    if result is None or len(result) == 0:
+                        logger.warning(f"Language Diarization: Empty result from Triton. Result: {result}")
+                        output_list.append({
+                            "total_segments": 0,
+                            "segments": [],
+                            "target_language": target_language
+                        })
+                        continue
+
+                    # Decode the response - Result shape is [1, 1], so access [0][0]
+                    logger.info(f"Language Diarization: Result shape: {result.shape}, result length: {len(result) if result is not None else 0}")
+                    result_bytes = result[0][0]
+                    if isinstance(result_bytes, bytes):
+                        result_str = result_bytes.decode('utf-8')
+                    else:
+                        result_str = str(result_bytes)
+
+                    # Debug logging
+                    logger.info(f"Language Diarization Response type: {type(result_bytes)}, Shape: {result.shape}")
+                    logger.info(f"Language Diarization Response string (first 500 chars): {result_str[:500] if len(result_str) > 500 else result_str}")
+
+                    # Parse JSON response from model
+                    try:
+                        diarization_data = json.loads(result_str)
+                        logger.info(f"Language Diarization: Successfully parsed JSON, total_segments: {diarization_data.get('total_segments', 0)}")
+                        
+                        # Map the response to ULCA format
+                        output_list.append({
+                            "total_segments": diarization_data.get("total_segments", 0),
+                            "segments": diarization_data.get("segments", []),
+                            "target_language": diarization_data.get("target_language", target_language)
+                        })
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Failed to parse Language Diarization response JSON: {str(e)}")
+                        logger.error(f"Response string that failed to parse: {result_str[:1000]}")
+                        output_list.append({
+                            "total_segments": 0,
+                            "segments": [],
+                            "target_language": target_language
+                        })
+                except Exception as e:
+                    logger.error(f"Error in language diarization inference: {str(e)}", exc_info=True)
+                    output_list.append({
+                        "total_segments": 0,
+                        "segments": [],
+                        "target_language": target_language
+                    })
+
+        # Create response config
+        response_config = None
+        if serviceId:
+            response_config = _ULCALanguageDiarizationInferenceResponseConfig(
+                serviceId=serviceId
+            )
+
+        return ULCALanguageDiarizationInferenceResponse(
+            output=output_list,
+            config=response_config
+        )
+
+    async def run_audio_lang_detection_triton_inference(
+        self,
+        request_body: ULCAAudioLangDetectionInferenceRequest,
+        api_key_name: str,
+        user_id: str,
+    ) -> ULCAAudioLangDetectionInferenceResponse:
+        """
+        Audio language detection inference using Triton with dedicated ALD request/response format.
+        Detects the language of audio content and returns language code, confidence, and all scores.
+        """
+        serviceId = request_body.config.serviceId
+
+        # Validate service
+        service: Service = validate_service_id(serviceId, self.service_repository)  # type: ignore
+        headers = {"Authorization": "Bearer " + service.api_key}
+
+        INFERENCE_REQUEST_COUNT.labels(
+            api_key_name,
+            user_id,
+            serviceId,
+            "ald",
+            "",
+            "",
+        ).inc()
+
+        output_list = []
+
+        with INFERENCE_REQUEST_DURATION_SECONDS.labels(
+            api_key_name,
+            user_id,
+            serviceId,
+            "ald",
+            "",
+            "",
+        ).time():
+            for audio_item in request_body.audio:
+                # Get base64 audio content
+                audio_base64 = None
+
+                if audio_item.audioContent:
+                    # Direct base64 content
+                    audio_base64 = audio_item.audioContent
+                    logger.info(f"Audio Lang Detection: Using audioContent, length: {len(audio_base64) if audio_base64 else 0}")
+                elif audio_item.audioUri:
+                    # Download from URL and convert to base64
+                    try:
+                        import requests as req
+                        logger.info(f"Audio Lang Detection: Downloading audio from URI: {audio_item.audioUri}")
+                        response = req.get(str(audio_item.audioUri), timeout=300)
+                        audio_base64 = base64.b64encode(response.content).decode('utf-8')
+                        logger.info(f"Audio Lang Detection: Downloaded audio, base64 length: {len(audio_base64)}")
+                    except Exception as e:
+                        logger.error(f"Failed to download audio from URI: {str(e)}", exc_info=True)
+                        output_list.append({
+                            "language_code": "",
+                            "confidence": 0.0,
+                            "all_scores": {
+                                "predicted_language": "",
+                                "confidence": 0.0,
+                                "top_scores": []
+                            }
+                        })
+                        continue
+
+                if not audio_base64:
+                    # Skip if no audio data
+                    logger.warning("Audio Lang Detection: No audio content provided (both audioContent and audioUri are None/empty)")
+                    output_list.append({
+                        "language_code": "",
+                        "confidence": 0.0,
+                        "all_scores": {
+                            "predicted_language": "",
+                            "confidence": 0.0,
+                            "top_scores": []
+                        }
+                    })
+                    continue
+
+                # Prepare Triton inputs/outputs
+                logger.info(f"Audio Lang Detection: Preparing Triton I/O")
+                inputs, outputs = self.triton_utils_service.get_audio_lang_detection_io_for_triton(
+                    audio_base64
+                )
+
+                # Send to Triton (Audio Language Detection model)
+                try:
+                    logger.info(f"Audio Lang Detection: Sending request to {service.endpoint}, model: ald")
+                    response = self.inference_gateway.send_triton_request(
+                        url=service.endpoint,
+                        model_name="ald",
+                        input_list=inputs,
+                        output_list=outputs,
+                        headers=headers,
+                    )
+                    logger.info(f"Audio Lang Detection: Received response from Triton")
+
+                    # Parse response - Get LANGUAGE_CODE, CONFIDENCE, and ALL_SCORES
+                    language_code_result = response.as_numpy("LANGUAGE_CODE")
+                    confidence_result = response.as_numpy("CONFIDENCE")
+                    all_scores_result = response.as_numpy("ALL_SCORES")
+                    
+                    logger.info(f"Audio Lang Detection: LANGUAGE_CODE type: {type(language_code_result)}, is None: {language_code_result is None}")
+                    logger.info(f"Audio Lang Detection: CONFIDENCE type: {type(confidence_result)}, is None: {confidence_result is None}")
+                    logger.info(f"Audio Lang Detection: ALL_SCORES type: {type(all_scores_result)}, is None: {all_scores_result is None}")
+                    
+                    if language_code_result is None or confidence_result is None or all_scores_result is None:
+                        logger.warning(f"Audio Lang Detection: Missing results from Triton")
+                        output_list.append({
+                            "language_code": "",
+                            "confidence": 0.0,
+                            "all_scores": {
+                                "predicted_language": "",
+                                "confidence": 0.0,
+                                "top_scores": []
+                            }
+                        })
+                        continue
+
+                    # Decode LANGUAGE_CODE - Result shape is [1, 1], so access [0][0]
+                    language_code_bytes = language_code_result[0][0]
+                    if isinstance(language_code_bytes, bytes):
+                        language_code = language_code_bytes.decode('utf-8')
+                    else:
+                        language_code = str(language_code_bytes)
+
+                    # Get CONFIDENCE - Result shape is [1, 1], so access [0][0]
+                    confidence = float(confidence_result[0][0])
+
+                    # Decode ALL_SCORES - Result shape is [1, 1], so access [0][0]
+                    all_scores_bytes = all_scores_result[0][0]
+                    if isinstance(all_scores_bytes, bytes):
+                        all_scores_str = all_scores_bytes.decode('utf-8')
+                    else:
+                        all_scores_str = str(all_scores_bytes)
+
+                    logger.info(f"Audio Lang Detection: language_code: {language_code}, confidence: {confidence}")
+                    logger.info(f"Audio Lang Detection: ALL_SCORES string (first 500 chars): {all_scores_str[:500] if len(all_scores_str) > 500 else all_scores_str}")
+
+                    # Parse ALL_SCORES JSON
+                    try:
+                        all_scores_data = json.loads(all_scores_str)
+                        
+                        # Map the response to ULCA format
+                        output_list.append({
+                            "language_code": language_code,
+                            "confidence": confidence,
+                            "all_scores": {
+                                "predicted_language": all_scores_data.get("predicted_language", language_code),
+                                "confidence": all_scores_data.get("confidence", confidence),
+                                "top_scores": all_scores_data.get("top_scores", [])
+                            }
+                        })
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Failed to parse ALL_SCORES JSON: {str(e)}")
+                        logger.error(f"ALL_SCORES string that failed to parse: {all_scores_str[:1000]}")
+                        # Fallback: use the values we already extracted
+                        output_list.append({
+                            "language_code": language_code,
+                            "confidence": confidence,
+                            "all_scores": {
+                                "predicted_language": language_code,
+                                "confidence": confidence,
+                                "top_scores": []
+                            }
+                        })
+                except Exception as e:
+                    logger.error(f"Error in audio language detection inference: {str(e)}", exc_info=True)
+                    output_list.append({
+                        "language_code": "",
+                        "confidence": 0.0,
+                        "all_scores": {
+                            "predicted_language": "",
+                            "confidence": 0.0,
+                            "top_scores": []
+                        }
+                    })
+
+        # Create response config
+        response_config = None
+        if serviceId:
+            response_config = _ULCAAudioLangDetectionInferenceResponseConfig(
+                serviceId=serviceId
+            )
+
+        return ULCAAudioLangDetectionInferenceResponse(
+            output=output_list,
+            config=response_config
+        )
 
     async def run_pipeline_ocr_inference(
         self,

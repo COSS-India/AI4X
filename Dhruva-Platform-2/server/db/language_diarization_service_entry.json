@@ -1,0 +1,16 @@
+{
+  "serviceId": "ai4bharat/language-diarization-v1--gpu--t4",
+  "name": "Language Diarization - GPU T4",
+  "serviceDescription": "Language diarization service running on NVIDIA T4 GPU. Identifies and separates different languages in audio recordings with language boundary detection. Provides language-labeled segments with timestamps and confidence scores for multilingual meetings, conversations, and general audio content.",
+  "hardwareDescription": "NVIDIA T4 GPU, 16GB RAM, Ubuntu 20.04, Triton Inference Server",
+  "publishedOn": 1731398400,
+  "modelId": "ai4bharat/language-diarization-v1",
+  "endpoint": "http://65.1.35.3:8600",
+  "api_key": "",
+  "healthStatus": {
+    "status": "active",
+    "lastUpdated": "2024-11-12T10:30:00Z"
+  },
+  "benchmarks": null
+}
+

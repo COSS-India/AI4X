@@ -1,0 +1,147 @@
+{
+  "modelId": "ai4bharat/audio-lang-detection-v1",
+  "version": "1.0",
+  "submittedOn": 1699900000,
+  "updatedOn": 1731398400,
+  "name": "Audio Language Detection",
+  "description": "Audio language detection model for identifying the language of audio content. Detects the primary language in audio recordings with high confidence scores. Provides language code, confidence score, and detailed top scores for all supported languages.",
+  "refUrl": "https://huggingface.co/speechbrain/lang-id-voxlingua107-ecapa",
+  "task": {
+    "type": "audio-lang-detection"
+  },
+  "languages": [
+    {
+      "sourceLanguage": "hi"
+    },
+    {
+      "sourceLanguage": "bn"
+    },
+    {
+      "sourceLanguage": "te"
+    },
+    {
+      "sourceLanguage": "mr"
+    },
+    {
+      "sourceLanguage": "ta"
+    },
+    {
+      "sourceLanguage": "gu"
+    },
+    {
+      "sourceLanguage": "ur"
+    },
+    {
+      "sourceLanguage": "kn"
+    },
+    {
+      "sourceLanguage": "ml"
+    },
+    {
+      "sourceLanguage": "or"
+    },
+    {
+      "sourceLanguage": "pa"
+    },
+    {
+      "sourceLanguage": "as"
+    },
+    {
+      "sourceLanguage": "sa"
+    },
+    {
+      "sourceLanguage": "kok"
+    },
+    {
+      "sourceLanguage": "mni"
+    },
+    {
+      "sourceLanguage": "sd"
+    },
+    {
+      "sourceLanguage": "ne"
+    },
+    {
+      "sourceLanguage": "mai"
+    },
+    {
+      "sourceLanguage": "brx"
+    },
+    {
+      "sourceLanguage": "doi"
+    },
+    {
+      "sourceLanguage": "sat"
+    },
+    {
+      "sourceLanguage": "ks"
+    },
+    {
+      "sourceLanguage": "en"
+    }
+  ],
+  "license": "Apache 2.0",
+  "domain": [
+    "general",
+    "audio",
+    "speech",
+    "language-identification",
+    "multilingual"
+  ],
+  "inferenceEndPoint": {
+    "schema": {
+      "modelProcessingType": {
+        "type": "audio-lang-detection"
+      },
+      "request": {
+        "controlConfig": {
+          "dataTracking": true
+        },
+        "config": {
+          "serviceId": "string"
+        },
+        "audio": [
+          {
+            "audioContent": "base64 encoded audio string",
+            "audioUri": "string (optional)"
+          }
+        ]
+      },
+      "response": {
+        "taskType": "audio-lang-detection",
+        "output": [
+          {
+            "language_code": "ta: Tamil",
+            "confidence": 0.999923586845398,
+            "all_scores": {
+              "predicted_language": "ta: Tamil",
+              "confidence": 0.999923586845398,
+              "top_scores": [
+                0.999923586845398,
+                6.958437006687745e-05,
+                4.7704766075185034e-06,
+                2.1015366655774415e-06,
+                3.07008640731965e-08
+              ]
+            }
+          }
+        ],
+        "config": {
+          "serviceId": "string (optional)"
+        }
+      }
+    }
+  },
+  "benchmarks": null,
+  "submitter": {
+    "name": "AI4Bharat",
+    "aboutMe": "AI4Bharat is a research initiative focused on developing AI technologies for Indian languages. We build state-of-the-art models for translation, OCR, ASR, TTS and other NLP tasks for Indic languages.",
+    "team": [
+      {
+        "name": "AI4Bharat Research Team",
+        "aboutMe": "Developers and researchers working on Indic language technologies"
+      }
+    ]
+  }
+}
+

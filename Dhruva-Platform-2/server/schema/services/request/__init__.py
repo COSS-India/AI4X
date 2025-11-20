@@ -33,6 +33,18 @@ from .ulca_vad_inference_request import ULCAVadInferenceRequest
 from .ulca_llm_inference_request import ULCALLMInferenceRequest
 from .ulca_ocr_inference_request import ULCAOCRInferenceRequest
 from .ulca_text_lang_detection_inference_request import ULCATextLangDetectionInferenceRequest
+from .ulca_speaker_diarization_inference_request import (
+    ULCASpeakerDiarizationInferenceRequest,
+    _ULCASpeakerDiarizationInferenceRequestConfig,
+)
+from .ulca_language_diarization_inference_request import (
+    ULCALanguageDiarizationInferenceRequest,
+    _ULCALanguageDiarizationInferenceRequestConfig,
+)
+from .ulca_audio_lang_detection_inference_request import (
+    ULCAAudioLangDetectionInferenceRequest,
+    _ULCAAudioLangDetectionInferenceRequestConfig,
+)
 
 ULCAInferenceRequest = Union[
     ULCAGenericInferenceRequest,
@@ -45,4 +57,7 @@ ULCAInferenceRequest = Union[
     ULCALLMInferenceRequest,
     ULCAOCRInferenceRequest,
     ULCATextLangDetectionInferenceRequest,
+    ULCASpeakerDiarizationInferenceRequest,
+    ULCALanguageDiarizationInferenceRequest,
+    ULCAAudioLangDetectionInferenceRequest,
 ]

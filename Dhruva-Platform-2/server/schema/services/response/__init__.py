@@ -19,6 +19,9 @@ from .ulca_vad_inference_response import ULCAVadInferenceResponse
 from .ulca_llm_inference_response import ULCALLMInferenceResponse
 from .ulca_ocr_inference_response import ULCAOCRInferenceResponse
 from .ulca_text_lang_detection_inference_response import ULCATextLangDetectionInferenceResponse
+from .ulca_speaker_diarization_inference_response import ULCASpeakerDiarizationInferenceResponse
+from .ulca_language_diarization_inference_response import ULCALanguageDiarizationInferenceResponse
+from .ulca_audio_lang_detection_inference_response import ULCAAudioLangDetectionInferenceResponse
 
 ULCAInferenceResponse = Union[
     ULCAGenericInferenceResponse,
@@ -31,4 +34,7 @@ ULCAInferenceResponse = Union[
     ULCALLMInferenceResponse,
     ULCAOCRInferenceResponse,
     ULCATextLangDetectionInferenceResponse,
+    ULCASpeakerDiarizationInferenceResponse,
+    ULCALanguageDiarizationInferenceResponse,
+    ULCAAudioLangDetectionInferenceResponse,
 ]
