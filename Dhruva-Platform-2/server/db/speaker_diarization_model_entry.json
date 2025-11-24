@@ -1,0 +1,398 @@
+{
+  "modelId": "ai4bharat/speaker-diarization-v1",
+  "version": "1.0",
+  "submittedOn": 1699900000,
+  "updatedOn": 1731398400,
+  "name": "Speaker Diarization",
+  "description": "Speaker diarization model for identifying and separating different speakers in audio recordings. Detects speaker boundaries and assigns speaker labels to audio segments. Supports automatic speaker count detection or manual specification.",
+  "refUrl": "https://github.com/AI4Bharat/speaker-diarization",
+  "task": {
+    "type": "speaker-diarization"
+  },
+  "languages": [
+    {
+      "sourceLanguage": "ab"
+    },
+    {
+      "sourceLanguage": "af"
+    },
+    {
+      "sourceLanguage": "am"
+    },
+    {
+      "sourceLanguage": "ar"
+    },
+    {
+      "sourceLanguage": "as"
+    },
+    {
+      "sourceLanguage": "az"
+    },
+    {
+      "sourceLanguage": "ba"
+    },
+    {
+      "sourceLanguage": "be"
+    },
+    {
+      "sourceLanguage": "bg"
+    },
+    {
+      "sourceLanguage": "bn"
+    },
+    {
+      "sourceLanguage": "bo"
+    },
+    {
+      "sourceLanguage": "br"
+    },
+    {
+      "sourceLanguage": "bs"
+    },
+    {
+      "sourceLanguage": "ca"
+    },
+    {
+      "sourceLanguage": "ceb"
+    },
+    {
+      "sourceLanguage": "cs"
+    },
+    {
+      "sourceLanguage": "cy"
+    },
+    {
+      "sourceLanguage": "da"
+    },
+    {
+      "sourceLanguage": "de"
+    },
+    {
+      "sourceLanguage": "el"
+    },
+    {
+      "sourceLanguage": "en"
+    },
+    {
+      "sourceLanguage": "eo"
+    },
+    {
+      "sourceLanguage": "es"
+    },
+    {
+      "sourceLanguage": "et"
+    },
+    {
+      "sourceLanguage": "eu"
+    },
+    {
+      "sourceLanguage": "fa"
+    },
+    {
+      "sourceLanguage": "fi"
+    },
+    {
+      "sourceLanguage": "fo"
+    },
+    {
+      "sourceLanguage": "fr"
+    },
+    {
+      "sourceLanguage": "gl"
+    },
+    {
+      "sourceLanguage": "gn"
+    },
+    {
+      "sourceLanguage": "gu"
+    },
+    {
+      "sourceLanguage": "gv"
+    },
+    {
+      "sourceLanguage": "ha"
+    },
+    {
+      "sourceLanguage": "haw"
+    },
+    {
+      "sourceLanguage": "hi"
+    },
+    {
+      "sourceLanguage": "hr"
+    },
+    {
+      "sourceLanguage": "ht"
+    },
+    {
+      "sourceLanguage": "hu"
+    },
+    {
+      "sourceLanguage": "hy"
+    },
+    {
+      "sourceLanguage": "ia"
+    },
+    {
+      "sourceLanguage": "id"
+    },
+    {
+      "sourceLanguage": "is"
+    },
+    {
+      "sourceLanguage": "it"
+    },
+    {
+      "sourceLanguage": "he"
+    },
+    {
+      "sourceLanguage": "ja"
+    },
+    {
+      "sourceLanguage": "jv"
+    },
+    {
+      "sourceLanguage": "ka"
+    },
+    {
+      "sourceLanguage": "kk"
+    },
+    {
+      "sourceLanguage": "km"
+    },
+    {
+      "sourceLanguage": "kn"
+    },
+    {
+      "sourceLanguage": "ko"
+    },
+    {
+      "sourceLanguage": "la"
+    },
+    {
+      "sourceLanguage": "lb"
+    },
+    {
+      "sourceLanguage": "ln"
+    },
+    {
+      "sourceLanguage": "lo"
+    },
+    {
+      "sourceLanguage": "lt"
+    },
+    {
+      "sourceLanguage": "lv"
+    },
+    {
+      "sourceLanguage": "mg"
+    },
+    {
+      "sourceLanguage": "mi"
+    },
+    {
+      "sourceLanguage": "mk"
+    },
+    {
+      "sourceLanguage": "ml"
+    },
+    {
+      "sourceLanguage": "mn"
+    },
+    {
+      "sourceLanguage": "mr"
+    },
+    {
+      "sourceLanguage": "ms"
+    },
+    {
+      "sourceLanguage": "mt"
+    },
+    {
+      "sourceLanguage": "my"
+    },
+    {
+      "sourceLanguage": "ne"
+    },
+    {
+      "sourceLanguage": "nl"
+    },
+    {
+      "sourceLanguage": "nn"
+    },
+    {
+      "sourceLanguage": "no"
+    },
+    {
+      "sourceLanguage": "oc"
+    },
+    {
+      "sourceLanguage": "pa"
+    },
+    {
+      "sourceLanguage": "pl"
+    },
+    {
+      "sourceLanguage": "ps"
+    },
+    {
+      "sourceLanguage": "pt"
+    },
+    {
+      "sourceLanguage": "ro"
+    },
+    {
+      "sourceLanguage": "ru"
+    },
+    {
+      "sourceLanguage": "sa"
+    },
+    {
+      "sourceLanguage": "gd"
+    },
+    {
+      "sourceLanguage": "sd"
+    },
+    {
+      "sourceLanguage": "si"
+    },
+    {
+      "sourceLanguage": "sk"
+    },
+    {
+      "sourceLanguage": "sl"
+    },
+    {
+      "sourceLanguage": "sn"
+    },
+    {
+      "sourceLanguage": "so"
+    },
+    {
+      "sourceLanguage": "sq"
+    },
+    {
+      "sourceLanguage": "sr"
+    },
+    {
+      "sourceLanguage": "su"
+    },
+    {
+      "sourceLanguage": "sv"
+    },
+    {
+      "sourceLanguage": "sw"
+    },
+    {
+      "sourceLanguage": "ta"
+    },
+    {
+      "sourceLanguage": "te"
+    },
+    {
+      "sourceLanguage": "tg"
+    },
+    {
+      "sourceLanguage": "th"
+    },
+    {
+      "sourceLanguage": "tk"
+    },
+    {
+      "sourceLanguage": "tl"
+    },
+    {
+      "sourceLanguage": "tr"
+    },
+    {
+      "sourceLanguage": "tt"
+    },
+    {
+      "sourceLanguage": "uk"
+    },
+    {
+      "sourceLanguage": "ur"
+    },
+    {
+      "sourceLanguage": "uz"
+    },
+    {
+      "sourceLanguage": "vi"
+    },
+    {
+      "sourceLanguage": "war"
+    },
+    {
+      "sourceLanguage": "yi"
+    },
+    {
+      "sourceLanguage": "yo"
+    },
+    {
+      "sourceLanguage": "zh"
+    }
+  ],
+  "license": "Apache 2.0",
+  "domain": [
+    "general",
+    "audio",
+    "speech",
+    "meeting",
+    "conversation"
+  ],
+  "inferenceEndPoint": {
+    "schema": {
+      "modelProcessingType": {
+        "type": "speaker-diarization"
+      },
+      "request": {
+        "controlConfig": {
+          "dataTracking": true
+        },
+        "config": {
+          "serviceId": "string"
+        },
+        "audio": [
+          {
+            "audioContent": "base64 encoded audio string",
+            "audioUri": "string (optional)"
+          }
+        ]
+      },
+      "response": {
+        "taskType": "speaker-diarization",
+        "output": [
+          {
+            "total_segments": 1,
+            "num_speakers": 1,
+            "speakers": ["SPEAKER_00"],
+            "segments": [
+              {
+                "start_time": 0.58,
+                "end_time": 7.06,
+                "duration": 6.48,
+                "speaker": "SPEAKER_00"
+              }
+            ]
+          }
+        ],
+        "config": {
+          "serviceId": "string (optional)",
+          "language": null
+        }
+      }
+    }
+  },
+  "benchmarks": null,
+  "submitter": {
+    "name": "AI4Bharat",
+    "aboutMe": "AI4Bharat is a research initiative focused on developing AI technologies for Indian languages. We build state-of-the-art models for translation, OCR, ASR, TTS and other NLP tasks for Indic languages.",
+    "team": [
+      {
+        "name": "AI4Bharat Research Team",
+        "aboutMe": "Developers and researchers working on Indic language technologies"
+      }
+    ]
+  }
+}
+

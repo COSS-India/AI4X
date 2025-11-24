@@ -18,6 +18,9 @@ from schema.services.request import (
     ULCAOCRInferenceRequest,
     ULCAPipelineInferenceRequest,
     ULCAS2SInferenceRequest,
+    ULCASpeakerDiarizationInferenceRequest,
+    ULCALanguageDiarizationInferenceRequest,
+    ULCAAudioLangDetectionInferenceRequest,
     ULCATextLangDetectionInferenceRequest,
     ULCATranslationInferenceRequest,
     ULCATransliterationInferenceRequest,
@@ -31,6 +34,9 @@ from schema.services.response import (
     ULCAOCRInferenceResponse,
     ULCAPipelineInferenceResponse,
     ULCAS2SInferenceResponse,
+    ULCASpeakerDiarizationInferenceResponse,
+    ULCALanguageDiarizationInferenceResponse,
+    ULCAAudioLangDetectionInferenceResponse,
     ULCATextLangDetectionInferenceResponse,
     ULCATranslationInferenceResponse,
     ULCATransliterationInferenceResponse,
@@ -416,19 +422,61 @@ async def _run_pipeline_text_lang_detection(
 #     )
 
 
-# @router.post("/pipeline/speaker-diarization", response_model=ULCAPipelineInferenceResponse)
-# async def _run_pipeline_speaker_diarization(
-#     request: ULCAPipelineInferenceRequest,
-#     request_state: Request,
-#     inference_service: InferenceService = Depends(InferenceService),
-# ):
-#     """
-#     Pipeline speaker diarization endpoint.
-#     Calls Triton inference service (currently with mock response until real endpoint is available).
-#     """
-#     return await inference_service.run_pipeline_speaker_diarization_inference(
-#         request, request_state.state.api_key_name, request_state.state.user_id
-#     )
+@router.post("/speaker-diarization", response_model=ULCASpeakerDiarizationInferenceResponse)
+async def _run_inference_speaker_diarization(
+    request: ULCASpeakerDiarizationInferenceRequest,
+    request_state: Request,
+    params: ULCAInferenceQuery = Depends(),
+    inference_service: InferenceService = Depends(InferenceService),
+):
+    """
+    Speaker diarization endpoint with dedicated SD request/response format.
+    Identifies different speakers in audio and returns their segments.
+    """
+    if params.serviceId:
+        request.config.serviceId = params.serviceId
+
+    return await inference_service.run_speaker_diarization_triton_inference(
+        request, request_state.state.api_key_name, request_state.state.user_id
+    )
+
+
+@router.post("/language-diarization", response_model=ULCALanguageDiarizationInferenceResponse)
+async def _run_inference_language_diarization(
+    request: ULCALanguageDiarizationInferenceRequest,
+    request_state: Request,
+    params: ULCAInferenceQuery = Depends(),
+    inference_service: InferenceService = Depends(InferenceService),
+):
+    """
+    Language diarization endpoint with dedicated LD request/response format.
+    Identifies different languages in audio and returns their segments.
+    """
+    if params.serviceId:
+        request.config.serviceId = params.serviceId
+
+    return await inference_service.run_language_diarization_triton_inference(
+        request, request_state.state.api_key_name, request_state.state.user_id
+    )
+
+
+@router.post("/audio-lang-detection", response_model=ULCAAudioLangDetectionInferenceResponse)
+async def _run_inference_audio_lang_detection(
+    request: ULCAAudioLangDetectionInferenceRequest,
+    request_state: Request,
+    params: ULCAInferenceQuery = Depends(),
+    inference_service: InferenceService = Depends(InferenceService),
+):
+    """
+    Audio language detection endpoint with dedicated ALD request/response format.
+    Detects the language of audio content and returns language code, confidence, and all scores.
+    """
+    if params.serviceId:
+        request.config.serviceId = params.serviceId
+
+    return await inference_service.run_audio_lang_detection_triton_inference(
+        request, request_state.state.api_key_name, request_state.state.user_id
+    )
 
 
 # @router.post("/pipeline/language-diarization", response_model=ULCAPipelineInferenceResponse)

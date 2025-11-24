@@ -1,0 +1,16 @@
+{
+  "serviceId": "ai4bharat/audio-lang-detection-v1--gpu--t4",
+  "name": "Audio Language Detection - GPU T4",
+  "serviceDescription": "Audio language detection service running on NVIDIA T4 GPU. Identifies the primary language in audio recordings with high accuracy. Provides language code, confidence score, and detailed top scores for all supported languages.",
+  "hardwareDescription": "NVIDIA T4 GPU, 16GB RAM, Ubuntu 20.04, Triton Inference Server",
+  "publishedOn": 1731398400,
+  "modelId": "ai4bharat/audio-lang-detection-v1",
+  "endpoint": "http://65.1.35.3:8100",
+  "api_key": "",
+  "healthStatus": {
+    "status": "active",
+    "lastUpdated": "2024-11-12T10:30:00Z"
+  },
+  "benchmarks": null
+}
+

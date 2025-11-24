@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import tritonclient.http as http_client
@@ -180,6 +180,69 @@ class TritonUtilsService:
             self.get_string_tensor([[image_base64]], "IMAGE_DATA")
         ]
         outputs = [http_client.InferRequestedOutput("OUTPUT_TEXT")]
+        return inputs, outputs
+
+    def get_speaker_diarization_io_for_triton(self, audio_base64: str, num_speakers: Optional[int] = None):
+        """
+        Prepare inputs and outputs for speaker diarization inference.
+        
+        Args:
+            audio_base64: Base64-encoded audio string
+            num_speakers: Optional number of speakers (if None, will be auto-detected)
+            
+        Returns:
+            tuple: (inputs, outputs) for Triton inference
+        """
+        # Shape needs to be [1, 1] for Triton (batch_size=1, num_elements=1)
+        # NUM_SPEAKERS is expected as a string in BYTES format
+        num_speakers_str = str(num_speakers) if num_speakers is not None else ""
+        
+        inputs = [
+            self.get_string_tensor([[audio_base64]], "AUDIO_DATA"),
+            self.get_string_tensor([[num_speakers_str]], "NUM_SPEAKERS"),
+        ]
+        outputs = [http_client.InferRequestedOutput("DIARIZATION_RESULT")]
+        return inputs, outputs
+
+    def get_language_diarization_io_for_triton(self, audio_base64: str, target_language: str = ""):
+        """
+        Prepare inputs and outputs for language diarization inference.
+        
+        Args:
+            audio_base64: Base64-encoded audio string
+            target_language: Target language code (default: "" empty string for all languages)
+            
+        Returns:
+            tuple: (inputs, outputs) for Triton inference
+        """
+        # Shape needs to be [1, 1] for Triton (batch_size=1, num_elements=1)
+        # LANGUAGE is expected as a string in BYTES format
+        inputs = [
+            self.get_string_tensor([[audio_base64]], "AUDIO_DATA"),
+            self.get_string_tensor([[target_language]], "LANGUAGE"),
+        ]
+        outputs = [http_client.InferRequestedOutput("DIARIZATION_RESULT")]
+        return inputs, outputs
+
+    def get_audio_lang_detection_io_for_triton(self, audio_base64: str):
+        """
+        Prepare inputs and outputs for audio language detection inference.
+        
+        Args:
+            audio_base64: Base64-encoded audio string
+            
+        Returns:
+            tuple: (inputs, outputs) for Triton inference
+        """
+        # Shape needs to be [1, 1] for Triton (batch_size=1, num_elements=1)
+        inputs = [
+            self.get_string_tensor([[audio_base64]], "AUDIO_DATA"),
+        ]
+        outputs = [
+            http_client.InferRequestedOutput("LANGUAGE_CODE"),
+            http_client.InferRequestedOutput("CONFIDENCE"),
+            http_client.InferRequestedOutput("ALL_SCORES"),
+        ]
         return inputs, outputs
 
     def __pad_batch(self, batch_data: List):
