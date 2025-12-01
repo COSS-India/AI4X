@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const dhruvaRootURL: string = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8000";
+const dhruvaRootURL: string =
+  process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8000";
 
 const dhruvaAPI: { [key: string]: string } = {
   listServices: `${dhruvaRootURL}/services/details/list_services`,
@@ -14,7 +15,8 @@ const dhruvaAPI: { [key: string]: string } = {
   asrStreamingInference: `wss://api.dhruva.ai4bharat.org`,
   // stsInference: `${dhruvaRootURL}/services/inference/s2s`,
   nerInference: `${dhruvaRootURL}/services/inference/ner`,
-  ocrInference: `${dhruvaRootURL}/services/inference/pipeline/ocr`,
+  // Direct OCR inference (non-pipeline)
+  ocrInference: `${dhruvaRootURL}/services/inference/ocr`,
   pipelineInference: `${dhruvaRootURL}/services/inference/pipeline`,
   txtLangDetectionInference: `${dhruvaRootURL}/services/inference/txt-lang-detection`,
   xlitInference: `${dhruvaRootURL}/services/inference/transliteration`,

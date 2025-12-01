@@ -95,23 +95,17 @@ const OCRTry: React.FC<Props> = (props) => {
       .post(
         dhruvaAPI.ocrInference,
         {
-          pipelineTasks: [
+          image: [
             {
-              taskType: "ocr",
-              config: {
-                serviceId: props.serviceId,
-                language: {
-                  sourceLanguage: "hi", // Default to Hindi, can be made dynamic
-                },
-              },
+              imageContent: imageBase64,
             },
           ],
-          inputData: {
-            image: [
-              {
-                imageContent: imageBase64,
-              },
-            ],
+          config: {
+            serviceId: props.serviceId,
+            language: {
+              sourceLanguage: "hi", // Default to Hindi, can be made dynamic
+            },
+            textDetection: false,
           },
           controlConfig: {
             dataTracking: true,
@@ -126,10 +120,14 @@ const OCRTry: React.FC<Props> = (props) => {
         }
       )
       .then((response) => {
-        const pipelineResponse = response.data.pipelineResponse[0];
-        
-        if (pipelineResponse && pipelineResponse.output && pipelineResponse.output.length > 0) {
-          const extractedText = pipelineResponse.output[0].source;
+        const ocrResponse = response.data;
+
+        if (
+          ocrResponse &&
+          ocrResponse.output &&
+          ocrResponse.output.length > 0
+        ) {
+          const extractedText = ocrResponse.output[0].source;
           setExtractedText(extractedText);
           setRequestTime(response.headers["request-duration"]);
           setFetched(true);
@@ -193,23 +191,17 @@ const OCRTry: React.FC<Props> = (props) => {
       .post(
         dhruvaAPI.ocrInference,
         {
-          pipelineTasks: [
+          image: [
             {
-              taskType: "ocr",
-              config: {
-                serviceId: props.serviceId,
-                language: {
-                  sourceLanguage: "hi",
-                },
-              },
+              imageUri: imageUri,
             },
           ],
-          inputData: {
-            image: [
-              {
-                imageUri: imageUri,
-              },
-            ],
+          config: {
+            serviceId: props.serviceId,
+            language: {
+              sourceLanguage: "hi",
+            },
+            textDetection: false,
           },
           controlConfig: {
             dataTracking: true,
@@ -224,10 +216,14 @@ const OCRTry: React.FC<Props> = (props) => {
         }
       )
       .then((response) => {
-        const pipelineResponse = response.data.pipelineResponse[0];
-        
-        if (pipelineResponse && pipelineResponse.output && pipelineResponse.output.length > 0) {
-          const extractedText = pipelineResponse.output[0].source;
+        const ocrResponse = response.data;
+
+        if (
+          ocrResponse &&
+          ocrResponse.output &&
+          ocrResponse.output.length > 0
+        ) {
+          const extractedText = ocrResponse.output[0].source;
           setExtractedText(extractedText);
           setRequestTime(response.headers["request-duration"]);
           setFetched(true);
