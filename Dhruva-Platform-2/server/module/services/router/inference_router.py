@@ -377,12 +377,12 @@ async def _run_inference_ocr(
     )
 
 
-@router.post("/pipeline/ocr", response_model=ULCAPipelineInferenceResponse)
-async def _run_pipeline_ocr(
-    request: ULCAPipelineInferenceRequest,
-    request_state: Request,
-    inference_service: InferenceService = Depends(InferenceService),
-):
+# @router.post("/pipeline/ocr", response_model=ULCAPipelineInferenceResponse)
+# async def _run_pipeline_ocr(
+#     request: ULCAPipelineInferenceRequest,
+#     request_state: Request,
+#     inference_service: InferenceService = Depends(InferenceService),
+# ):
     """
     Pipeline OCR endpoint.
     Calls Triton inference service (currently with mock response until real endpoint is available).
