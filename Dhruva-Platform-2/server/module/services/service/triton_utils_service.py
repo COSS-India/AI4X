@@ -69,6 +69,16 @@ class TritonUtilsService:
         outputs = [http_client.InferRequestedOutput("OUTPUT_GENERATED_AUDIO")]
         return inputs, outputs
 
+    def get_ner_io_for_triton(
+        self, texts: list, language: str, model_name: str = "ner"
+    ):
+        inputs = [
+            self.get_string_tensor([[text] for text in texts], "INPUT_TEXT"),
+            self.get_string_tensor([[language]] * len(texts), "LANG_ID"),
+        ]
+        outputs = [http_client.InferRequestedOutput("OUTPUT_TEXT")]
+        return inputs, outputs
+
     def get_asr_io_for_triton(
         self,
         audio_chunks: List[np.ndarray],
